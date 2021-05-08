@@ -17,10 +17,6 @@ namespace safety
 {
 class CollisionWarningSystem
 {
-public:
-  CollisionWarningSystem();
-  void run();
-
 private:
   ros::NodeHandle nh_;
   ros::Timer timer_;
@@ -48,6 +44,9 @@ private:
   void driveCallback(const ackermann_msgs::AckermannDriveStamped drive_msg);
   nav_msgs::Path bicycleStatesToPath(const std::vector<BicycleState>);
   geometry_msgs::PoseStamped bicycleStateToPoseStamped(const BicycleState);
+
+public:
+  CollisionWarningSystem();
 };
 }  // namespace safety
 }  // namespace f1tenth_racecar
