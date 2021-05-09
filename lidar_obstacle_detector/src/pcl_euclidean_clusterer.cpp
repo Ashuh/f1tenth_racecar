@@ -7,6 +7,9 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl_conversions/pcl_conversions.h>
 
+#include <geometry_msgs/Polygon.h>
+#include <sensor_msgs/PointCloud2.h>
+
 #include "lidar_obstacle_detector/pcl_euclidean_clusterer.h"
 
 namespace f1tenth_racecar
@@ -17,7 +20,8 @@ PCLEuclideanClusterer::PCLEuclideanClusterer()
 {
 }
 
-sensor_msgs::PointCloud2 PCLEuclideanClusterer::cluster(sensor_msgs::PointCloud2 in_cloud_msg)
+void PCLEuclideanClusterer::cluster(sensor_msgs::PointCloud2 in_cloud_msg, sensor_msgs::PointCloud2& out_cloud_msg,
+                                    std::vector<geometry_msgs::Polygon>& obstacles)
 {
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_input(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::moveFromROSMsg(in_cloud_msg, *pcl_input);
@@ -29,7 +33,9 @@ sensor_msgs::PointCloud2 PCLEuclideanClusterer::cluster(sensor_msgs::PointCloud2
 
   sensor_msgs::PointCloud2 clusters_msg;
   pcl::toROSMsg(*pcl_clusters_rgb_merged, clusters_msg);
-  return clusters_msg;
+
+  obstacles = boundClusters(pcl_clusters);
+  out_cloud_msg = clusters_msg;
 }
 
 std::vector<pcl::PointIndices>
@@ -42,7 +48,7 @@ PCLEuclideanClusterer::generateClusterIndices(pcl::PointCloud<pcl::PointXYZ>::Pt
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
   ec.setClusterTolerance(0.20);
-  ec.setMinClusterSize(2);
+  ec.setMinClusterSize(5);
   ec.setMaxClusterSize(800);
   ec.setSearchMethod(tree);
   ec.setInputCloud(pcl_input);
@@ -109,6 +115,39 @@ PCLEuclideanClusterer::mergeClusters(std::vector<pcl::PointCloud<pcl::PointXYZRG
   }
 
   return pcl_clusters_rgb_merged;
+}
+
+std::vector<geometry_msgs::Polygon>
+PCLEuclideanClusterer::boundClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> pcl_clusters)
+{
+  std::vector<geometry_msgs::Polygon> obstacles;
+
+  for (auto pcl_cluster : pcl_clusters)
+  {
+    std::vector<cv::Point2f> cluster_points;
+    for (pcl::PointCloud<pcl::PointXYZ>::iterator it = pcl_cluster->begin(); it != pcl_cluster->end(); ++it)
+    {
+      cv::Point2f point(it->x, it->y);
+      cluster_points.push_back(point);
+    }
+    cv::RotatedRect bounding_rect = cv::minAreaRect(cluster_points);
+
+    cv::Point2f pts[4];
+    bounding_rect.points(pts);
+    geometry_msgs::Polygon obstacle;
+
+    for (int i = 0; i < 4; i++)
+    {
+      geometry_msgs::Point32 point;
+      point.x = pts[i].x;
+      point.y = pts[i].y;
+      obstacle.points.push_back(point);
+    }
+
+    obstacles.push_back(obstacle);
+  }
+
+  return obstacles;
 }
 }  // namespace perception
 }  // namespace f1tenth_racecar
