@@ -10,6 +10,7 @@ project(lidar_obstacle_detector)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
+  visualization_msgs
   laser_geometry
   cv_bridge
   pcl_ros
