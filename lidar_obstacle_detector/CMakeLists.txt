@@ -9,6 +9,7 @@ project(lidar_obstacle_detector)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  f1tenth_msgs
   sensor_msgs
   visualization_msgs
   laser_geometry

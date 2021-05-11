@@ -3,12 +3,14 @@
 
 #include <vector>
 
+#include <pcl/io/pcd_io.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <pcl/io/pcd_io.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include "f1tenth_msgs/ObstacleArray.h"
 
 namespace f1tenth_racecar
 {
@@ -26,15 +28,15 @@ private:
   colorClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> pcl_clusters);
 
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr
-  mergeClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pcl_clusters_rgb);
+  mergeClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pcl_clusters_rgb, pcl::PCLHeader header);
 
-  std::vector<geometry_msgs::Polygon> boundClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> pcl_clusters);
+  f1tenth_msgs::ObstacleArray boundClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> pcl_clusters);
 
 public:
   PCLEuclideanClusterer();
 
   void cluster(sensor_msgs::PointCloud2 in_cloud_msg, sensor_msgs::PointCloud2& out_cloud_msg,
-               std::vector<geometry_msgs::Polygon>& obstacles);
+               f1tenth_msgs::ObstacleArray& obstacles);
 };
 }  // namespace perception
 }  // namespace f1tenth_racecar

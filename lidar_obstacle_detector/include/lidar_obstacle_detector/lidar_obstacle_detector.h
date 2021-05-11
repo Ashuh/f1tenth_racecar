@@ -8,6 +8,7 @@
 #include <sensor_msgs/LaserScan.h>
 #include <laser_geometry/laser_geometry.h>
 
+#include "f1tenth_msgs/ObstacleArray.h"
 #include "lidar_obstacle_detector/pcl_euclidean_clusterer.h"
 
 namespace f1tenth_racecar
@@ -35,7 +36,7 @@ private:
   // std::string obstacle_viz_topic_;
 
   void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg);
-  void visualizeObstacles(std::vector<geometry_msgs::Polygon> obstacles);
+  void visualizeObstacles(const f1tenth_msgs::ObstacleArray obstacles);
 
 public:
   LidarObstacleDetection();

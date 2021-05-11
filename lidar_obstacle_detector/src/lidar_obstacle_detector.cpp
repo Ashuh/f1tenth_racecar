@@ -20,7 +20,7 @@ LidarObstacleDetection::LidarObstacleDetection()
 
   scan_sub_ = nh_.subscribe(scan_topic, 1, &LidarObstacleDetection::scanCallback, this);
   clustered_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("cloud", 1);
-  // obstacle_pub_ = nh_.advertise<geometry_msgs::MarkerArray>("obstacles", 1);
+  obstacle_pub_ = nh_.advertise<f1tenth_msgs::ObstacleArray>("obstacles", 1);
   obstacle_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("obstacles_visualization", 1);
 }
 
@@ -30,29 +30,28 @@ void LidarObstacleDetection::scanCallback(const sensor_msgs::LaserScan::ConstPtr
   laser_projector_.projectLaser(*scan_msg, in_cloud_msg);
 
   sensor_msgs::PointCloud2 clusters_msg;
-  std::vector<geometry_msgs::Polygon> obstacles;
+  f1tenth_msgs::ObstacleArray obstacles;
 
   point_clusterer_.cluster(in_cloud_msg, clusters_msg, obstacles);
-  // obstacle_pub_.publish(obstacles);
-  clusters_msg.header.stamp = ros::Time::now();
-  clusters_msg.header.frame_id = "laser";
   clustered_cloud_pub_.publish(clusters_msg);
+  obstacle_pub_.publish(obstacles);
   visualizeObstacles(obstacles);
 }
 
-void LidarObstacleDetection::visualizeObstacles(std::vector<geometry_msgs::Polygon> obstacles)
+void LidarObstacleDetection::visualizeObstacles(const f1tenth_msgs::ObstacleArray obstacles)
 {
   visualization_msgs::MarkerArray obstacle_markers;
 
-  for (int i = 0; i < obstacles.size(); ++i)
+  for (int i = 0; i < obstacles.obstacles.size(); ++i)
   {
+    f1tenth_msgs::Obstacle obstacle = obstacles.obstacles.at(i);
     visualization_msgs::Marker obstacle_marker;
 
-    for (auto point : obstacles.at(i).points)
+    for (int j = 0; j < obstacle.footprint.points.size() + 1; j++)
     {
       geometry_msgs::Point p;
-      p.x = point.x;
-      p.y = point.y;
+      p.x = obstacle.footprint.points.at(j % obstacle.footprint.points.size()).x;
+      p.y = obstacle.footprint.points.at(j % obstacle.footprint.points.size()).y;
       obstacle_marker.points.push_back(p);
     }
 
@@ -66,9 +65,9 @@ void LidarObstacleDetection::visualizeObstacles(std::vector<geometry_msgs::Polyg
     obstacle_marker.scale.y = 0.05;
     obstacle_marker.scale.z = 0.05;
 
-    obstacle_marker.color.r = 1;
+    obstacle_marker.color.r = 0;
     obstacle_marker.color.g = 0;
-    obstacle_marker.color.b = 0;
+    obstacle_marker.color.b = 1;
     obstacle_marker.color.a = 1;
 
     obstacle_markers.markers.push_back(obstacle_marker);

@@ -2,15 +2,19 @@
 
 #include <cv_bridge/rgb_colors.h>
 
+#include <pcl/io/pcd_io.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include <geometry_msgs/Polygon.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "lidar_obstacle_detector/pcl_euclidean_clusterer.h"
+#include "f1tenth_msgs/ObstacleArray.h"
 
 namespace f1tenth_racecar
 {
@@ -21,21 +25,18 @@ PCLEuclideanClusterer::PCLEuclideanClusterer()
 }
 
 void PCLEuclideanClusterer::cluster(sensor_msgs::PointCloud2 in_cloud_msg, sensor_msgs::PointCloud2& out_cloud_msg,
-                                    std::vector<geometry_msgs::Polygon>& obstacles)
+                                    f1tenth_msgs::ObstacleArray& obstacles)
 {
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_input(new pcl::PointCloud<pcl::PointXYZ>);
   pcl::moveFromROSMsg(in_cloud_msg, *pcl_input);
 
   std::vector<pcl::PointIndices> cluster_indices = generateClusterIndices(pcl_input);
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> pcl_clusters = extractClusters(pcl_input, cluster_indices);
-  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pcl_clusters_rgb = colorClusters(pcl_clusters);
-  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_clusters_rgb_merged = mergeClusters(pcl_clusters_rgb);
-
-  sensor_msgs::PointCloud2 clusters_msg;
-  pcl::toROSMsg(*pcl_clusters_rgb_merged, clusters_msg);
-
   obstacles = boundClusters(pcl_clusters);
-  out_cloud_msg = clusters_msg;
+
+  std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pcl_clusters_rgb = colorClusters(pcl_clusters);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_clusters_rgb_merged = mergeClusters(pcl_clusters_rgb, pcl_input->header);
+  pcl::toROSMsg(*pcl_clusters_rgb_merged, out_cloud_msg);
 }
 
 std::vector<pcl::PointIndices>
@@ -47,7 +48,7 @@ PCLEuclideanClusterer::generateClusterIndices(pcl::PointCloud<pcl::PointXYZ>::Pt
 
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-  ec.setClusterTolerance(0.20);
+  ec.setClusterTolerance(0.10);
   ec.setMinClusterSize(5);
   ec.setMaxClusterSize(800);
   ec.setSearchMethod(tree);
@@ -67,9 +68,10 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> PCLEuclideanClusterer::extractC
     pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_cluster(new pcl::PointCloud<pcl::PointXYZ>);
     for (std::vector<int>::const_iterator pit = it->indices.begin(); pit != it->indices.end(); ++pit)
     {
-      pcl_cluster->push_back((*pcl_input)[*pit]);  //*
+      pcl_cluster->push_back((*pcl_input)[*pit]);
     }
 
+    pcl_cluster->header = pcl_input->header;
     pcl_cluster->width = pcl_cluster->size();
     pcl_cluster->height = 1;
     pcl_cluster->is_dense = true;
@@ -104,10 +106,11 @@ PCLEuclideanClusterer::colorClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>:
   return pcl_clusters_rgb;
 }
 
-pcl::PointCloud<pcl::PointXYZRGB>::Ptr
-PCLEuclideanClusterer::mergeClusters(std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pcl_clusters_rgb)
+pcl::PointCloud<pcl::PointXYZRGB>::Ptr PCLEuclideanClusterer::mergeClusters(
+    std::vector<pcl::PointCloud<pcl::PointXYZRGB>::Ptr> pcl_clusters_rgb, pcl::PCLHeader header)
 {
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pcl_clusters_rgb_merged(new pcl::PointCloud<pcl::PointXYZRGB>);
+  pcl_clusters_rgb_merged->header = header;
 
   for (auto pcl_cluster : pcl_clusters_rgb)
   {
@@ -117,34 +120,44 @@ PCLEuclideanClusterer::mergeClusters(std::vector<pcl::PointCloud<pcl::PointXYZRG
   return pcl_clusters_rgb_merged;
 }
 
-std::vector<geometry_msgs::Polygon>
+f1tenth_msgs::ObstacleArray
 PCLEuclideanClusterer::boundClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> pcl_clusters)
 {
-  std::vector<geometry_msgs::Polygon> obstacles;
+  f1tenth_msgs::ObstacleArray obstacles;
 
   for (auto pcl_cluster : pcl_clusters)
   {
-    std::vector<cv::Point2f> cluster_points;
+    std::vector<cv::Point2f> cv_cluster_points;
+    std::vector<geometry_msgs::Point32> cluster_points_msg;
+
     for (pcl::PointCloud<pcl::PointXYZ>::iterator it = pcl_cluster->begin(); it != pcl_cluster->end(); ++it)
     {
-      cv::Point2f point(it->x, it->y);
-      cluster_points.push_back(point);
-    }
-    cv::RotatedRect bounding_rect = cv::minAreaRect(cluster_points);
+      cv::Point2f cv_point(it->x, it->y);
+      cv_cluster_points.push_back(cv_point);
 
-    cv::Point2f pts[4];
-    bounding_rect.points(pts);
-    geometry_msgs::Polygon obstacle;
+      geometry_msgs::Point32 point_msg;
+      point_msg.x = it->x;
+      point_msg.y = it->y;
+      cluster_points_msg.push_back(point_msg);
+    }
+    cv::RotatedRect bounding_rect = cv::minAreaRect(cv_cluster_points);
+    cv::Point2f cv_points[4];
+    bounding_rect.points(cv_points);
+
+    std::vector<geometry_msgs::Point32> footprint_points_msg;
 
     for (int i = 0; i < 4; i++)
     {
-      geometry_msgs::Point32 point;
-      point.x = pts[i].x;
-      point.y = pts[i].y;
-      obstacle.points.push_back(point);
+      geometry_msgs::Point32 point_msg;
+      point_msg.x = cv_points[i].x;
+      point_msg.y = cv_points[i].y;
+      footprint_points_msg.push_back(point_msg);
     }
 
-    obstacles.push_back(obstacle);
+    f1tenth_msgs::Obstacle obstacle;
+    obstacle.points = cluster_points_msg;
+    obstacle.footprint.points = footprint_points_msg;
+    obstacles.obstacles.push_back(obstacle);
   }
 
   return obstacles;
