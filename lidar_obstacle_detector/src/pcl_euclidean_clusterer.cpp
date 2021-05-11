@@ -93,11 +93,12 @@ PCLEuclideanClusterer::colorClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>:
 
     cv::Vec3d cv_rgb = cv_bridge::rgb_colors::getRGBColor(i % 146);
     uint8_t r = cv_rgb[0] * 255, g = cv_rgb[1] * 255, b = cv_rgb[2] * 255;
-    uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
 
     for (pcl::PointCloud<pcl::PointXYZRGB>::iterator it = pcl_cluster_rgb->begin(); it != pcl_cluster_rgb->end(); ++it)
     {
-      it->rgb = *reinterpret_cast<float*>(&rgb);
+      it->r = r;
+      it->g = g;
+      it->b = b;
     }
 
     pcl_clusters_rgb.push_back(pcl_cluster_rgb);
