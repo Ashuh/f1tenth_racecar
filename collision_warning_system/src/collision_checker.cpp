@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <limits>
 #include <vector>
 
@@ -99,12 +100,8 @@ std::vector<geometry_msgs::Vector3> CollisionChecker::getEdges(const geometry_ms
 
 std::vector<geometry_msgs::Vector3> CollisionChecker::getAxes(const std::vector<geometry_msgs::Vector3> edges)
 {
-  std::vector<geometry_msgs::Vector3> axes;
-
-  for (auto edge : edges)
-  {
-    axes.push_back(perpendicular(edge));
-  }
+  std::vector<geometry_msgs::Vector3> axes(edges.size());
+  std::transform(edges.begin(), edges.end(), axes.begin(), perpendicular);
 
   return axes;
 }
