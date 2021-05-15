@@ -32,7 +32,7 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
 
   double wheel_base = 0.3;
 
-  model_ = BicycleModel(wheel_base);
+  biycle_model_ = new BicycleModel(wheel_base);
   collision_checker_ = new CollisionChecker(1, 1, 0.5);
 
   odom_sub_ = nh_.subscribe(odom_topic, 1, &CollisionWarningSystem::odomCallback, this);
@@ -46,11 +46,11 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
 
 void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
 {
-  geometry_msgs::TransformStamped map_to_obstacle_frame;
+  geometry_msgs::TransformStamped odom_to_obstacle_frame;
 
   try
   {
-    map_to_obstacle_frame = tf_buffer.lookupTransform("laser", "map", ros::Time(0));
+    odom_to_obstacle_frame = tf_buffer.lookupTransform(obstacle_frame_, odom_frame_, ros::Time(0));
   }
   catch (tf2::TransformException& ex)
   {
@@ -58,20 +58,21 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
   }
 
   geometry_msgs::Pose transformed_pose;
-  tf2::doTransform(odom_msg_.pose.pose, transformed_pose, map_to_obstacle_frame);
-  nav_msgs::Path projected_trajectory = model_.projectTrajectory(
-      transformed_pose, "laser", odom_msg_.twist.twist.linear.x, drive_msg_.drive.steering_angle, delta_t_, steps_);
+  tf2::doTransform(odom_msg_.pose.pose, transformed_pose, odom_to_obstacle_frame);
+  nav_msgs::Path projected_trajectory =
+      biycle_model_->projectTrajectory(transformed_pose, obstacle_frame_, odom_msg_.twist.twist.linear.x,
+                                       drive_msg_.drive.steering_angle, delta_t_, steps_);
 
   trajectory_pub_.publish(projected_trajectory);
 
-  std::vector<geometry_msgs::PolygonStamped> footprints;
+  std::vector<f1tenth_msgs::RectangleStamped> footprints;
   int collision_index;
 
   for (int i = 0; i < projected_trajectory.poses.size(); ++i)
   {
-    geometry_msgs::PolygonStamped footprint;
+    f1tenth_msgs::RectangleStamped footprint;
 
-    bool collision = collision_checker_->collisionCheck(projected_trajectory.poses.at(i).pose, obstacles_msg_);
+    bool collision = collision_checker_->collisionCheck(projected_trajectory.poses.at(i), obstacles_msg_);
     collision_checker_->getCollisionInfo(footprint, collision_index);
 
     footprints.push_back(footprint);
@@ -110,19 +111,15 @@ void CollisionWarningSystem::visualizeCollisions(double collision_index)
     f1tenth_msgs::Obstacle obstacle = obstacles_msg_.obstacles.at(i);
     visualization_msgs::Marker obstacle_marker;
 
-    for (int j = 0; j < obstacle.footprint.points.size() + 1; j++)
-    {
-      geometry_msgs::Point p;
-      p.x = obstacle.footprint.points.at(j % obstacle.footprint.points.size()).x;
-      p.y = obstacle.footprint.points.at(j % obstacle.footprint.points.size()).y;
-      obstacle_marker.points.push_back(p);
-    }
+    obstacle_marker.points = { obstacle.footprint.rectangle.a, obstacle.footprint.rectangle.b,
+                               obstacle.footprint.rectangle.c, obstacle.footprint.rectangle.d,
+                               obstacle.footprint.rectangle.a };
 
     obstacle_marker.action = visualization_msgs::Marker::ADD;
     obstacle_marker.type = visualization_msgs::Marker::LINE_STRIP;
     obstacle_marker.id = i;
     obstacle_marker.lifetime = ros::Duration(0.1);
-    obstacle_marker.header.frame_id = "laser";
+    obstacle_marker.header.frame_id = obstacle.header.frame_id;
 
     obstacle_marker.scale.x = 0.05;
     obstacle_marker.scale.y = 0.05;
@@ -149,28 +146,23 @@ void CollisionWarningSystem::visualizeCollisions(double collision_index)
   collision_viz_pub_.publish(obstacle_markers);
 }
 
-void CollisionWarningSystem::visualizeVehicleFootprints(const std::vector<geometry_msgs::PolygonStamped> footprints)
+void CollisionWarningSystem::visualizeVehicleFootprints(const std::vector<f1tenth_msgs::RectangleStamped> footprints)
 {
   visualization_msgs::MarkerArray footprint_markers;
 
   for (int i = 0; i < footprints.size(); ++i)
   {
     visualization_msgs::Marker footprint_marker;
-    geometry_msgs::Polygon footprint = footprints.at(i).polygon;
+    f1tenth_msgs::RectangleStamped footprint = footprints.at(i);
 
-    for (int j = 0; j < footprint.points.size() + 1; j++)
-    {
-      geometry_msgs::Point p;
-      p.x = footprint.points.at(j % footprint.points.size()).x;
-      p.y = footprint.points.at(j % footprint.points.size()).y;
-      footprint_marker.points.push_back(p);
-    }
+    footprint_marker.points = { footprint.rectangle.a, footprint.rectangle.b, footprint.rectangle.c,
+                                footprint.rectangle.d, footprint.rectangle.a };
 
     footprint_marker.action = visualization_msgs::Marker::ADD;
     footprint_marker.type = visualization_msgs::Marker::LINE_STRIP;
     footprint_marker.id = i;
     footprint_marker.lifetime = ros::Duration(0.1);
-    footprint_marker.header.frame_id = "laser";
+    footprint_marker.header.frame_id = footprint.header.frame_id;
 
     footprint_marker.scale.x = 0.05;
     footprint_marker.scale.y = 0.05;

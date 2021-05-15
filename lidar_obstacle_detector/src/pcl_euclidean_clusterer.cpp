@@ -129,14 +129,14 @@ PCLEuclideanClusterer::boundClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>:
   for (auto pcl_cluster : pcl_clusters)
   {
     std::vector<cv::Point2f> cv_cluster_points;
-    std::vector<geometry_msgs::Point32> cluster_points_msg;
+    std::vector<geometry_msgs::Point> cluster_points_msg;
 
     for (pcl::PointCloud<pcl::PointXYZ>::iterator it = pcl_cluster->begin(); it != pcl_cluster->end(); ++it)
     {
       cv::Point2f cv_point(it->x, it->y);
       cv_cluster_points.push_back(cv_point);
 
-      geometry_msgs::Point32 point_msg;
+      geometry_msgs::Point point_msg;
       point_msg.x = it->x;
       point_msg.y = it->y;
       cluster_points_msg.push_back(point_msg);
@@ -145,19 +145,22 @@ PCLEuclideanClusterer::boundClusters(std::vector<pcl::PointCloud<pcl::PointXYZ>:
     cv::Point2f cv_points[4];
     bounding_rect.points(cv_points);
 
-    std::vector<geometry_msgs::Point32> footprint_points_msg;
-
-    for (int i = 0; i < 4; i++)
-    {
-      geometry_msgs::Point32 point_msg;
-      point_msg.x = cv_points[i].x;
-      point_msg.y = cv_points[i].y;
-      footprint_points_msg.push_back(point_msg);
-    }
-
     f1tenth_msgs::Obstacle obstacle;
+    pcl_conversions::fromPCL(pcl_cluster->header, obstacle.header);
+
+    obstacle.footprint.rectangle.a.x = cv_points[0].x;
+    obstacle.footprint.rectangle.a.y = cv_points[0].y;
+
+    obstacle.footprint.rectangle.b.x = cv_points[1].x;
+    obstacle.footprint.rectangle.b.y = cv_points[1].y;
+
+    obstacle.footprint.rectangle.c.x = cv_points[2].x;
+    obstacle.footprint.rectangle.c.y = cv_points[2].y;
+
+    obstacle.footprint.rectangle.d.x = cv_points[3].x;
+    obstacle.footprint.rectangle.d.y = cv_points[3].y;
+
     obstacle.points = cluster_points_msg;
-    obstacle.footprint.points = footprint_points_msg;
     obstacles.obstacles.push_back(obstacle);
   }
 

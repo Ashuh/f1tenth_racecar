@@ -47,13 +47,9 @@ void LidarObstacleDetection::visualizeObstacles(const f1tenth_msgs::ObstacleArra
     f1tenth_msgs::Obstacle obstacle = obstacles.obstacles.at(i);
     visualization_msgs::Marker obstacle_marker;
 
-    for (int j = 0; j < obstacle.footprint.points.size() + 1; j++)
-    {
-      geometry_msgs::Point p;
-      p.x = obstacle.footprint.points.at(j % obstacle.footprint.points.size()).x;
-      p.y = obstacle.footprint.points.at(j % obstacle.footprint.points.size()).y;
-      obstacle_marker.points.push_back(p);
-    }
+    obstacle_marker.points = { obstacle.footprint.rectangle.a, obstacle.footprint.rectangle.b,
+                               obstacle.footprint.rectangle.c, obstacle.footprint.rectangle.d,
+                               obstacle.footprint.rectangle.a };
 
     obstacle_marker.action = visualization_msgs::Marker::ADD;
     obstacle_marker.type = visualization_msgs::Marker::LINE_STRIP;

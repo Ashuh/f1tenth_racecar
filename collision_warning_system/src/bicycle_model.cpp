@@ -13,14 +13,8 @@ namespace f1tenth_racecar
 {
 namespace safety
 {
-BicycleModel::BicycleModel()
+BicycleModel::BicycleModel(const double wheelbase) : wheelbase_(wheelbase)
 {
-  wheelbase_ = -1;
-}
-
-BicycleModel::BicycleModel(const double wheelbase)
-{
-  wheelbase_ = wheelbase;
 }
 
 nav_msgs::Path BicycleModel::projectTrajectory(const geometry_msgs::Pose initial_pose, const std::string frame_id,

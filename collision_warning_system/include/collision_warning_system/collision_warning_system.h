@@ -1,6 +1,7 @@
 #ifndef COLLISION_WARNING_SYSTEM_COLLISION_WARNING_SYSTEM_H
 #define COLLISION_WARNING_SYSTEM_COLLISION_WARNING_SYSTEM_H
 
+#include <string>
 #include <vector>
 
 #include <ros/ros.h>
@@ -37,22 +38,25 @@ private:
   tf2_ros::Buffer tf_buffer;
   tf2_ros::TransformListener tf_listener;
 
-  BicycleModel model_;
+  BicycleModel* biycle_model_;
   CollisionChecker* collision_checker_;
 
-  double delta_t_ = 0.5;
-  double steps_ = 10;
+  std::string obstacle_frame_ = "laser";
+  std::string odom_frame_ = "map";
 
   nav_msgs::Odometry odom_msg_;
   ackermann_msgs::AckermannDriveStamped drive_msg_;
   f1tenth_msgs::ObstacleArray obstacles_msg_;
+
+  double delta_t_ = 0.5;
+  double steps_ = 10;
 
   void timerCallback(const ros::TimerEvent& timer_event);
   void odomCallback(const nav_msgs::Odometry odom_msg);
   void driveCallback(const ackermann_msgs::AckermannDriveStamped drive_msg);
   void obstacleCallback(const f1tenth_msgs::ObstacleArray obstacles);
   void visualizeCollisions(double collision_index);
-  void visualizeVehicleFootprints(const std::vector<geometry_msgs::PolygonStamped> footprints);
+  void visualizeVehicleFootprints(const std::vector<f1tenth_msgs::RectangleStamped> footprints);
 
 public:
   CollisionWarningSystem();

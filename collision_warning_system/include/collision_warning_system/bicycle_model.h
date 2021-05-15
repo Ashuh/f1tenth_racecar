@@ -16,14 +16,13 @@ namespace safety
 class BicycleModel
 {
 private:
-  double wheelbase_;
+  const double wheelbase_;
 
   BicycleState propagateState(const BicycleState state, const double delta_t);
   nav_msgs::Path bicycleStatesToPath(const std::vector<BicycleState> states, std::string frame_id);
   geometry_msgs::PoseStamped bicycleStateToPoseStamped(const BicycleState state, std::string frame_id);
 
 public:
-  BicycleModel();
   explicit BicycleModel(const double wheel_base);
 
   nav_msgs::Path projectTrajectory(const geometry_msgs::Pose initial_pose, const std::string frame_id,
