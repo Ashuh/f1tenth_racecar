@@ -49,8 +49,8 @@ geometry_msgs::Polygon CollisionChecker::transformVehicleRect(const geometry_msg
 
   geometry_msgs::Polygon vehicle_footprint_transformed;
 
-  vehicle_footprint_transformed.points = { front_left_transformed_32, front_right_transformed_32, rear_right_transformed_32,
-                                      rear_left_transformed_32 };
+  vehicle_footprint_transformed.points = { front_left_transformed_32, front_right_transformed_32,
+                                           rear_right_transformed_32, rear_left_transformed_32 };
 
   return vehicle_footprint_transformed;
 }
