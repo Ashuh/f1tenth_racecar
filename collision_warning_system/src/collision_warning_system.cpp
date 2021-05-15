@@ -66,7 +66,7 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
   trajectory_pub_.publish(projected_trajectory);
 
   std::vector<f1tenth_msgs::RectangleStamped> footprints;
-  int collision_index;
+  int collision_index = -1;
 
   for (int i = 0; i < projected_trajectory.poses.size(); ++i)
   {
