@@ -1,3 +1,4 @@
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -6,6 +7,7 @@
 #include <geometry_msgs/PolygonStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <std_msgs/Float64.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
@@ -26,6 +28,7 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
   std::string odom_topic = "odom";
   std::string drive_topic = "drive";
   std::string obstacle_topic = "obstacles";
+  std::string time_to_collision_topic = "time_to_collision";
   std::string trajectory_topic = "trajectory";
   std::string vehicle_footprints_viz_topic = "vehicle_footprints_viz";
   std::string collision_viz_topic = "collision_viz";
@@ -39,6 +42,7 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
   drive_sub_ = nh_.subscribe(drive_topic, 1, &CollisionWarningSystem::driveCallback, this);
   obstacle_sub_ = nh_.subscribe(obstacle_topic, 1, &CollisionWarningSystem::obstacleCallback, this);
 
+  time_to_collision_pub_ = nh_.advertise<std_msgs::Float64>(time_to_collision_topic, 1);
   trajectory_pub_ = nh_.advertise<nav_msgs::Path>(trajectory_topic, 1);
   vehicle_footprints_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(vehicle_footprints_viz_topic, 1);
   collision_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(collision_viz_topic, 1);
@@ -67,6 +71,8 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
 
   std::vector<f1tenth_msgs::RectangleStamped> footprints;
   int collision_index = -1;
+  std_msgs::Float64 time_to_collision_msg;
+  time_to_collision_msg.data = std::numeric_limits<double>::max();
 
   for (int i = 0; i < projected_trajectory.poses.size(); ++i)
   {
@@ -79,10 +85,12 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
 
     if (collision)
     {
+      time_to_collision_msg.data = i * delta_t_;
       break;
     }
   }
 
+  time_to_collision_pub_.publish(time_to_collision_msg);
   visualizeVehicleFootprints(footprints);
   visualizeCollisions(collision_index);
 }

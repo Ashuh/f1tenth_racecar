@@ -31,6 +31,7 @@ private:
   ros::Subscriber obstacle_sub_;
 
   // Publishers
+  ros::Publisher time_to_collision_pub_;
   ros::Publisher trajectory_pub_;
   ros::Publisher vehicle_footprints_pub_;
   ros::Publisher collision_viz_pub_;
