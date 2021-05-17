@@ -1,7 +1,6 @@
 #include <cmath>
 #include <string>
 #include <vector>
-#include <assert.h>
 
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/Pose.h>
@@ -19,10 +18,8 @@ BicycleModel::BicycleModel(const double wheelbase) : wheelbase_(wheelbase)
 
 nav_msgs::Path BicycleModel::projectTrajectory(const geometry_msgs::Pose initial_pose, const std::string frame_id,
                                                const double velocity, const double steering_angle, const double delta_t,
-                                               const double steps)
+                                               const double t_max)
 {
-  assert(wheelbase_ > 0);
-
   tf2::Quaternion yaw_quat;
   tf2::convert(initial_pose.orientation, yaw_quat);
   tf2::Matrix3x3 yaw_mat(yaw_quat);
@@ -36,7 +33,7 @@ nav_msgs::Path BicycleModel::projectTrajectory(const geometry_msgs::Pose initial
   projected_trajectory.push_back(initial_state);
   BicycleState next_state = initial_state;
 
-  for (int i = 0; i < steps; i++)
+  for (double t = 0; t <= t_max; t += delta_t)
   {
     next_state = propagateState(next_state, delta_t);
     projected_trajectory.push_back(next_state);

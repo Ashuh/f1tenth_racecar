@@ -25,18 +25,37 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
   ros::NodeHandle private_nh("~");
   timer_ = nh_.createTimer(ros::Duration(0.1), &CollisionWarningSystem::timerCallback, this);
 
-  std::string odom_topic = "odom";
-  std::string drive_topic = "drive";
-  std::string obstacle_topic = "obstacles";
-  std::string time_to_collision_topic = "time_to_collision";
-  std::string trajectory_topic = "trajectory";
-  std::string vehicle_footprints_viz_topic = "vehicle_footprints_viz";
-  std::string collision_viz_topic = "collision_viz";
+  double wheelbase;
+  double vehicle_width;
+  double vehicle_length;
+  double base_link_to_center_dist;
 
-  double wheel_base = 0.3;
+  std::string odom_topic;
+  std::string drive_topic;
+  std::string obstacle_topic;
+  std::string time_to_collision_topic;
+  std::string trajectory_topic;
+  std::string vehicle_footprints_viz_topic;
+  std::string collision_viz_topic;
 
-  biycle_model_ = new BicycleModel(wheel_base);
-  collision_checker_ = new CollisionChecker(1, 1, 0.5);
+  ROS_ASSERT(private_nh.getParam("t_max", t_max_) && t_max_ >= 0);
+  ROS_ASSERT(private_nh.getParam("delta_t", delta_t_) && delta_t_ > 0);
+
+  ROS_ASSERT(private_nh.getParam("wheelbase", wheelbase) && wheelbase > 0);
+  ROS_ASSERT(private_nh.getParam("vehicle_width", vehicle_width) && vehicle_width > 0);
+  ROS_ASSERT(private_nh.getParam("vehicle_length", vehicle_length) && vehicle_length > 0);
+  ROS_ASSERT(private_nh.getParam("base_link_to_center_dist", base_link_to_center_dist) && base_link_to_center_dist > 0);
+
+  ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
+  ROS_ASSERT(private_nh.getParam("drive_topic", drive_topic));
+  ROS_ASSERT(private_nh.getParam("obstacle_topic", obstacle_topic));
+  ROS_ASSERT(private_nh.getParam("time_to_collision_topic", time_to_collision_topic));
+  ROS_ASSERT(private_nh.getParam("trajectory_topic", trajectory_topic));
+  ROS_ASSERT(private_nh.getParam("vehicle_footprints_viz_topic", vehicle_footprints_viz_topic));
+  ROS_ASSERT(private_nh.getParam("collision_viz_topic", collision_viz_topic));
+
+  biycle_model_ = new BicycleModel(wheelbase);
+  collision_checker_ = new CollisionChecker(vehicle_width, vehicle_length, base_link_to_center_dist);
 
   odom_sub_ = nh_.subscribe(odom_topic, 1, &CollisionWarningSystem::odomCallback, this);
   drive_sub_ = nh_.subscribe(drive_topic, 1, &CollisionWarningSystem::driveCallback, this);
@@ -65,7 +84,7 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
   tf2::doTransform(odom_msg_.pose.pose, transformed_pose, odom_to_obstacle_frame);
   nav_msgs::Path projected_trajectory =
       biycle_model_->projectTrajectory(transformed_pose, obstacle_frame_, odom_msg_.twist.twist.linear.x,
-                                       drive_msg_.drive.steering_angle, delta_t_, steps_);
+                                       drive_msg_.drive.steering_angle, delta_t_, t_max_);
 
   trajectory_pub_.publish(projected_trajectory);
 

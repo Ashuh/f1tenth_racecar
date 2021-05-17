@@ -23,11 +23,11 @@ private:
   geometry_msgs::PoseStamped bicycleStateToPoseStamped(const BicycleState state, std::string frame_id);
 
 public:
-  explicit BicycleModel(const double wheel_base);
+  explicit BicycleModel(const double wheelbase);
 
   nav_msgs::Path projectTrajectory(const geometry_msgs::Pose initial_pose, const std::string frame_id,
                                    const double velocity, const double steering_angle, const double delta_t,
-                                   const double steps);
+                                   const double t_max);
 };
 }  // namespace safety
 }  // namespace f1tenth_racecar

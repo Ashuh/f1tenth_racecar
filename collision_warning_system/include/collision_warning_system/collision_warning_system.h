@@ -49,8 +49,8 @@ private:
   ackermann_msgs::AckermannDriveStamped drive_msg_;
   f1tenth_msgs::ObstacleArray obstacles_msg_;
 
-  double delta_t_ = 0.5;
-  double steps_ = 10;
+  double t_max_;
+  double delta_t_;
 
   void timerCallback(const ros::TimerEvent& timer_event);
   void odomCallback(const nav_msgs::Odometry odom_msg);
