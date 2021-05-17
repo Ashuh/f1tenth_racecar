@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   ackermann_msgs
   nav_msgs
   tf2_geometry_msgs
+  f1tenth_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -138,6 +139,7 @@ add_executable(${PROJECT_NAME}_node
   src/collision_warning_system.cpp
   src/bicycle_model.cpp
   src/bicycle_state.cpp
+  src/collision_checker.cpp
 )
 
 ## Rename C++ executable without prefix

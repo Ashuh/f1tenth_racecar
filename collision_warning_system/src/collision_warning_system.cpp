@@ -1,7 +1,19 @@
+#include <limits>
 #include <string>
 #include <vector>
+
+#include <ros/ros.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
+#include <geometry_msgs/PolygonStamped.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <std_msgs/Float64.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
+#include "f1tenth_msgs/ObstacleArray.h"
+#include "collision_warning_system/bicycle_model.h"
+#include "collision_warning_system/collision_checker.h"
 #include "collision_warning_system/collision_warning_system.h"
 
 namespace f1tenth_racecar
@@ -13,24 +25,55 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
   ros::NodeHandle private_nh("~");
   timer_ = nh_.createTimer(ros::Duration(0.1), &CollisionWarningSystem::timerCallback, this);
 
-  std::string odom_topic = "odom";
-  std::string drive_topic = "drive";
-  std::string trajectory_topic = "trajectory";
-  double wheel_base = 0.3;
-  model_ = BicycleModel(wheel_base);
+  double wheelbase;
+  double vehicle_width;
+  double vehicle_length;
+  double base_link_to_center_dist;
+
+  std::string odom_topic;
+  std::string drive_topic;
+  std::string obstacle_topic;
+  std::string time_to_collision_topic;
+  std::string trajectory_topic;
+  std::string vehicle_footprints_viz_topic;
+  std::string collision_viz_topic;
+
+  ROS_ASSERT(private_nh.getParam("t_max", t_max_) && t_max_ >= 0);
+  ROS_ASSERT(private_nh.getParam("delta_t", delta_t_) && delta_t_ > 0);
+
+  ROS_ASSERT(private_nh.getParam("wheelbase", wheelbase) && wheelbase > 0);
+  ROS_ASSERT(private_nh.getParam("vehicle_width", vehicle_width) && vehicle_width > 0);
+  ROS_ASSERT(private_nh.getParam("vehicle_length", vehicle_length) && vehicle_length > 0);
+  ROS_ASSERT(private_nh.getParam("base_link_to_center_dist", base_link_to_center_dist) && base_link_to_center_dist > 0);
+
+  ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
+  ROS_ASSERT(private_nh.getParam("drive_topic", drive_topic));
+  ROS_ASSERT(private_nh.getParam("obstacle_topic", obstacle_topic));
+  ROS_ASSERT(private_nh.getParam("time_to_collision_topic", time_to_collision_topic));
+  ROS_ASSERT(private_nh.getParam("trajectory_topic", trajectory_topic));
+  ROS_ASSERT(private_nh.getParam("vehicle_footprints_viz_topic", vehicle_footprints_viz_topic));
+  ROS_ASSERT(private_nh.getParam("collision_viz_topic", collision_viz_topic));
+
+  biycle_model_ = new BicycleModel(wheelbase);
+  collision_checker_ = new CollisionChecker(vehicle_width, vehicle_length, base_link_to_center_dist);
 
   odom_sub_ = nh_.subscribe(odom_topic, 1, &CollisionWarningSystem::odomCallback, this);
   drive_sub_ = nh_.subscribe(drive_topic, 1, &CollisionWarningSystem::driveCallback, this);
+  obstacle_sub_ = nh_.subscribe(obstacle_topic, 1, &CollisionWarningSystem::obstacleCallback, this);
+
+  time_to_collision_pub_ = nh_.advertise<std_msgs::Float64>(time_to_collision_topic, 1);
   trajectory_pub_ = nh_.advertise<nav_msgs::Path>(trajectory_topic, 1);
+  vehicle_footprints_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(vehicle_footprints_viz_topic, 1);
+  collision_viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(collision_viz_topic, 1);
 }
 
 void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
 {
-  geometry_msgs::TransformStamped map_to_base_link;
+  geometry_msgs::TransformStamped odom_to_obstacle_frame;
 
   try
   {
-    map_to_base_link = tf_buffer.lookupTransform("base_link", "map", ros::Time(0));
+    odom_to_obstacle_frame = tf_buffer.lookupTransform(obstacle_frame_, odom_frame_, ros::Time(0));
   }
   catch (tf2::TransformException& ex)
   {
@@ -38,22 +81,37 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
   }
 
   geometry_msgs::Pose transformed_pose;
-  tf2::doTransform(odom_msg_.pose.pose, transformed_pose, map_to_base_link);
+  tf2::doTransform(odom_msg_.pose.pose, transformed_pose, odom_to_obstacle_frame);
+  nav_msgs::Path projected_trajectory =
+      biycle_model_->projectTrajectory(transformed_pose, obstacle_frame_, odom_msg_.twist.twist.linear.x,
+                                       drive_msg_.drive.steering_angle, delta_t_, t_max_);
 
-  tf2::Quaternion yaw_quat;
-  tf2::convert(transformed_pose.orientation, yaw_quat);
-  tf2::Matrix3x3 yaw_mat(yaw_quat);
-
-  double roll;
-  double pitch;
-  double yaw;
-
-  yaw_mat.getRPY(roll, pitch, yaw);
-
-  BicycleState initial_state(transformed_pose.position.x, transformed_pose.position.y, odom_msg_.twist.twist.linear.x,
-                             yaw, drive_msg_.drive.steering_angle);
-  nav_msgs::Path projected_trajectory = bicycleStatesToPath(model_.projectTrajectory(initial_state, delta_t_, steps_));
   trajectory_pub_.publish(projected_trajectory);
+
+  std::vector<f1tenth_msgs::RectangleStamped> footprints;
+  int collision_index = -1;
+  std_msgs::Float64 time_to_collision_msg;
+  time_to_collision_msg.data = std::numeric_limits<double>::max();
+
+  for (int i = 0; i < projected_trajectory.poses.size(); ++i)
+  {
+    f1tenth_msgs::RectangleStamped footprint;
+
+    bool collision = collision_checker_->collisionCheck(projected_trajectory.poses.at(i), obstacles_msg_);
+    collision_checker_->getCollisionInfo(footprint, collision_index);
+
+    footprints.push_back(footprint);
+
+    if (collision)
+    {
+      time_to_collision_msg.data = i * delta_t_;
+      break;
+    }
+  }
+
+  time_to_collision_pub_.publish(time_to_collision_msg);
+  visualizeVehicleFootprints(footprints);
+  visualizeCollisions(collision_index);
 }
 
 void CollisionWarningSystem::odomCallback(const nav_msgs::Odometry odom_msg)
@@ -66,36 +124,86 @@ void CollisionWarningSystem::driveCallback(const ackermann_msgs::AckermannDriveS
   drive_msg_ = drive_msg;
 }
 
-nav_msgs::Path CollisionWarningSystem::bicycleStatesToPath(const std::vector<BicycleState> states)
+void CollisionWarningSystem::obstacleCallback(const f1tenth_msgs::ObstacleArray obstacles_msg)
 {
-  nav_msgs::Path path;
-  path.header.frame_id = "base_link";
-  path.header.stamp = ros::Time::now();
-
-  for (auto& state : states)
-  {
-    path.poses.push_back(bicycleStateToPoseStamped(state));
-  }
-
-  return path;
+  obstacles_msg_ = obstacles_msg;
 }
 
-geometry_msgs::PoseStamped CollisionWarningSystem::bicycleStateToPoseStamped(const BicycleState state)
+void CollisionWarningSystem::visualizeCollisions(double collision_index)
 {
-  geometry_msgs::PoseStamped pose_stamped;
-  pose_stamped.header.frame_id = "base_link";
-  pose_stamped.header.stamp = ros::Time::now();
+  visualization_msgs::MarkerArray obstacle_markers;
 
-  tf2::Quaternion yaw_quat;
-  yaw_quat.setRPY(0, 0, state.yaw());
-  geometry_msgs::Quaternion yaw_quat_msg;
-  tf2::convert(yaw_quat, yaw_quat_msg);
+  for (int i = 0; i < obstacles_msg_.obstacles.size(); ++i)
+  {
+    f1tenth_msgs::Obstacle obstacle = obstacles_msg_.obstacles.at(i);
+    visualization_msgs::Marker obstacle_marker;
 
-  pose_stamped.pose.position.x = state.x();
-  pose_stamped.pose.position.y = state.y();
-  pose_stamped.pose.orientation = yaw_quat_msg;
+    obstacle_marker.points = { obstacle.footprint.rectangle.a, obstacle.footprint.rectangle.b,
+                               obstacle.footprint.rectangle.c, obstacle.footprint.rectangle.d,
+                               obstacle.footprint.rectangle.a };
 
-  return pose_stamped;
+    obstacle_marker.action = visualization_msgs::Marker::ADD;
+    obstacle_marker.type = visualization_msgs::Marker::LINE_STRIP;
+    obstacle_marker.id = i;
+    obstacle_marker.lifetime = ros::Duration(0.1);
+    obstacle_marker.header.frame_id = obstacle.header.frame_id;
+
+    obstacle_marker.scale.x = 0.05;
+    obstacle_marker.scale.y = 0.05;
+    obstacle_marker.scale.z = 0.05;
+
+    if (i == collision_index)
+    {
+      obstacle_marker.color.r = 1;
+      obstacle_marker.color.g = 0;
+      obstacle_marker.color.b = 0;
+      obstacle_marker.color.a = 1;
+    }
+    else
+    {
+      obstacle_marker.color.r = 0;
+      obstacle_marker.color.g = 1;
+      obstacle_marker.color.b = 0;
+      obstacle_marker.color.a = 1;
+    }
+
+    obstacle_markers.markers.push_back(obstacle_marker);
+  }
+
+  collision_viz_pub_.publish(obstacle_markers);
+}
+
+void CollisionWarningSystem::visualizeVehicleFootprints(const std::vector<f1tenth_msgs::RectangleStamped> footprints)
+{
+  visualization_msgs::MarkerArray footprint_markers;
+
+  for (int i = 0; i < footprints.size(); ++i)
+  {
+    visualization_msgs::Marker footprint_marker;
+    f1tenth_msgs::RectangleStamped footprint = footprints.at(i);
+
+    footprint_marker.points = { footprint.rectangle.a, footprint.rectangle.b, footprint.rectangle.c,
+                                footprint.rectangle.d, footprint.rectangle.a };
+
+    footprint_marker.action = visualization_msgs::Marker::ADD;
+    footprint_marker.type = visualization_msgs::Marker::LINE_STRIP;
+    footprint_marker.id = i;
+    footprint_marker.lifetime = ros::Duration(0.1);
+    footprint_marker.header.frame_id = footprint.header.frame_id;
+
+    footprint_marker.scale.x = 0.05;
+    footprint_marker.scale.y = 0.05;
+    footprint_marker.scale.z = 0.05;
+
+    footprint_marker.color.r = 0;
+    footprint_marker.color.g = 1;
+    footprint_marker.color.b = 0;
+    footprint_marker.color.a = 1;
+
+    footprint_markers.markers.push_back(footprint_marker);
+  }
+
+  vehicle_footprints_pub_.publish(footprint_markers);
 }
 }  // namespace safety
 }  // namespace f1tenth_racecar
