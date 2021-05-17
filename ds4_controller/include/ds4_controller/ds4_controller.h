@@ -14,14 +14,27 @@ class DS4Controller
 private:
   ros::NodeHandle nh_;
 
+  ros::Timer timer_;
+
   ros::Subscriber status_sub_;
+
+  ros::Publisher feedback_pub_;
   ros::Publisher drive_pub_;
 
   double max_steering_angle_;
   double max_speed_;
 
+  double battery_percentage_;
+
   void statusCallback(const ds4_driver::Status status_msg);
+
   void publishDriveMsg(const double throttle_axis, const double steering_axis);
+
+  void publishFeedbackMsg(const ros::TimerEvent& timer_event);
+
+  void waitForConnection();
+
+  void batteryToRGB(float& r, float& g, float& b);
 
 public:
   DS4Controller();

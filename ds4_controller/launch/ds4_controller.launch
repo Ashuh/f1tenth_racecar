@@ -3,6 +3,7 @@
   <arg name="deadzone" value="0"/>
 
   <arg name="status_topic" value="status"/>
+  <arg name="feedback_topic" value="set_feedback"/>
   <arg name="drive_topic" value="drive"/>
 
   <arg name="max_steering_angle" value="0.3"/>
@@ -16,8 +17,9 @@
   <node pkg="tf2_ros" type="static_transform_publisher" name="ds4_to_imu" args="0 0.05 -0.01 -1.5707 0 1.5707 ds4 ds4_imu"/>
 
   <node name="ds4_controller" pkg="ds4_controller" type="ds4_controller_node" output="screen">
-    <param name="status_topic" value="$(arg status_topic)"/>
-    <param name="drive_topic" value="$(arg drive_topic)"/>
+    <param name="status_topic" value="$(arg status_topic)" />
+    <param name="feedback_topic" value="$(arg feedback_topic)" />
+    <param name="drive_topic" value="$(arg drive_topic)" />
 
     <param name="max_steering_angle" value="$(arg max_steering_angle)"/>
     <param name="max_speed" value="$(arg max_speed)"/>
