@@ -33,7 +33,7 @@ nav_msgs::Path BicycleModel::projectTrajectory(const geometry_msgs::Pose initial
   projected_trajectory.push_back(initial_state);
   BicycleState next_state = initial_state;
 
-  for (double t = 0; t <= t_max; t += delta_t)
+  for (int i = 0; i < t_max / delta_t; ++i)
   {
     next_state = propagateState(next_state, delta_t);
     projected_trajectory.push_back(next_state);
