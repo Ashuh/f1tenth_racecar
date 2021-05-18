@@ -1,6 +1,8 @@
 #ifndef DS4_CONTROLLER_DS4_CONTROLLER_H
 #define DS4_CONTROLLER_DS4_CONTROLLER_H
 
+#include <string>
+
 #include <ros/ros.h>
 
 #include "ds4_driver/Status.h"
@@ -32,7 +34,7 @@ private:
 
   void publishFeedbackMsg(const ros::TimerEvent& timer_event);
 
-  void waitForConnection();
+  void waitForConnection(const std::string status_topic);
 
   void batteryToRGB(float& r, float& g, float& b);
 

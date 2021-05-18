@@ -30,7 +30,7 @@ DS4Controller::DS4Controller()
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
   feedback_pub_ = nh_.advertise<ds4_driver::Feedback>(feedback_topic, 1);
 
-  waitForConnection();
+  waitForConnection(status_topic);
 
   timer_ = nh_.createTimer(ros::Duration(0.1), &DS4Controller::publishFeedbackMsg, this);
 }
@@ -60,11 +60,18 @@ void DS4Controller::publishFeedbackMsg(const ros::TimerEvent& timer_event)
   feedback_pub_.publish(feedback_msg);
 }
 
-void DS4Controller::waitForConnection()
+void DS4Controller::waitForConnection(const std::string status_topic)
 {
   while (status_sub_.getNumPublishers() == 0)
   {
-    ROS_WARN_THROTTLE(1, "[DS4 Controller] Waiting for connection");
+    ROS_WARN_THROTTLE(1, "[DS4 Controller] Waiting for DS4 Driver");
+  }
+
+  ROS_INFO("[DS4 Controller] DS4 Driver Started");
+
+  while (ros::topic::waitForMessage<ds4_driver::Status>(status_topic, ros::Duration(0.1)) == NULL)
+  {
+    ROS_WARN_THROTTLE(1, "[DS4 Controller] Waiting for Connection to DualShock 4");
   }
 
   ROS_INFO("[DS4 Controller] Connection success");
