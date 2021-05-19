@@ -1,11 +1,11 @@
 <launch>
-    <arg name="t_max" value="5"/>
-    <arg name="delta_t" value="0.5"/>
+    <arg name="t_max" value="2"/>
+    <arg name="delta_t" value="0.2"/>
 
     <arg name="wheelbase" value="0.3"/>
     <arg name="vehicle_width" value="0.3"/>
-    <arg name="vehicle_length" value="0.5"/>
-    <arg name="base_link_to_center_dist" value="0.25"/>
+    <arg name="vehicle_length" value="0.8"/>
+    <arg name="base_link_to_center_dist" value="0.4"/>
 
     <arg name="odom_topic" value="odom"/>
     <arg name="drive_topic" value="drive"/>
