@@ -6,6 +6,8 @@
   <arg name="feedback_topic" value="set_feedback"/>
   <arg name="drive_topic" value="drive_raw"/>
 
+  <arg name="timeout" value="0.5"/>
+
   <arg name="max_steering_angle" value="0.3"/>
   <arg name="max_speed" value="5"/>
 
@@ -20,6 +22,8 @@
     <param name="status_topic" value="$(arg status_topic)" />
     <param name="feedback_topic" value="$(arg feedback_topic)" />
     <param name="drive_topic" value="$(arg drive_topic)" />
+
+    <param name="timeout" value="$(arg timeout)" />
 
     <param name="max_steering_angle" value="$(arg max_steering_angle)"/>
     <param name="max_speed" value="$(arg max_speed)"/>

@@ -23,18 +23,25 @@ private:
   ros::Publisher feedback_pub_;
   ros::Publisher drive_pub_;
 
-  double max_steering_angle_;
-  double max_speed_;
+  std::string status_topic_;
+
+  ros::Time last_message_time_;
+  double timeout_;
 
   double battery_percentage_;
+
+  double max_steering_angle_;
+  double max_speed_;
 
   void statusCallback(const ds4_driver::Status status_msg);
 
   void publishDriveMsg(const double throttle_axis, const double steering_axis);
 
-  void publishFeedbackMsg(const ros::TimerEvent& timer_event);
+  void timerCallback(const ros::TimerEvent& timer_event);
 
-  void waitForConnection(const std::string status_topic);
+  void checkConnection();
+
+  void waitForConnection();
 
   void batteryToRGB(float& r, float& g, float& b);
 
