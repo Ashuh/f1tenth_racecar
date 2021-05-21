@@ -1,0 +1,19 @@
+<launch>
+    <!-- Publish: 0, Record: 1-->
+    <arg name="mode" value="1"/>
+
+    <arg name="file_name" value="$(find path_recorder)/path.csv"/>
+    <arg name="interval" value="0.1"/>
+
+    <arg name="odom_topic" value="odom"/>
+    <arg name="path_topic" value="path"/>
+
+    <node name="path_recorder" pkg="path_recorder" type="path_recorder_node" output="screen">
+        <param name="mode" value="$(arg mode)" />
+        <param name="file_name" value="$(arg file_name)" />
+        <param name="interval" value="$(arg interval)" />
+
+        <param name="odom_topic" value="$(arg odom_topic)"/>
+        <param name="path_topic" value="$(arg path_topic)" />
+    </node>
+</launch>
