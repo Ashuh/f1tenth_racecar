@@ -38,7 +38,7 @@
     <arg name="base_link_to_center_dist" value="0.4"/>
 
     <arg name="odom_topic" value="odom"/>
-    <arg name="drive_topic" value="drive"/>
+    <arg name="cws_drive_topic" value="drive"/>
     <arg name="obstacle_topic" value="obstacles"/>
     <arg name="time_to_collision_topic" value="time_to_collision"/>
     <arg name="trajectory_topic" value="trajectory"/>
@@ -55,7 +55,7 @@
         <param name="base_link_to_center_dist" value="$(arg base_link_to_center_dist)"/>
 
         <param name="odom_topic" value="$(arg odom_topic)"/>
-        <param name="drive_topic" value="$(arg drive_topic)"/>
+        <param name="drive_topic" value="$(arg cws_drive_topic)"/>
         <param name="obstacle_topic" value="$(arg obstacle_topic)"/>
         <param name="time_to_collision_topic" value="$(arg time_to_collision_topic)"/>
         <param name="trajectory_topic" value="$(arg trajectory_topic)"/>
@@ -63,8 +63,6 @@
         <param name="collision_viz_topic" value="$(arg collision_viz_topic)"/>
     </node>
 
-    <arg name="odom_topic" value="odom"/>
-    <arg name="time_to_collision_topic" value="time_to_collision"/>
     <arg name="raw_drive_topic" value="drive_raw"/>
     <arg name="safe_drive_topic" value="drive"/>
 
