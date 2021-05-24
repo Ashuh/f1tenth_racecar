@@ -63,12 +63,12 @@ void DriveController::timerCallback(const ros::TimerEvent& timer_event)
     pure_pursuit_->getIntermediateResults(look_ahead_point, look_ahead_point_dist, arc_center, arc_radius);
     publishVisualization(look_ahead_point_dist, look_ahead_point, arc_center, arc_radius);
   }
-  catch (const std::runtime_error ex)
+  catch (const std::runtime_error& ex)
   {
     ROS_ERROR("[Drive Controller] %s", ex.what());
     return;
   }
-  catch (const std::invalid_argument ex)
+  catch (const std::invalid_argument& ex)
   {
     ROS_ERROR("[Drive Controller] %s", ex.what());
     return;
