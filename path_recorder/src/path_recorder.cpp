@@ -64,6 +64,7 @@ PathRecorder::PathRecorder()
     csv_io_ >> dummy >> dummy >> dummy >> dummy >> dummy >> dummy;
 
     geometry_msgs::PoseStamped pose_stamped;
+    pose_stamped.header.frame_id = path_.header.frame_id;
 
     while (csv_io_ >> pose_stamped.pose.position.x >> pose_stamped.pose.position.y >> pose_stamped.pose.orientation.w >>
            pose_stamped.pose.orientation.x >> pose_stamped.pose.orientation.y >> pose_stamped.pose.orientation.z)
@@ -77,7 +78,6 @@ PathRecorder::PathRecorder()
 
     ROS_INFO("[Path Recorder] Done reading file, publishing path");
     path_pub_.publish(path_);
-    ros::shutdown();
   }
 }
 
