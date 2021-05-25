@@ -52,6 +52,7 @@ add_message_files(
   RectangleStamped.msg
   Obstacle.msg
   ObstacleArray.msg
+  DriveMode.msg
 )
 
 ## Generate services in the 'srv' folder
