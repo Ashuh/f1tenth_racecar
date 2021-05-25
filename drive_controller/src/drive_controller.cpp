@@ -31,7 +31,7 @@ DriveController::DriveController()
 
   ROS_ASSERT(private_nh.getParam("path_topic", path_topic));
   ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
-  ROS_ASSERT(private_nh.getParam("drive_topic", drive_topic));
+  ROS_ASSERT(private_nh.getParam("auto_drive_topic", drive_topic));
   ROS_ASSERT(private_nh.getParam("viz_topic", viz_topic));
 
   path_sub_ = nh_.subscribe(path_topic, 1, &DriveController::pathCallback, this);

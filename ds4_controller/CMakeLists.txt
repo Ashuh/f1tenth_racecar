@@ -10,6 +10,7 @@ project(ds4_controller)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   ackermann_msgs
+  f1tenth_msgs
   ds4_driver
 )
 

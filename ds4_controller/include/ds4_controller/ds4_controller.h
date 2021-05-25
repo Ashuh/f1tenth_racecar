@@ -22,6 +22,7 @@ private:
 
   ros::Publisher feedback_pub_;
   ros::Publisher drive_pub_;
+  ros::Publisher drive_mode_pub_;
 
   std::string status_topic_;
 

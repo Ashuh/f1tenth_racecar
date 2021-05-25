@@ -7,6 +7,7 @@
 #include "ds4_driver/Feedback.h"
 #include "ds4_driver/Status.h"
 #include "ds4_controller/ds4_controller.h"
+#include "f1tenth_msgs/DriveMode.h"
 
 namespace f1tenth_racecar
 {
@@ -18,16 +19,20 @@ DS4Controller::DS4Controller()
 
   std::string feedback_topic;
   std::string drive_topic;
+  std::string drive_mode_topic;
 
   ROS_ASSERT(private_nh.getParam("status_topic", status_topic_));
   ROS_ASSERT(private_nh.getParam("feedback_topic", feedback_topic));
-  ROS_ASSERT(private_nh.getParam("drive_topic", drive_topic));
+  ROS_ASSERT(private_nh.getParam("manual_drive_topic", drive_topic));
+  ROS_ASSERT(private_nh.getParam("drive_mode_topic", drive_mode_topic));
   ROS_ASSERT(private_nh.getParam("timeout", timeout_));
   ROS_ASSERT(private_nh.getParam("max_steering_angle", max_steering_angle_));
   ROS_ASSERT(private_nh.getParam("max_speed", max_speed_));
 
   status_sub_ = nh_.subscribe(status_topic_, 1, &DS4Controller::statusCallback, this);
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
+  drive_mode_pub_ = nh_.advertise<f1tenth_msgs::DriveMode>(drive_mode_topic, 1);
+
   feedback_pub_ = nh_.advertise<ds4_driver::Feedback>(feedback_topic, 1);
 
   waitForConnection();
@@ -40,6 +45,24 @@ void DS4Controller::statusCallback(const ds4_driver::Status status_msg)
   last_message_time_ = ros::Time::now();
   battery_percentage_ = status_msg.battery_percentage;
   publishDriveMsg(status_msg.axis_right_y, status_msg.axis_left_x);
+
+  f1tenth_msgs::DriveMode drive_mode_msg;
+
+  if (status_msg.button_circle == 1)
+  {
+    drive_mode_msg.drive_mode = f1tenth_msgs::DriveMode::MANUAL;
+    drive_mode_pub_.publish(drive_mode_msg);
+  }
+  else if (status_msg.button_triangle == 1)
+  {
+    drive_mode_msg.drive_mode = f1tenth_msgs::DriveMode::AUTO;
+    drive_mode_pub_.publish(drive_mode_msg);
+  }
+  else if (status_msg.button_square == 1)
+  {
+    drive_mode_msg.drive_mode = f1tenth_msgs::DriveMode::PARK;
+    drive_mode_pub_.publish(drive_mode_msg);
+  }
 }
 
 void DS4Controller::publishDriveMsg(const double throttle_axis, const double steering_axis)
