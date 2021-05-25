@@ -4,7 +4,7 @@
 
     <arg name="path_topic" value="path" />
     <arg name="odom_topic" value="odom" />
-    <arg name="drive_topic" value="drive/auto" />
+    <arg name="drive_topic" value="drive/selected" />
     <arg name="viz_topic" value="drive_controller_viz" />
 
     <node name="drive_controller" pkg="drive_controller" type="drive_controller_node" output="screen">
