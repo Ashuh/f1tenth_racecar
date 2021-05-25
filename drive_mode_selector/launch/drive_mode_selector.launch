@@ -1,0 +1,9 @@
+<launch>
+    <param name="drive_mode_topic" value="drive_mode" />
+    <param name="manual_drive_topic" value="drive/manual" />
+    <param name="auto_drive_topic" value="drive/auto" />
+    <param name="selected_drive_topic" value="drive/selected" />
+
+    <node name="drive_mode_selector" pkg="drive_mode_selector" type="drive_mode_selector_node" output="screen">
+    </node>
+</launch>
