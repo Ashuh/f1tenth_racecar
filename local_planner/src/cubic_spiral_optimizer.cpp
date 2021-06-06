@@ -6,8 +6,6 @@
 
 #include "local_planner/cubic_spiral_optimizer.h"
 
-namespace f1tenth_racecar
-{
 /* -------------------------------------------------------------------------- */
 /*                            CubicSpiralOptimizer                            */
 /* -------------------------------------------------------------------------- */
@@ -438,4 +436,3 @@ void CubicSpiralOptimizer::CubicSpiralCostTerm::FillJacobianBlock(std::string va
     jac.coeffRef(0, 2) = grad(2);
   }
 }
-}  // namespace f1tenth_racecar

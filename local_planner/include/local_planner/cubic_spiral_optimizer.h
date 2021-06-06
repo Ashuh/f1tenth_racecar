@@ -7,8 +7,6 @@
 #include <ifopt/variable_set.h>
 #include <ifopt/cost_term.h>
 
-namespace f1tenth_racecar
-{
 class CubicSpiralOptimizer
 {
 private:
@@ -148,6 +146,5 @@ public:
   Eigen::Matrix3Xd generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
                                            const unsigned int num_samples);
 };
-}  // namespace f1tenth_racecar
 
 #endif  // LOCAL_PLANNER_CUBIC_SPIRAL_OPTIMIZER_H
