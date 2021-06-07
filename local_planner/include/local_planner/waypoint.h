@@ -8,6 +8,7 @@ struct Waypoint
   double yaw_;
   double velocity_;
   double curvature_;
+  double distance_;
 };
 
 #endif  // LOCAL_PLANNER_WAYPOINT_H
