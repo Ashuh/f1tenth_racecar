@@ -14,9 +14,8 @@ CubicSpiralOptimizer::CubicSpiralOptimizer(double max_curvature) : max_curvature
 {
 }
 
-Eigen::Matrix3Xd CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_x, const double goal_y,
-                                                               const double goal_heading,
-                                                               const unsigned int num_samples)
+CubicSpiralPath CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_x, const double goal_y,
+                                                              const double goal_heading, const unsigned int num_samples)
 {
   Eigen::Matrix<double, 5, 1> p = optimizeCubicSpiralParams(goal_x, goal_y, goal_heading);
   Eigen::Vector4d coeffs = paramsToCoeffs(p);
@@ -31,7 +30,7 @@ Eigen::Matrix3Xd CubicSpiralOptimizer::generateCubicSpiralPath(const double goal
     s_points(i) = i * delta_s;
   }
 
-  Eigen::Matrix3Xd path = spiral.sampleCubicSpiral(s_points);
+  CubicSpiralPath path = spiral.sampleCubicSpiral(s_points);
 
   return path;
 }
@@ -78,55 +77,63 @@ CubicSpiralOptimizer::CubicSpiral::CubicSpiral(const Eigen::Vector4d coeffs)
   a_ = coeffs;
 }
 
-Eigen::Matrix3Xd CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
+CubicSpiralPath CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
 {
-  Eigen::Matrix3Xd samples;
-  samples.resize(3, s_points.size());
-  samples.row(0) = sampleX(s_points);
-  samples.row(1) = sampleY(s_points);
-  samples.row(2) = sampleHeading(s_points);
-
-  return samples;
-}
-
-Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)
-{
-  Eigen::VectorXd x_points;
-  x_points.resize(s_points.size());
+  CubicSpiralPath path;
 
   for (int i = 0; i < s_points.size(); ++i)
   {
-    x_points(i) = getX(s_points(i));
+    Waypoint wp;
+    wp.x_ = getX(s_points(i));
+    wp.y_ = getY(s_points(i));
+    wp.yaw_ = getHeading(s_points(i));
+    wp.curvature_ = getCurvature(s_points(i));
+    wp.distance_ = s_points(i);
+
+    path.addWaypoint(wp);
   }
 
-  return x_points;
+  return path;
 }
 
-Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleY(const Eigen::VectorXd& s_points)
-{
-  Eigen::VectorXd y_points;
-  y_points.resize(s_points.size());
+// Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)
+// {
+//   Eigen::VectorXd x_points;
+//   x_points.resize(s_points.size());
 
-  for (int i = 0; i < s_points.size(); ++i)
-  {
-    y_points(i) = getY(s_points(i));
-  }
+//   for (int i = 0; i < s_points.size(); ++i)
+//   {
+//     x_points(i) = getX(s_points(i));
+//   }
 
-  return y_points;
-}
+//   return x_points;
+// }
 
-Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleHeading(const Eigen::VectorXd& s_points)
-{
-  Eigen::VectorXd headings;
-  headings.resize(s_points.size());
+// Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleY(const Eigen::VectorXd& s_points)
+// {
+//   Eigen::VectorXd y_points;
+//   y_points.resize(s_points.size());
 
-  for (int i = 0; i < s_points.size(); ++i)
-  {
-    headings(i) = getHeading(s_points(i));
-  }
+//   for (int i = 0; i < s_points.size(); ++i)
+//   {
+//     y_points(i) = getY(s_points(i));
+//   }
 
-  return headings;
-}
+//   return y_points;
+// }
+
+// Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleHeading(const Eigen::VectorXd& s_points)
+// {
+//   Eigen::VectorXd headings;
+//   headings.resize(s_points.size());
+
+//   for (int i = 0; i < s_points.size(); ++i)
+//   {
+//     headings(i) = getHeading(s_points(i));
+//   }
+
+//   return headings;
+// }
 
 double CubicSpiralOptimizer::CubicSpiral::getX(const double s)
 {
@@ -147,6 +154,11 @@ double CubicSpiralOptimizer::CubicSpiral::getY(const double s)
 double CubicSpiralOptimizer::CubicSpiral::getHeading(const double s)
 {
   return (a_(3) * pow(s, 4) / 4) + ((a_(2) * pow(s, 3) / 3) + (a_(1) * pow(s, 2) / 2) + (a_(0) * s));
+}
+
+double CubicSpiralOptimizer::CubicSpiral::getCurvature(const double s)
+{
+  return (a_(3) * pow(s, 3)) + (a_(2) * pow(s, 2)) + (a_(1) * s) + a_(0);
 }
 
 /* -------------------------------------------------------------------------- */

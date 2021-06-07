@@ -7,6 +7,8 @@
 #include <ifopt/variable_set.h>
 #include <ifopt/cost_term.h>
 
+#include "local_planner/cubic_spiral_path.h"
+
 class CubicSpiralOptimizer
 {
 private:
@@ -15,11 +17,11 @@ private:
   private:
     Eigen::Vector4d a_;
 
-    Eigen::VectorXd sampleX(const Eigen::VectorXd& s_points);
+    // Eigen::VectorXd sampleX(const Eigen::VectorXd& s_points);
 
-    Eigen::VectorXd sampleY(const Eigen::VectorXd& s_points);
+    // Eigen::VectorXd sampleY(const Eigen::VectorXd& s_points);
 
-    Eigen::VectorXd sampleHeading(const Eigen::VectorXd& s_points);
+    // Eigen::VectorXd sampleHeading(const Eigen::VectorXd& s_points);
 
     double getX(const double s);
 
@@ -27,10 +29,12 @@ private:
 
     double getHeading(const double s);
 
+    double getCurvature(const double s);
+
   public:
     explicit CubicSpiral(const Eigen::Vector4d coeffs);
 
-    Eigen::Matrix3Xd sampleCubicSpiral(const Eigen::VectorXd& s_points);
+    CubicSpiralPath sampleCubicSpiral(const Eigen::VectorXd& s_points);
   };
 
   struct CommonTerms
@@ -143,8 +147,8 @@ private:
 public:
   explicit CubicSpiralOptimizer(double max_curvature);
 
-  Eigen::Matrix3Xd generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
-                                           const unsigned int num_samples);
+  CubicSpiralPath generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
+                                          const unsigned int num_samples);
 };
 
 #endif  // LOCAL_PLANNER_CUBIC_SPIRAL_OPTIMIZER_H
