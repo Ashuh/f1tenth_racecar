@@ -69,7 +69,7 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
   }
   catch (const std::exception& ex)
   {
-    ROS_ERROR(ex.what());
+    ROS_ERROR("[Local Planner] %s", ex.what());
     return;
   }
 
