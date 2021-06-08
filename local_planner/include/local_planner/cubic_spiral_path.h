@@ -22,7 +22,7 @@ public:
 
   void setVelocity(const size_t n, const double velocity);
 
-  unsigned int size() const;
+  size_t size() const;
 
   Waypoint at(size_t n) const;
 

@@ -24,7 +24,7 @@ void CubicSpiralPath::setVelocity(const size_t n, const double velocity)
   waypoints_.at(n).velocity_ = velocity;
 }
 
-unsigned int CubicSpiralPath::size() const
+size_t CubicSpiralPath::size() const
 {
   return waypoints_.size();
 }
