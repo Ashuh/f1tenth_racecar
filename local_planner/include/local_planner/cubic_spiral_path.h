@@ -20,6 +20,8 @@ public:
 
   void setCost(const double cost);
 
+  void setVelocity(const size_t n, const double velocity);
+
   unsigned int size() const;
 
   Waypoint at(size_t n) const;
