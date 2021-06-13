@@ -24,9 +24,9 @@ CostmapGenerator::CostmapGenerator() : tf_listener_(tf_buffer_)
   double grid_size_y;
   double grid_resolution;
 
-  std::string map_topic = "map";
-  std::string scan_topic = "scan";
-  std::string costmap_topic = "costmap";
+  std::string map_topic;
+  std::string scan_topic;
+  std::string costmap_topic;
 
   ROS_ASSERT(private_nh.getParam("grid_resolution", grid_resolution));
   ROS_ASSERT(private_nh.getParam("grid_size_x", grid_size_x));
@@ -41,7 +41,7 @@ CostmapGenerator::CostmapGenerator() : tf_listener_(tf_buffer_)
   map_sub_ = nh_.subscribe(map_topic, 1, &CostmapGenerator::mapCallback, this);
   scan_sub_ = nh_.subscribe(scan_topic, 1, &CostmapGenerator::scanCallback, this);
 
-  cost_map_pub_ = nh_.advertise<grid_map_msgs::GridMap>("grid_map", 1, true);
+  cost_map_pub_ = nh_.advertise<grid_map_msgs::GridMap>(costmap_topic, 1, true);
 
   timer_ = nh_.createTimer(ros::Duration(0.1), &CostmapGenerator::timerCallback, this);
 
