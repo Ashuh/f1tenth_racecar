@@ -20,6 +20,8 @@ public:
 
   void setCost(const double cost);
 
+  double getCost() const;
+
   void setVelocity(const size_t n, const double velocity);
 
   size_t size() const;
