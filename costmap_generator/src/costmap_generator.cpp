@@ -67,8 +67,6 @@ void CostmapGenerator::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
   local_map_.setFrameId(scan_msg->header.frame_id);
   local_map_[SCAN_LAYER_].setConstant(static_cast<int>(CostmapValues::FREE));
 
-  double scale = soft_inflation_radius_ - hard_inflation_radius_;
-
   for (int i = 0; i < scan_msg->ranges.size(); ++i)
   {
     double theta = scan_msg->angle_min + (scan_msg->angle_increment * i);
