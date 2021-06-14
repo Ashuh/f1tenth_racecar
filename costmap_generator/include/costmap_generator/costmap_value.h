@@ -1,7 +1,7 @@
 #ifndef COSTMAP_GENERATOR_COSTMAP_VALUES_H
 #define COSTMAP_GENERATOR_COSTMAP_VALUES_H
 
-enum class CostmapValues
+enum class CostmapValue
 {
   FREE = 0,
   OCCUPIED = 100

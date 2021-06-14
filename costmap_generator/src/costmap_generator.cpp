@@ -11,7 +11,7 @@
 
 #include "costmap_generator/costmap_generator.h"
 #include "costmap_generator/costmap_layer.h"
-#include "costmap_generator/costmap_values.h"
+#include "costmap_generator/costmap_value.h"
 
 CostmapGenerator::CostmapGenerator() : tf_listener_(tf_buffer_)
 {
@@ -49,7 +49,7 @@ CostmapGenerator::CostmapGenerator() : tf_listener_(tf_buffer_)
 
 void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
 {
-  local_map_[CostmapLayer::INFLATION].setConstant(static_cast<int>(CostmapValues::FREE));
+  local_map_[CostmapLayer::INFLATION].setConstant(static_cast<int>(CostmapValue::FREE));
 
   generateStaticLayer();
   inflateOccupiedCells();
@@ -62,7 +62,7 @@ void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
 void CostmapGenerator::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg)
 {
   local_map_.setFrameId(scan_msg->header.frame_id);
-  local_map_[CostmapLayer::SCAN].setConstant(static_cast<int>(CostmapValues::FREE));
+  local_map_[CostmapLayer::SCAN].setConstant(static_cast<int>(CostmapValue::FREE));
 
   for (int i = 0; i < scan_msg->ranges.size(); ++i)
   {
@@ -73,7 +73,7 @@ void CostmapGenerator::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
 
     if (local_map_.isInside(pos))
     {
-      local_map_.atPosition(CostmapLayer::SCAN, pos) = static_cast<int>(CostmapValues::OCCUPIED);
+      local_map_.atPosition(CostmapLayer::SCAN, pos) = static_cast<int>(CostmapValue::OCCUPIED);
     }
   }
 }
@@ -87,7 +87,7 @@ void CostmapGenerator::mapCallback(const nav_msgs::OccupancyGridConstPtr& occ_gr
 
 void CostmapGenerator::generateStaticLayer()
 {
-  local_map_[CostmapLayer::STATIC].setConstant(static_cast<int>(CostmapValues::FREE));
+  local_map_[CostmapLayer::STATIC].setConstant(static_cast<int>(CostmapValue::FREE));
 
   geometry_msgs::TransformStamped transform;
 
@@ -117,7 +117,7 @@ void CostmapGenerator::generateStaticLayer()
 
     data(index(0), index(1)) = (global_map_.isInside(global_pos)) ?
                                    global_map_.atPosition(CostmapLayer::STATIC, global_pos) :
-                                   static_cast<int>(CostmapValues::FREE);
+                                   static_cast<int>(CostmapValue::FREE);
   }
 }
 
@@ -129,7 +129,7 @@ void CostmapGenerator::inflateOccupiedCells()
   {
     const grid_map::Index center_index(*full_it);
 
-    if (occupancy_data(center_index(0), center_index(1)) == static_cast<int>(CostmapValues::OCCUPIED))
+    if (occupancy_data(center_index(0), center_index(1)) == static_cast<int>(CostmapValue::OCCUPIED))
     {
       grid_map::Position center_pos;
       local_map_.getPosition(*full_it, center_pos);
@@ -150,7 +150,7 @@ void CostmapGenerator::inflateCell(const grid_map::Position& center_pos)
     const grid_map::Index circle_index(*circle_it);
     double cur_val = inflation_data(circle_index(0), circle_index(1));
 
-    if (cur_val == static_cast<int>(CostmapValues::OCCUPIED))
+    if (cur_val == static_cast<int>(CostmapValue::OCCUPIED))
     {
       continue;
     }
@@ -163,11 +163,11 @@ void CostmapGenerator::inflateCell(const grid_map::Position& center_pos)
 
     if (dist <= hard_inflation_radius_)
     {
-      inflation_data(circle_index(0), circle_index(1)) = static_cast<int>(CostmapValues::OCCUPIED);
+      inflation_data(circle_index(0), circle_index(1)) = static_cast<int>(CostmapValue::OCCUPIED);
     }
     else
     {
-      double cost = (soft_inflation_radius_ - dist) / scale * static_cast<int>(CostmapValues::OCCUPIED);
+      double cost = (soft_inflation_radius_ - dist) / scale * static_cast<int>(CostmapValue::OCCUPIED);
       inflation_data(circle_index(0), circle_index(1)) = std::max(cur_val, cost);
     }
   }
