@@ -20,10 +20,6 @@ private:
   ros::Subscriber scan_sub_;
   ros::Publisher cost_map_pub_;
 
-  static const std::string STATIC_LAYER_;
-  static const std::string SCAN_LAYER_;
-  static const std::string INFLATION_LAYER_;
-
   double hard_inflation_radius_;
   double soft_inflation_radius_;
 
