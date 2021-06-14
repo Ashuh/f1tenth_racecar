@@ -1,4 +1,5 @@
 #include <string>
+#include <vector>
 
 #include <ifopt/ipopt_solver.h>
 #include <ifopt/variable_set.h>
@@ -79,7 +80,7 @@ CubicSpiralOptimizer::CubicSpiral::CubicSpiral(const Eigen::Vector4d coeffs)
 
 CubicSpiralPath CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
 {
-  CubicSpiralPath path;
+  std::vector<Waypoint> waypoints;
 
   for (int i = 0; i < s_points.size(); ++i)
   {
@@ -90,10 +91,10 @@ CubicSpiralPath CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen
     wp.curvature_ = getCurvature(s_points(i));
     wp.distance_ = s_points(i);
 
-    path.addWaypoint(wp);
+    waypoints.push_back(wp);
   }
 
-  return path;
+  return CubicSpiralPath("base_link", waypoints);
 }
 
 // Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)

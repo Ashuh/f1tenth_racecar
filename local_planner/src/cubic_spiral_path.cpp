@@ -5,8 +5,11 @@
 
 #include "local_planner/cubic_spiral_path.h"
 
-CubicSpiralPath::CubicSpiralPath()
+CubicSpiralPath::CubicSpiralPath(const std::string& frame_id, const std::vector<Waypoint>& waypoints)
 {
+  frame_id_ = frame_id;
+  waypoints_ = waypoints;
+  cost_ = 0;
 }
 
 void CubicSpiralPath::addWaypoint(const Waypoint& waypoint)
@@ -22,6 +25,11 @@ void CubicSpiralPath::setCost(const double cost)
 double CubicSpiralPath::getCost() const
 {
   return cost_;
+}
+
+std::string CubicSpiralPath::getFrameId() const
+{
+  return frame_id_;
 }
 
 void CubicSpiralPath::setVelocity(const size_t n, const double velocity)

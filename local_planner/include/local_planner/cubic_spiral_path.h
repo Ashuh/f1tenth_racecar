@@ -10,17 +10,19 @@ class CubicSpiralPath
 {
 private:
   std::vector<Waypoint> waypoints_;
-
+  std::string frame_id_;
   double cost_;
 
 public:
-  CubicSpiralPath();
+  CubicSpiralPath(const std::string& frame_id, const std::vector<Waypoint>& waypoints);
 
   void addWaypoint(const Waypoint& waypoint);
 
   void setCost(const double cost);
 
   double getCost() const;
+
+  std::string getFrameId() const;
 
   void setVelocity(const size_t n, const double velocity);
 
