@@ -16,7 +16,7 @@ Trajectory VelocityProfileGenerator::generateVelocityProfile(Path& path, const d
                                                              const double goal_velocity)
 {
   double max_curvature = -std::numeric_limits<double>::max();
-  int max_curvature_id = -1;
+  // int max_curvature_id = -1;
 
   for (int i = 0; i < path.size(); ++i)
   {
@@ -25,7 +25,7 @@ Trajectory VelocityProfileGenerator::generateVelocityProfile(Path& path, const d
     if (curvature > max_curvature)
     {
       max_curvature = curvature;
-      max_curvature_id = i;
+      // max_curvature_id = i;
     }
   }
 

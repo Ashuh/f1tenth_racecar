@@ -426,15 +426,13 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::headingCost(const Eigen::Matri
 
 Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::headingCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  Eigen::Vector3d grad;
+  double grad_p_1 = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
 
-  grad(0) = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
+  double grad_p_2 = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
 
-  grad(1) = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
+  double grad_s_f = -2 * (goal_heading_ - common_terms_.t_1_) * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8);
 
-  grad(2) = -2 * (goal_heading_ - common_terms_.t_1_) * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8);
-
-  return grad;
+  return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
 double CubicSpiralOptimizer::CubicSpiralCostTerm::GetCost() const
