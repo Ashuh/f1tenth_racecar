@@ -59,6 +59,9 @@
   <depend>visualization_msgs</depend>
   <depend>tf2</depend>
   <depend>tf2_geometry_msgs</depend>
+  <depend>costmap_generator</depend>
+  <depend>grid_map_core</depend>
+  <depend>grid_map_ros</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>

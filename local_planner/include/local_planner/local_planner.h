@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Pose2D.h>
+#include <grid_map_msgs/GridMap.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -26,12 +27,14 @@ private:
 
   ros::Subscriber global_path_sub_;
   ros::Subscriber odom_sub_;
+  ros::Subscriber costmap_sub_;
 
   ros::Publisher local_path_pub_;
   ros::Publisher viz_pub_;
 
   std::unique_ptr<CubicSpiralOptimizer> opt_;
   std::unique_ptr<VelocityProfileGenerator> velocity_gen_;
+  std::unique_ptr<TrajectoryEvaluator> traj_eval_;
 
   nav_msgs::Path global_path_;
   nav_msgs::Odometry latest_odom_;
@@ -47,14 +50,20 @@ private:
 
   void odomCallback(const nav_msgs::Odometry& odom_msg);
 
-  void visualizePaths(const std::vector<Trajectory>& trajectories);
+  void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+
+  void visualizePaths(const std::vector<Trajectory>& trajectories, const std::vector<double>& costs);
 
   int getNearestWaypointId();
 
   geometry_msgs::Pose2D getReferenceGoal();
 
-  std::vector<geometry_msgs::Pose2D> generateGoals(const geometry_msgs::Pose2D& reference_goal, const int num_goals,
-                                                   const double lateral_spacing);
+  geometry_msgs::Pose2D generateOffsetGoal(const geometry_msgs::Pose2D& reference_goal, const double lateral_offset);
+
+  // std::vector<geometry_msgs::Pose2D> generateGoals(const geometry_msgs::Pose2D& reference_goal, const int num_goals,
+  //                                                  const double lateral_spacing);
+
+  nav_msgs::Path trajectoryToPathMsg(const Trajectory& trajectory);
 
 public:
   LocalPlanner();

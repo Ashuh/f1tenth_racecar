@@ -5,6 +5,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Pose2D.h>
+#include <grid_map_msgs/GridMap.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -14,12 +15,14 @@
 #include "local_planner/trajectory.h"
 #include "local_planner/cubic_spiral_optimizer.h"
 #include "local_planner/velocity_profile_generator.h"
+#include "local_planner/trajectory_evaluator.h"
 #include "local_planner/local_planner.h"
 
 LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 {
   ros::NodeHandle private_nh("~");
 
+  std::string costmap_topic = "costmap";
   std::string global_path_topic = "path/global";
   std::string local_path_topic = "path/local";
   std::string odom_topic = "odom";
@@ -46,6 +49,7 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   global_path_sub_ = nh_.subscribe(global_path_topic, 1, &LocalPlanner::globalPathCallback, this);
   odom_sub_ = nh_.subscribe(odom_topic, 1, &LocalPlanner::odomCallback, this);
+  costmap_sub_ = nh_.subscribe(costmap_topic, 1, &LocalPlanner::costmapCallback, this);
 
   local_path_pub_ = nh_.advertise<nav_msgs::Path>(local_path_topic, 1);
   viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
@@ -59,15 +63,16 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   opt_ = std::make_unique<CubicSpiralOptimizer>(tan(max_steering_angle) / wheelbase);
   velocity_gen_ = std::make_unique<VelocityProfileGenerator>(max_lat_acc, max_long_acc);
+  traj_eval_ = std::make_unique<TrajectoryEvaluator>();
 }
 
 void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
 {
-  geometry_msgs::Pose2D goal;
+  geometry_msgs::Pose2D reference_goal;
 
   try
   {
-    goal = getReferenceGoal();
+    reference_goal = getReferenceGoal();
   }
   catch (const std::exception& ex)
   {
@@ -76,17 +81,31 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
   }
 
   std::vector<Trajectory> trajectories;
+  std::vector<double> costs;
 
-  std::vector<geometry_msgs::Pose2D> goals = generateGoals(goal, num_paths_, path_offset_);
-
-  for (int i = 0; i < goals.size(); ++i)
+  for (int i = 0; i < num_paths_; ++i)
   {
-    Path path = opt_->generateCubicSpiralPath(goals.at(i).x, goals.at(i).y, goals.at(i).theta, 10);
+    double goal_offset = (i - num_paths_ / 2) * path_offset_;
+
+    geometry_msgs::Pose2D goal = generateOffsetGoal(reference_goal, goal_offset);
+    Path path = opt_->generateCubicSpiralPath(goal.x, goal.y, goal.theta, 10);
     Trajectory trajectory = velocity_gen_->generateVelocityProfile(path, latest_odom_.twist.twist.linear.x, 5);
+    double traj_cost = traj_eval_->evaluateTrajectory(trajectory, goal_offset);
+
     trajectories.push_back(trajectory);
+    costs.push_back(traj_cost);
   }
 
-  visualizePaths(trajectories);
+  int best_traj_id = std::min_element(costs.begin(), costs.end()) - costs.begin();
+
+  if (costs.at(best_traj_id) != std::numeric_limits<double>::max())
+  {
+    nav_msgs::Path local_path_msg =
+        trajectoryToPathMsg(trajectories.at(best_traj_id));  // use standard path msg for now
+    local_path_pub_.publish(local_path_msg);
+  }
+
+  visualizePaths(trajectories, costs);
 }
 
 void LocalPlanner::globalPathCallback(const nav_msgs::Path& path_msg)
@@ -99,7 +118,12 @@ void LocalPlanner::odomCallback(const nav_msgs::Odometry& odom_msg)
   latest_odom_ = odom_msg;
 }
 
-void LocalPlanner::visualizePaths(const std::vector<Trajectory>& trajectories)
+void LocalPlanner::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
+{
+  traj_eval_->setCostmap(costmap_msg);
+}
+
+void LocalPlanner::visualizePaths(const std::vector<Trajectory>& trajectories, const std::vector<double>& costs)
 {
   visualization_msgs::MarkerArray trajectory_marker_arr;
 
@@ -119,6 +143,11 @@ void LocalPlanner::visualizePaths(const std::vector<Trajectory>& trajectories)
     trajectory_marker.color.g = 1;
     trajectory_marker.color.b = 0;
     trajectory_marker.color.a = 1;
+
+    if (costs.at(i) == std::numeric_limits<double>::max())
+    {
+      trajectory_marker.color.r = 1;
+    }
 
     for (int j = 0; j < trajectory.size(); ++j)
     {
@@ -218,24 +247,75 @@ geometry_msgs::Pose2D LocalPlanner::getReferenceGoal()
   return reference_goal_2d;
 }
 
-std::vector<geometry_msgs::Pose2D> LocalPlanner::generateGoals(const geometry_msgs::Pose2D& reference_goal,
-                                                               const int num_goals, const double lateral_spacing)
+geometry_msgs::Pose2D LocalPlanner::generateOffsetGoal(const geometry_msgs::Pose2D& reference_goal,
+                                                       const double lateral_offset)
 {
-  std::vector<geometry_msgs::Pose2D> goals;
+  double x_offset = lateral_offset * cos(reference_goal.theta + M_PI_2);
+  double y_offset = lateral_offset * sin(reference_goal.theta + M_PI_2);
 
-  for (int i = 0; i < num_goals; ++i)
+  geometry_msgs::Pose2D goal;
+  goal.x = reference_goal.x + x_offset;
+  goal.y = reference_goal.y + y_offset;
+  goal.theta = reference_goal.theta;
+
+  return goal;
+}
+
+// std::vector<geometry_msgs::Pose2D> LocalPlanner::generateGoals(const geometry_msgs::Pose2D& reference_goal,
+//                                                                const int num_goals, const double lateral_spacing)
+// {
+//   std::vector<geometry_msgs::Pose2D> goals;
+
+//   for (int i = 0; i < num_goals; ++i)
+//   {
+//     double goal_offset = (i - num_goals / 2) * lateral_spacing;
+//     double x_offset = goal_offset * cos(reference_goal.theta + M_PI_2);
+//     double y_offset = goal_offset * sin(reference_goal.theta + M_PI_2);
+
+//     geometry_msgs::Pose2D goal;
+//     goal.x = reference_goal.x + x_offset;
+//     goal.y = reference_goal.y + y_offset;
+//     goal.theta = reference_goal.theta;
+
+//     goals.push_back(goal);
+//   }
+
+//   return goals;
+// }
+
+nav_msgs::Path LocalPlanner::trajectoryToPathMsg(const Trajectory& trajectory)
+{
+  geometry_msgs::TransformStamped transform;
+
+  try
   {
-    double goal_offset = (i - num_goals / 2) * lateral_spacing;
-    double x_offset = goal_offset * cos(reference_goal.theta + M_PI_2);
-    double y_offset = goal_offset * sin(reference_goal.theta + M_PI_2);
-
-    geometry_msgs::Pose2D goal;
-    goal.x = reference_goal.x + x_offset;
-    goal.y = reference_goal.y + y_offset;
-    goal.theta = reference_goal.theta;
-
-    goals.push_back(goal);
+    transform = tf_buffer_.lookupTransform("map", trajectory.getFrameId(), ros::Time(0));
+  }
+  catch (tf2::TransformException& ex)
+  {
+    ROS_ERROR("%s", ex.what());
   }
 
-  return goals;
+  geometry_msgs::PoseStamped reference_goal_transformed;
+  nav_msgs::Path path_msg;
+
+  path_msg.header.frame_id = "map";
+
+  for (int i = 0; i < trajectory.size(); ++i)
+  {
+    geometry_msgs::PoseStamped pose;
+    pose.header.frame_id = trajectory.getFrameId();
+    pose.pose.position.x = trajectory.x(i);
+    pose.pose.position.y = trajectory.y(i);
+
+    tf2::Quaternion yaw_quat;
+    yaw_quat.setRPY(0, 0, trajectory.yaw(i));
+    tf2::convert(yaw_quat, pose.pose.orientation);
+
+    tf2::doTransform(pose, pose, transform);
+
+    path_msg.poses.push_back(pose);
+  }
+
+  return path_msg;
 }

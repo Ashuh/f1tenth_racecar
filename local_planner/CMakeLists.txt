@@ -14,6 +14,9 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
   tf2
   tf2_geometry_msgs
+  costmap_generator
+  grid_map_core
+  grid_map_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -126,8 +129,10 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   src/cubic_spiral_optimizer.cpp
-  src/cubic_spiral_path.cpp
+  src/path.cpp
+  src/trajectory.cpp
   src/velocity_profile_generator.cpp
+  src/trajectory_evaluator.cpp
 )
 
 ## Add cmake target dependencies of the library
