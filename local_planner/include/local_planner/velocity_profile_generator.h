@@ -1,7 +1,8 @@
 #ifndef LOCAL_PLANNER_VELOCITY_PROFILE_GENERATOR_H
 #define LOCAL_PLANNER_VELOCITY_PROFILE_GENERATOR_H
 
-#include "local_planner/cubic_spiral_path.h"
+#include "local_planner/path.h"
+#include "local_planner/trajectory.h"
 
 class VelocityProfileGenerator
 {
@@ -12,7 +13,7 @@ private:
 public:
   VelocityProfileGenerator(const double max_lat_acc, const double max_long_acc);
 
-  void generateVelocityProfile(CubicSpiralPath& path, const double initial_velocity, const double goal_velocity);
+  Trajectory generateVelocityProfile(Path& path, const double initial_velocity, const double goal_velocity);
 };
 
 #endif  // LOCAL_PLANNER_VELOCITY_PROFILE_GENERATOR_H

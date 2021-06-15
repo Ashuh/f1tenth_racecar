@@ -15,8 +15,8 @@ CubicSpiralOptimizer::CubicSpiralOptimizer(double max_curvature) : max_curvature
 {
 }
 
-CubicSpiralPath CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_x, const double goal_y,
-                                                              const double goal_heading, const unsigned int num_samples)
+Path CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
+                                                   const unsigned int num_samples)
 {
   Eigen::Matrix<double, 5, 1> p = optimizeCubicSpiralParams(goal_x, goal_y, goal_heading);
   Eigen::Vector4d coeffs = paramsToCoeffs(p);
@@ -31,7 +31,7 @@ CubicSpiralPath CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_
     s_points(i) = i * delta_s;
   }
 
-  CubicSpiralPath path = spiral.sampleCubicSpiral(s_points);
+  Path path = spiral.sampleCubicSpiral(s_points);
 
   return path;
 }
@@ -78,23 +78,37 @@ CubicSpiralOptimizer::CubicSpiral::CubicSpiral(const Eigen::Vector4d coeffs)
   a_ = coeffs;
 }
 
-CubicSpiralPath CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
+Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
 {
   std::vector<Waypoint> waypoints;
 
+  std::vector<double> distance;
+  std::vector<double> x;
+  std::vector<double> y;
+  std::vector<double> yaw;
+  std::vector<double> curvature;
+
   for (int i = 0; i < s_points.size(); ++i)
   {
-    Waypoint wp;
-    wp.x_ = getX(s_points(i));
-    wp.y_ = getY(s_points(i));
-    wp.yaw_ = getHeading(s_points(i));
-    wp.curvature_ = getCurvature(s_points(i));
-    wp.distance_ = s_points(i);
+    // Waypoint wp;
+    distance.push_back(s_points(i));
+    x.push_back(getX(s_points(i)));
+    y.push_back(getY(s_points(i)));
+    yaw.push_back(getHeading(s_points(i)));
+    curvature.push_back(getCurvature(s_points(i)));
 
-    waypoints.push_back(wp);
+    // wp.x_ = getX(s_points(i));
+    // wp.y_ = getY(s_points(i));
+    // wp.yaw_ = getHeading(s_points(i));
+    // wp.curvature_ = getCurvature(s_points(i));
+    // wp.distance_ = s_points(i);
+
+    // waypoints.push_back(wp);
   }
 
-  return CubicSpiralPath("base_link", waypoints);
+  return Path("base_link", distance, x, y, yaw, curvature);
+
+  // return CubicSpiralPath("base_link", waypoints);
 }
 
 // Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)

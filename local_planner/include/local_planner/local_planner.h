@@ -8,8 +8,11 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 
+#include "local_planner/path.h"
+#include "local_planner/trajectory.h"
 #include "local_planner/cubic_spiral_optimizer.h"
 #include "local_planner/velocity_profile_generator.h"
+#include "local_planner/trajectory_evaluator.h"
 
 class LocalPlanner
 {
@@ -44,7 +47,7 @@ private:
 
   void odomCallback(const nav_msgs::Odometry& odom_msg);
 
-  void visualizePaths(const std::vector<CubicSpiralPath>& paths);
+  void visualizePaths(const std::vector<Trajectory>& trajectories);
 
   int getNearestWaypointId();
 

@@ -10,9 +10,11 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2_ros/transform_listener.h>
 
+#include "local_planner/path.h"
+#include "local_planner/trajectory.h"
 #include "local_planner/cubic_spiral_optimizer.h"
-#include "local_planner/local_planner.h"
 #include "local_planner/velocity_profile_generator.h"
+#include "local_planner/local_planner.h"
 
 LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 {
@@ -73,18 +75,18 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
     return;
   }
 
-  std::vector<CubicSpiralPath> paths;
+  std::vector<Trajectory> trajectories;
 
   std::vector<geometry_msgs::Pose2D> goals = generateGoals(goal, num_paths_, path_offset_);
 
   for (int i = 0; i < goals.size(); ++i)
   {
-    CubicSpiralPath path = opt_->generateCubicSpiralPath(goals.at(i).x, goals.at(i).y, goals.at(i).theta, 10);
-    velocity_gen_->generateVelocityProfile(path, latest_odom_.twist.twist.linear.x, 5);
-    paths.push_back(path);
+    Path path = opt_->generateCubicSpiralPath(goals.at(i).x, goals.at(i).y, goals.at(i).theta, 10);
+    Trajectory trajectory = velocity_gen_->generateVelocityProfile(path, latest_odom_.twist.twist.linear.x, 5);
+    trajectories.push_back(trajectory);
   }
 
-  visualizePaths(paths);
+  visualizePaths(trajectories);
 }
 
 void LocalPlanner::globalPathCallback(const nav_msgs::Path& path_msg)
@@ -97,40 +99,40 @@ void LocalPlanner::odomCallback(const nav_msgs::Odometry& odom_msg)
   latest_odom_ = odom_msg;
 }
 
-void LocalPlanner::visualizePaths(const std::vector<CubicSpiralPath>& paths)
+void LocalPlanner::visualizePaths(const std::vector<Trajectory>& trajectories)
 {
-  visualization_msgs::MarkerArray path_marker_arr;
+  visualization_msgs::MarkerArray trajectory_marker_arr;
 
-  for (int i = 0; i < paths.size(); ++i)
+  for (int i = 0; i < trajectories.size(); ++i)
   {
-    CubicSpiralPath path = paths.at(i);
+    Trajectory trajectory = trajectories.at(i);
 
-    visualization_msgs::Marker path_marker;
-    path_marker.header.frame_id = "base_link";
-    path_marker.action = visualization_msgs::Marker::ADD;
-    path_marker.type = visualization_msgs::Marker::LINE_STRIP;
-    path_marker.ns = "waypoints";
-    path_marker.id = i;
-    path_marker.lifetime = ros::Duration(0.1);
-    path_marker.scale.x = 0.02;
-    path_marker.color.r = 0;
-    path_marker.color.g = 1;
-    path_marker.color.b = 0;
-    path_marker.color.a = 1;
+    visualization_msgs::Marker trajectory_marker;
+    trajectory_marker.header.frame_id = "base_link";
+    trajectory_marker.action = visualization_msgs::Marker::ADD;
+    trajectory_marker.type = visualization_msgs::Marker::LINE_STRIP;
+    trajectory_marker.ns = "waypoints";
+    trajectory_marker.id = i;
+    trajectory_marker.lifetime = ros::Duration(0.1);
+    trajectory_marker.scale.x = 0.02;
+    trajectory_marker.color.r = 0;
+    trajectory_marker.color.g = 1;
+    trajectory_marker.color.b = 0;
+    trajectory_marker.color.a = 1;
 
-    for (int j = 0; j < path.size(); ++j)
+    for (int j = 0; j < trajectory.size(); ++j)
     {
       geometry_msgs::Point point;
-      point.x = path.at(j).x_;
-      point.y = path.at(j).y_;
-      path_marker.points.push_back(point);
+      point.x = trajectory.x(j);
+      point.y = trajectory.y(j);
+      trajectory_marker.points.push_back(point);
 
       visualization_msgs::Marker velocity_marker;
       velocity_marker.header.frame_id = "base_link";
       velocity_marker.action = visualization_msgs::Marker::ADD;
       velocity_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
       velocity_marker.ns = "velocity_profile";
-      velocity_marker.id = i * path.size() + j;
+      velocity_marker.id = i * trajectory.size() + j;
       velocity_marker.lifetime = ros::Duration(0.1);
       velocity_marker.scale.z = 0.1;
       velocity_marker.color.r = 1;
@@ -139,18 +141,18 @@ void LocalPlanner::visualizePaths(const std::vector<CubicSpiralPath>& paths)
       velocity_marker.color.a = 1;
 
       std::ostringstream oss;
-      oss << std::fixed << std::setprecision(2) << path.at(j).velocity_;
+      oss << std::fixed << std::setprecision(2) << 0;  // temp value
       velocity_marker.text = oss.str();
 
       velocity_marker.pose.position = point;
       velocity_marker.pose.position.z = 0.1;
-      path_marker_arr.markers.push_back(velocity_marker);
+      trajectory_marker_arr.markers.push_back(velocity_marker);
     }
 
-    path_marker_arr.markers.push_back(path_marker);
+    trajectory_marker_arr.markers.push_back(trajectory_marker);
   }
 
-  viz_pub_.publish(path_marker_arr);
+  viz_pub_.publish(trajectory_marker_arr);
 }
 
 int LocalPlanner::getNearestWaypointId()

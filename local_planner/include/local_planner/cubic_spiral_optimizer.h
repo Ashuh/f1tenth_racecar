@@ -7,7 +7,7 @@
 #include <ifopt/variable_set.h>
 #include <ifopt/cost_term.h>
 
-#include "local_planner/cubic_spiral_path.h"
+#include "local_planner/path.h"
 
 class CubicSpiralOptimizer
 {
@@ -34,7 +34,7 @@ private:
   public:
     explicit CubicSpiral(const Eigen::Vector4d coeffs);
 
-    CubicSpiralPath sampleCubicSpiral(const Eigen::VectorXd& s_points);
+    Path sampleCubicSpiral(const Eigen::VectorXd& s_points);
   };
 
   struct CommonTerms
@@ -147,8 +147,8 @@ private:
 public:
   explicit CubicSpiralOptimizer(double max_curvature);
 
-  CubicSpiralPath generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
-                                          const unsigned int num_samples);
+  Path generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
+                               const unsigned int num_samples);
 };
 
 #endif  // LOCAL_PLANNER_CUBIC_SPIRAL_OPTIMIZER_H
