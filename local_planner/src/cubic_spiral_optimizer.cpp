@@ -283,17 +283,16 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::bendingEnergyCost(const Eigen:
 Eigen::Vector3d
 CubicSpiralOptimizer::CubicSpiralCostTerm::bendingEnergyCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  Eigen::Vector3d grad;
+  double grad_p_1 = (p(4) * (99 * p(0) + 648 * p(1) - 81 * p(2) - 36 * p(3))) / 840;
 
-  grad(0) = (p(4) * (99 * p(0) + 648 * p(1) - 81 * p(2) - 36 * p(3))) / 840;
+  double grad_p_2 = -(p(4) * (36 * p(0) + 81 * p(1) - 648 * p(2) - 99 * p(3))) / 840;
 
-  grad(1) = -(p(4) * (36 * p(0) + 81 * p(1) - 648 * p(2) - 99 * p(3))) / 840;
+  double grad_s_f = (8 * pow(p(0), 2)) / 105 + (33 * p(0) * p(1)) / 280 - (3 * p(0) * p(2)) / 70 +
+                    (19 * p(0) * p(3)) / 840 + (27 * pow(p(1), 2)) / 70 - (27 * p(1) * p(2)) / 280 -
+                    (3 * p(1) * p(3)) / 70 + (27 * pow(p(2), 2)) / 70 + (33 * p(2) * p(3)) / 280 +
+                    (8 * pow(p(3), 2)) / 105;
 
-  grad(2) = (8 * pow(p(0), 2)) / 105 + (33 * p(0) * p(1)) / 280 - (3 * p(0) * p(2)) / 70 + (19 * p(0) * p(3)) / 840 +
-            (27 * pow(p(1), 2)) / 70 - (27 * p(1) * p(2)) / 280 - (3 * p(1) * p(3)) / 70 + (27 * pow(p(2), 2)) / 70 +
-            (33 * p(2) * p(3)) / 280 + (8 * pow(p(3), 2)) / 105;
-
-  return grad;
+  return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
 double CubicSpiralOptimizer::CubicSpiralCostTerm::xCost(const Eigen::Matrix<double, 5, 1>& p) const
@@ -308,54 +307,55 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::xCost(const Eigen::Matrix<doub
 
 Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::xCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  Eigen::Vector3d grad;
+  double grad_p_1 =
+      -(pow(p(4), 2) *
+        (1024 * common_terms_.sin_t_1_ + 2176 * common_terms_.sin_t_2_ + 2376 * common_terms_.sin_t_3_ +
+         968 * common_terms_.sin_t_4_ + 4825 * common_terms_.sin_t_5_ + 4361 * common_terms_.sin_t_6_ +
+         3321 * common_terms_.sin_t_7_ + 617 * common_terms_.sin_t_8_) *
+        (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
+         (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
+         (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
+         (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24)) /
+      32768;
 
-  grad(0) = -(pow(p(4), 2) *
-              (1024 * common_terms_.sin_t_1_ + 2176 * common_terms_.sin_t_2_ + 2376 * common_terms_.sin_t_3_ +
-               968 * common_terms_.sin_t_4_ + 4825 * common_terms_.sin_t_5_ + 4361 * common_terms_.sin_t_6_ +
-               3321 * common_terms_.sin_t_7_ + 617 * common_terms_.sin_t_8_) *
-              (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
-               (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
-               (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
-               (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24)) /
-            32768;
+  double grad_p_2 =
+      -(pow(p(4), 2) *
+        (1024 * common_terms_.sin_t_1_ - 128 * common_terms_.sin_t_2_ + 1080 * common_terms_.sin_t_3_ -
+         328 * common_terms_.sin_t_4_ + 775 * common_terms_.sin_t_5_ + 3479 * common_terms_.sin_t_6_ -
+         729 * common_terms_.sin_t_7_ - 265 * common_terms_.sin_t_8_) *
+        (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
+         (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
+         (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
+         (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24)) /
+      32768;
 
-  grad(1) = -(pow(p(4), 2) *
-              (1024 * common_terms_.sin_t_1_ - 128 * common_terms_.sin_t_2_ + 1080 * common_terms_.sin_t_3_ -
-               328 * common_terms_.sin_t_4_ + 775 * common_terms_.sin_t_5_ + 3479 * common_terms_.sin_t_6_ -
-               729 * common_terms_.sin_t_7_ - 265 * common_terms_.sin_t_8_) *
-              (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
-               (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
-               (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
-               (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24)) /
-            32768;
+  double grad_s_f =
+      2 *
+      (common_terms_.cos_t_1_ / 24 + common_terms_.cos_t_2_ / 12 + common_terms_.cos_t_3_ / 12 +
+       common_terms_.cos_t_4_ / 12 + common_terms_.cos_t_5_ / 6 + common_terms_.cos_t_6_ / 6 +
+       common_terms_.cos_t_7_ / 6 + common_terms_.cos_t_8_ / 6 -
+       (p(4) * (common_terms_.sin_t_1_ * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8) +
+                common_terms_.sin_t_2_ * ((15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64) +
+                common_terms_.sin_t_4_ *
+                    ((247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024) +
+                common_terms_.sin_t_3_ *
+                    ((231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024) +
+                common_terms_.sin_t_8_ *
+                    ((2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192) +
+                common_terms_.sin_t_7_ *
+                    ((4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192) +
+                common_terms_.sin_t_5_ *
+                    ((3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192) +
+                common_terms_.sin_t_6_ *
+                    ((3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 + (1225 * p(3)) / 8192))) /
+           24 +
+       1 / 24.0) *
+      (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
+       (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
+       (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 + (p(4) * common_terms_.cos_t_8_) / 6 +
+       (p(4) * common_terms_.cos_t_1_) / 24);
 
-  grad(2) = 2 *
-            (common_terms_.cos_t_1_ / 24 + common_terms_.cos_t_2_ / 12 + common_terms_.cos_t_3_ / 12 +
-             common_terms_.cos_t_4_ / 12 + common_terms_.cos_t_5_ / 6 + common_terms_.cos_t_6_ / 6 +
-             common_terms_.cos_t_7_ / 6 + common_terms_.cos_t_8_ / 6 -
-             (p(4) * (common_terms_.sin_t_1_ * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8) +
-                      common_terms_.sin_t_2_ * ((15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64) +
-                      common_terms_.sin_t_4_ *
-                          ((247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024) +
-                      common_terms_.sin_t_3_ *
-                          ((231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024) +
-                      common_terms_.sin_t_8_ *
-                          ((2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192) +
-                      common_terms_.sin_t_7_ *
-                          ((4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192) +
-                      common_terms_.sin_t_5_ *
-                          ((3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192) +
-                      common_terms_.sin_t_6_ * ((3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 +
-                                                (1225 * p(3)) / 8192))) /
-                 24 +
-             1 / 24.0) *
-            (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
-             (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
-             (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
-             (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24);
-
-  return grad;
+  return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
 double CubicSpiralOptimizer::CubicSpiralCostTerm::yCost(const Eigen::Matrix<double, 5, 1>& p) const
@@ -370,53 +370,52 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::yCost(const Eigen::Matrix<doub
 
 Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::yCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  Eigen::Vector3d grad;
+  double grad_p_1 = (pow(p(4), 2) *
+                     (1024 * common_terms_.cos_t_1_ + 2176 * common_terms_.cos_t_2_ + 2376 * common_terms_.cos_t_3_ +
+                      968 * common_terms_.cos_t_4_ + 4825 * common_terms_.cos_t_5_ + 4361 * common_terms_.cos_t_6_ +
+                      3321 * common_terms_.cos_t_7_ + 617 * common_terms_.cos_t_8_) *
+                     ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
+                      (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
+                      (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
+                      (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24)) /
+                    32768;
 
-  grad(0) = (pow(p(4), 2) *
-             (1024 * common_terms_.cos_t_1_ + 2176 * common_terms_.cos_t_2_ + 2376 * common_terms_.cos_t_3_ +
-              968 * common_terms_.cos_t_4_ + 4825 * common_terms_.cos_t_5_ + 4361 * common_terms_.cos_t_6_ +
-              3321 * common_terms_.cos_t_7_ + 617 * common_terms_.cos_t_8_) *
-             ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
-              (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
-              (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
-              (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24)) /
-            32768;
+  double grad_p_2 = (pow(p(4), 2) *
+                     (1024 * common_terms_.cos_t_1_ - 128 * common_terms_.cos_t_2_ + 1080 * common_terms_.cos_t_3_ -
+                      328 * common_terms_.cos_t_4_ + 775 * common_terms_.cos_t_5_ + 3479 * common_terms_.cos_t_6_ -
+                      729 * common_terms_.cos_t_7_ - 265 * common_terms_.cos_t_8_) *
+                     ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
+                      (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
+                      (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
+                      (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24)) /
+                    32768;
 
-  grad(1) = (pow(p(4), 2) *
-             (1024 * common_terms_.cos_t_1_ - 128 * common_terms_.cos_t_2_ + 1080 * common_terms_.cos_t_3_ -
-              328 * common_terms_.cos_t_4_ + 775 * common_terms_.cos_t_5_ + 3479 * common_terms_.cos_t_6_ -
-              729 * common_terms_.cos_t_7_ - 265 * common_terms_.cos_t_8_) *
-             ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
-              (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
-              (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
-              (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24)) /
-            32768;
+  double grad_s_f =
+      2 *
+      (common_terms_.sin_t_1_ / 24 + common_terms_.sin_t_2_ / 12 + common_terms_.sin_t_3_ / 12 +
+       common_terms_.sin_t_4_ / 12 + common_terms_.sin_t_5_ / 6 + common_terms_.sin_t_6_ / 6 +
+       common_terms_.sin_t_7_ / 6 + common_terms_.sin_t_8_ / 6 +
+       (p(4) * (common_terms_.cos_t_1_ * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8) +
+                common_terms_.cos_t_2_ * ((15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64) +
+                common_terms_.cos_t_4_ *
+                    ((247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024) +
+                common_terms_.cos_t_3_ *
+                    ((231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024) +
+                common_terms_.cos_t_8_ *
+                    ((2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192) +
+                common_terms_.cos_t_7_ *
+                    ((4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192) +
+                common_terms_.cos_t_5_ *
+                    ((3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192) +
+                common_terms_.cos_t_6_ *
+                    ((3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 + (1225 * p(3)) / 8192))) /
+           24) *
+      ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
+       (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
+       (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 + (p(4) * common_terms_.sin_t_8_) / 6 +
+       (p(4) * common_terms_.sin_t_1_) / 24);
 
-  grad(2) = 2 *
-            (common_terms_.sin_t_1_ / 24 + common_terms_.sin_t_2_ / 12 + common_terms_.sin_t_3_ / 12 +
-             common_terms_.sin_t_4_ / 12 + common_terms_.sin_t_5_ / 6 + common_terms_.sin_t_6_ / 6 +
-             common_terms_.sin_t_7_ / 6 + common_terms_.sin_t_8_ / 6 +
-             (p(4) * (common_terms_.cos_t_1_ * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8) +
-                      common_terms_.cos_t_2_ * ((15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64) +
-                      common_terms_.cos_t_4_ *
-                          ((247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024) +
-                      common_terms_.cos_t_3_ *
-                          ((231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024) +
-                      common_terms_.cos_t_8_ *
-                          ((2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192) +
-                      common_terms_.cos_t_7_ *
-                          ((4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192) +
-                      common_terms_.cos_t_5_ *
-                          ((3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192) +
-                      common_terms_.cos_t_6_ * ((3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 +
-                                                (1225 * p(3)) / 8192))) /
-                 24) *
-            ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
-             (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
-             (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
-             (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24);
-
-  return grad;
+  return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
 double CubicSpiralOptimizer::CubicSpiralCostTerm::headingCost(const Eigen::Matrix<double, 5, 1>& p) const
