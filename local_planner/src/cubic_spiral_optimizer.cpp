@@ -15,10 +15,12 @@ CubicSpiralOptimizer::CubicSpiralOptimizer(double max_curvature) : max_curvature
 {
 }
 
-Path CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
+Path CubicSpiralOptimizer::generateCubicSpiralPath(const double initial_curvature, const double goal_curvature,
+                                                   const double goal_x, const double goal_y, const double goal_heading,
                                                    const unsigned int num_samples)
 {
-  Eigen::Matrix<double, 5, 1> p = optimizeCubicSpiralParams(goal_x, goal_y, goal_heading);
+  Eigen::Matrix<double, 5, 1> p =
+      optimizeCubicSpiralParams(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading);
   Eigen::Vector4d coeffs = paramsToCoeffs(p);
   CubicSpiral spiral(coeffs);
 
@@ -36,15 +38,19 @@ Path CubicSpiralOptimizer::generateCubicSpiralPath(const double goal_x, const do
   return path;
 }
 
-Eigen::Matrix<double, 5, 1> CubicSpiralOptimizer::optimizeCubicSpiralParams(const double goal_x, const double goal_y,
+Eigen::Matrix<double, 5, 1> CubicSpiralOptimizer::optimizeCubicSpiralParams(const double initial_curvature,
+                                                                            const double goal_curvature,
+                                                                            const double goal_x, const double goal_y,
                                                                             const double goal_heading)
 {
   double min_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
 
   ifopt::Problem nlp;
   CommonTerms common_terms;
-  nlp.AddVariableSet(std::make_shared<CubicSpiralVariableSet>(min_dist, max_curvature_, common_terms));
-  nlp.AddCostSet(std::make_shared<CubicSpiralCostTerm>(goal_x, goal_y, goal_heading, common_terms));
+  nlp.AddVariableSet(std::make_shared<CubicSpiralVariableSet>(min_dist, initial_curvature, goal_curvature,
+                                                              max_curvature_, common_terms));
+  nlp.AddCostSet(std::make_shared<CubicSpiralCostTerm>(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading,
+                                                       common_terms));
 
   ifopt::IpoptSolver ipopt;
   ipopt.SetOption("linear_solver", "mumps");
@@ -53,7 +59,7 @@ Eigen::Matrix<double, 5, 1> CubicSpiralOptimizer::optimizeCubicSpiralParams(cons
   ipopt.Solve(nlp);
   Eigen::Vector3d vars = nlp.GetOptVariables()->GetValues();
   Eigen::Matrix<double, 5, 1> p;
-  p << 0.0, vars(0), vars(1), 0.0, vars(2);
+  p << initial_curvature, vars(0), vars(1), goal_curvature, vars(2);
 
   return p;
 }
@@ -180,16 +186,24 @@ double CubicSpiralOptimizer::CubicSpiral::getCurvature(const double s)
 /*                           CubicSpiralVariableSet                           */
 /* -------------------------------------------------------------------------- */
 
-CubicSpiralOptimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const double min_dist, const double max_curvature,
+CubicSpiralOptimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const double min_dist,
+                                                                     const double initial_curvature,
+                                                                     const double goal_curvature,
+                                                                     const double max_curvature,
                                                                      CommonTerms& common_terms)
-  : min_dist_(min_dist), max_curvature_(max_curvature), common_terms_(common_terms), VariableSet(3, "vars")
+  : min_dist_(min_dist)
+  , p_0_(initial_curvature)
+  , p_3_(goal_curvature)
+  , max_curvature_(max_curvature)
+  , common_terms_(common_terms)
+  , VariableSet(3, "vars")
 {
-  p_1_ = 0;
-  p_2_ = 0;
-  s_f_ = min_dist;
+  p_1_ = 0.0;
+  p_2_ = 0.0;
+  s_f_ = min_dist_;
 
   Eigen::Matrix<double, 5, 1> p;
-  p << 0.0, p_1_, p_2_, 0.0, s_f_;
+  p << p_0_, p_1_, p_2_, p_3_, s_f_;
 
   updateCommonTerms(p);
 }
@@ -206,7 +220,7 @@ void CubicSpiralOptimizer::CubicSpiralVariableSet::SetVariables(const Eigen::Vec
   s_f_ = x(2);
 
   Eigen::Matrix<double, 5, 1> p;
-  p << 0.0, x(0), x(1), 0.0, x(2);
+  p << p_0_, x(0), x(1), p_3_, x(2);
   updateCommonTerms(p);
 }
 
@@ -267,9 +281,17 @@ ifopt::Component::VecBound CubicSpiralOptimizer::CubicSpiralVariableSet::GetBoun
 /*                             CubicSpiralCostTerm                            */
 /* -------------------------------------------------------------------------- */
 
-CubicSpiralOptimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double goal_x, const double goal_y,
-                                                               const double goal_heading, CommonTerms& common_terms)
-  : goal_x_(goal_x), goal_y_(goal_y), goal_heading_(goal_heading), common_terms_(common_terms), ifopt::CostTerm("cost")
+CubicSpiralOptimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double initial_curvature,
+                                                               const double goal_curvature, const double goal_x,
+                                                               const double goal_y, const double goal_heading,
+                                                               CommonTerms& common_terms)
+  : p_0_(initial_curvature)
+  , p_3_(goal_curvature)
+  , goal_x_(goal_x)
+  , goal_y_(goal_y)
+  , goal_heading_(goal_heading)
+  , common_terms_(common_terms)
+  , ifopt::CostTerm("cost")
 {
 }
 
@@ -438,7 +460,7 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::GetCost() const
 {
   Eigen::Vector3d vars = GetVariables()->GetComponent("vars")->GetValues();
   Eigen::Matrix<double, 5, 1> p;
-  p << 0.0, vars(0), vars(1), 0.0, vars(2);
+  p << p_0_, vars(0), vars(1), p_3_, vars(2);
 
   return (K_BE_ * bendingEnergyCost(p)) + (K_X_ * xCost(p)) + (K_Y_ * yCost(p)) + (K_HDG_ * headingCost(p));
 }
@@ -450,7 +472,7 @@ void CubicSpiralOptimizer::CubicSpiralCostTerm::FillJacobianBlock(std::string va
   {
     Eigen::Vector3d vars = GetVariables()->GetComponent("vars")->GetValues();
     Eigen::Matrix<double, 5, 1> p;
-    p << 0.0, vars(0), vars(1), 0.0, vars(2);
+    p << p_0_, vars(0), vars(1), p_3_, vars(2);
 
     Eigen::Vector3d grad = (K_BE_ * bendingEnergyCostGrad(p)) + (K_X_ * xCostGrad(p)) + (K_Y_ * yCostGrad(p)) +
                            (K_HDG_ * headingCostGrad(p));

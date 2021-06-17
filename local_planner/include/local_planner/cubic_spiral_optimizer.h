@@ -81,16 +81,19 @@ private:
     const double min_dist_;
     const double max_curvature_;
 
-    double p_1_;  // curvature at s = 1/3
-    double p_2_;  // curvature at s = 2/3
-    double s_f_;  // length
+    const double p_0_;  // curvature at s = 0
+    double p_1_;        // curvature at s = (1 / 3) * s_f_
+    double p_2_;        // curvature at s = (2 / 3) * s_f_
+    const double p_3_;  // curvature at s =  s_f_
+    double s_f_;        // length
 
     CommonTerms& common_terms_;
 
     void updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p);
 
   public:
-    CubicSpiralVariableSet(const double min_dist, const double max_curvature, CommonTerms& common_terms);
+    CubicSpiralVariableSet(const double min_dist, const double initial_curvature, const double goal_curvature,
+                           const double max_curvature, CommonTerms& common_terms);
 
     void SetVariables(const Eigen::VectorXd& vars) override;
 
@@ -107,6 +110,8 @@ private:
     static constexpr unsigned int K_Y_ = 25;
     static constexpr unsigned int K_HDG_ = 30;
 
+    const double p_0_;  // curvature at s = 0
+    const double p_3_;  // curvature at s =  s_f_
     const double goal_x_;
     const double goal_y_;
     const double goal_heading_;
@@ -130,7 +135,8 @@ private:
     Eigen::Vector3d headingCostGrad(const Eigen::Matrix<double, 5, 1>& p) const;
 
   public:
-    CubicSpiralCostTerm(const double goal_x, const double goal_y, const double goal_heading, CommonTerms& common_terms);
+    CubicSpiralCostTerm(const double initial_curvature, const double goal_curvature, const double goal_x,
+                        const double goal_y, const double goal_heading, CommonTerms& common_terms);
 
     double GetCost() const override;
 
@@ -139,7 +145,8 @@ private:
 
   const double max_curvature_;
 
-  Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double goal_x, const double goal_y,
+  Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double initial_curvature, const double goal_curvature,
+                                                        const double goal_x, const double goal_y,
                                                         const double goal_heading);
 
   static Eigen::Vector4d paramsToCoeffs(const Eigen::Matrix<double, 5, 1> p);
@@ -147,8 +154,8 @@ private:
 public:
   explicit CubicSpiralOptimizer(double max_curvature);
 
-  Path generateCubicSpiralPath(const double goal_x, const double goal_y, const double goal_heading,
-                               const unsigned int num_samples);
+  Path generateCubicSpiralPath(const double initial_curvature, const double goal_curvature, const double goal_x,
+                               const double goal_y, const double goal_heading, const unsigned int num_samples);
 };
 
 #endif  // LOCAL_PLANNER_CUBIC_SPIRAL_OPTIMIZER_H

@@ -30,7 +30,6 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   double max_lat_acc = 1;
   double max_long_acc = 1;
-  double wheelbase = 0.3;
   double max_steering_angle = 0.4;
 
   // ROS_ASSERT(private_nh.getParam("global_path_topic", global_path_topic));
@@ -49,6 +48,7 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   global_path_sub_ = nh_.subscribe(global_path_topic, 1, &LocalPlanner::globalPathCallback, this);
   odom_sub_ = nh_.subscribe(odom_topic, 1, &LocalPlanner::odomCallback, this);
+  drive_sub_ = nh_.subscribe("drive", 1, &LocalPlanner::driveCallback, this);
   costmap_sub_ = nh_.subscribe(costmap_topic, 1, &LocalPlanner::costmapCallback, this);
 
   local_path_pub_ = nh_.advertise<nav_msgs::Path>(local_path_topic, 1);
@@ -56,12 +56,13 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
 
+  wheelbase_ = 0.3;
   num_paths_ = 10;
   path_offset_ = 0.2;
   look_ahead_time_ = 2.0;
   min_look_ahead_dist_ = 2.0;
 
-  opt_ = std::make_unique<CubicSpiralOptimizer>(tan(max_steering_angle) / wheelbase);
+  opt_ = std::make_unique<CubicSpiralOptimizer>(tan(max_steering_angle) / wheelbase_);
   velocity_gen_ = std::make_unique<VelocityProfileGenerator>(max_lat_acc, max_long_acc);
   traj_eval_ = std::make_unique<TrajectoryEvaluator>();
 }
@@ -80,21 +81,28 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
     return;
   }
 
+  double current_curvature = tan(current_steering_angle_) / wheelbase_;
+
   std::vector<Trajectory> trajectories;
   std::vector<double> costs;
+
+  ros::Time begin = ros::Time::now();
 
   for (int i = 0; i < num_paths_; ++i)
   {
     double goal_offset = (i - num_paths_ / 2) * path_offset_;
 
     geometry_msgs::Pose2D goal = generateOffsetGoal(reference_goal, goal_offset);
-    Path path = opt_->generateCubicSpiralPath(goal.x, goal.y, goal.theta, 10);
+    Path path = opt_->generateCubicSpiralPath(current_curvature, 0.0, goal.x, goal.y, goal.theta, 10);
     Trajectory trajectory = velocity_gen_->generateVelocityProfile(path, latest_odom_.twist.twist.linear.x, 5);
     double traj_cost = traj_eval_->evaluateTrajectory(trajectory, goal_offset);
 
     trajectories.push_back(trajectory);
     costs.push_back(traj_cost);
   }
+
+  ros::Time end = ros::Time::now();
+  ROS_INFO_STREAM("PLANNING TIME: " << (end - begin).toSec());
 
   int best_traj_id = std::min_element(costs.begin(), costs.end()) - costs.begin();
 
@@ -116,6 +124,11 @@ void LocalPlanner::globalPathCallback(const nav_msgs::Path& path_msg)
 void LocalPlanner::odomCallback(const nav_msgs::Odometry& odom_msg)
 {
   latest_odom_ = odom_msg;
+}
+
+void LocalPlanner::driveCallback(const ackermann_msgs::AckermannDriveStamped& drive_msg)
+{
+  current_steering_angle_ = drive_msg.drive.steering_angle;
 }
 
 void LocalPlanner::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
