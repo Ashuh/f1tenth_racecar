@@ -1,0 +1,71 @@
+#ifndef LOCAL_PLANNER_LATTICE_H
+#define LOCAL_PLANNER_LATTICE_H
+
+#include <utility>
+#include <vector>
+
+#include <boost/graph/adjacency_list.hpp>
+
+class Lattice
+{
+public:
+  struct Position
+  {
+    struct Hash
+    {
+      size_t operator()(const Lattice::Position& p) const;
+    };
+
+    int layer_;
+    int lateral_position_;
+
+    Position();
+
+    Position(int layer, int lateral_position);
+
+    bool operator==(const Position& other) const;
+  };
+
+  struct Edge
+  {
+    double weight_;
+
+    Edge();
+
+    explicit Edge(const double weight);
+  };
+
+  struct Vertex
+  {
+    Lattice::Position position_;
+    double x_;
+    double y_;
+
+    Vertex();
+
+    Vertex(const Lattice::Position& position, const double x, const double y);
+  };
+
+  typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> Graph;
+  typedef Graph::vertex_descriptor VertexDescriptor;
+  typedef Graph::edge_descriptor EdgeDescriptor;
+  typedef std::unordered_map<Lattice::Position, Lattice::VertexDescriptor, Lattice::Position::Hash> PositionMap;
+
+  Lattice(const Graph& graph, const PositionMap& position_map, const int num_layers, const int num_lateral_samples);
+
+  std::vector<Vertex> getVertices() const;
+
+  void getConnectedVertexPairs(std::vector<std::pair<Vertex, Vertex>>& vertex_pairs,
+                               std::vector<Lattice::Edge>& edges) const;
+
+  std::vector<Vertex> search() const;
+
+private:
+  int num_layers_;
+  int num_lateral_samples_;
+
+  Graph graph_;
+  PositionMap position_map_;
+};
+
+#endif  // LOCAL_PLANNER_LATTICE_H
