@@ -3,6 +3,7 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <geometry_msgs/Point.h>
 
 #include "local_planner/lattice.h"
 
@@ -68,13 +69,32 @@ Lattice::Vertex::Vertex(const Lattice::Position& position, const double x, const
 /*                                   Lattice                                  */
 /* -------------------------------------------------------------------------- */
 
-Lattice::Lattice(const Graph& graph, const PositionMap& position_map, const int num_layers,
-                 const int num_lateral_samples)
+Lattice::Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position,
+                 const int num_layers, const int num_lateral_samples)
 {
   graph_ = graph;
   position_map_ = position_map;
+  source_position_ = source_position;
   num_layers_ = num_layers;
   num_lateral_samples_ = num_lateral_samples;
+  predecessors_ = computeShortestPathsPredecessors();
+}
+
+std::vector<Lattice::VertexDescriptor> Lattice::computeShortestPathsPredecessors() const
+{
+  VertexDescriptor source_id = position_map_.find(source_position_)->second;
+
+  std::vector<double> distances(boost::num_vertices(graph_));  // might not need this, leaving here for now
+  std::vector<VertexDescriptor> predecessors(boost::num_vertices(graph_));
+
+  boost::dijkstra_shortest_paths(
+      graph_, source_id,
+      boost::weight_map(boost::get(&Edge::weight_, graph_))
+          .distance_map(boost::make_iterator_property_map(distances.begin(), boost::get(boost::vertex_index, graph_)))
+          .predecessor_map(
+              boost::make_iterator_property_map(predecessors.begin(), boost::get(boost::vertex_index, graph_))));
+
+  return predecessors;
 }
 
 std::vector<Lattice::Vertex> Lattice::getVertices() const
@@ -107,36 +127,64 @@ void Lattice::getConnectedVertexPairs(std::vector<std::pair<Vertex, Vertex>>& ve
   }
 }
 
-std::vector<Lattice::Vertex> Lattice::search() const
+std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos) const
 {
-  VertexDescriptor source_id = position_map_.find(Position(0, 0))->second;
-  auto goal_it = position_map_.find(Position(num_layers_ - 1, -2));  // temp fixed position
+  VertexDescriptor source_id = position_map_.find(source_position_)->second;
+  VertexDescriptor goal_id;
 
-  if (goal_it == position_map_.end())
+  try
+  {
+    goal_id = getVertexIdFromPosition(Position(num_layers_ - 1, offset_pos));
+  }
+  catch (const std::invalid_argument& ex)
+  {
+    // Goal position does not exist in lattice
+    return std::vector<geometry_msgs::Point>{};
+  }
+
+  if (predecessors_[goal_id] == goal_id)
+  {
+    std::cout << "No path exists" << std::endl;
+    return std::vector<geometry_msgs::Point>{};
+  }
+
+  std::vector<geometry_msgs::Point> path;
+
+  for (VertexDescriptor current = goal_id; current != predecessors_[current]; current = predecessors_[current])
+  {
+    Vertex v = graph_[current];
+    geometry_msgs::Point point;
+    point.x = v.x_;
+    point.y = v.y_;
+    path.push_back(point);
+  }
+  Vertex v = graph_[source_id];
+  geometry_msgs::Point point;
+  point.x = v.x_;
+  point.y = v.y_;
+  path.push_back(point);
+
+  return path;
+}
+
+Lattice::VertexDescriptor Lattice::getVertexIdFromPosition(const Position& pos) const
+{
+  auto it = position_map_.find(pos);
+
+  if (it == position_map_.end())
   {
     throw std::invalid_argument("Goal vertex does not exist in lattice");
   }
 
-  VertexDescriptor goal_id = goal_it->second;
+  return it->second;
+}
 
-  std::vector<double> distances(boost::num_vertices(graph_));
-  std::vector<VertexDescriptor> predecessors(boost::num_vertices(graph_));
+int Lattice::getNumLayers() const
+{
+  return num_layers_;
+}
 
-  boost::dijkstra_shortest_paths(
-      graph_, source_id,
-      boost::weight_map(boost::get(&Edge::weight_, graph_))
-          .distance_map(boost::make_iterator_property_map(distances.begin(), boost::get(boost::vertex_index, graph_)))
-          .predecessor_map(
-              boost::make_iterator_property_map(predecessors.begin(), boost::get(boost::vertex_index, graph_))));
-
-  std::vector<Vertex> path;
-
-  for (VertexDescriptor current = goal_id; current != source_id; current = predecessors[current])
-  {
-    path.push_back(graph_[current]);
-  }
-
-  path.push_back(graph_[source_id]);
-
-  return path;
+int Lattice::getNumLateralSamples() const
+{
+  return num_lateral_samples_;
 }

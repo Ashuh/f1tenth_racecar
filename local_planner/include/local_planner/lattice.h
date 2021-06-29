@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
+#include <geometry_msgs/Point.h>
 
 class Lattice
 {
@@ -51,21 +52,34 @@ public:
   typedef Graph::edge_descriptor EdgeDescriptor;
   typedef std::unordered_map<Lattice::Position, Lattice::VertexDescriptor, Lattice::Position::Hash> PositionMap;
 
-  Lattice(const Graph& graph, const PositionMap& position_map, const int num_layers, const int num_lateral_samples);
+  Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position, const int num_layers,
+          const int num_lateral_samples);
+
+  std::vector<VertexDescriptor> computeShortestPathsPredecessors() const;
 
   std::vector<Vertex> getVertices() const;
 
   void getConnectedVertexPairs(std::vector<std::pair<Vertex, Vertex>>& vertex_pairs,
                                std::vector<Lattice::Edge>& edges) const;
 
-  std::vector<Vertex> search() const;
+  std::vector<geometry_msgs::Point> getShortestPath(const int offset_pos) const;
+
+  std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<Vertex>& path) const;
+
+  VertexDescriptor getVertexIdFromPosition(const Position& pos) const;
+
+  int getNumLayers() const;
+
+  int getNumLateralSamples() const;
 
 private:
   int num_layers_;
   int num_lateral_samples_;
 
   Graph graph_;
+  Position source_position_;
   PositionMap position_map_;
+  std::vector<VertexDescriptor> predecessors_;
 };
 
 #endif  // LOCAL_PLANNER_LATTICE_H
