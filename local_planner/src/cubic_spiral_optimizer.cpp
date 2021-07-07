@@ -86,7 +86,7 @@ CubicSpiralOptimizer::CubicSpiral::CubicSpiral(const Eigen::Vector4d coeffs)
 
 Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
 {
-  std::vector<Waypoint> waypoints;
+  // std::vector<Waypoint> waypoints;
 
   std::vector<double> distance;
   std::vector<double> x;
