@@ -1,11 +1,16 @@
 #ifndef LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 #define LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
+#include <nav_msgs/Path.h>
 
+#include "local_planner/lattice.h"
+#include "local_planner/lattice_generator.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
 
@@ -17,9 +22,20 @@ private:
   double max_lon_acc_;
   double max_lon_dec_;
 
-  Path generateReferencePath(const std::vector<geometry_msgs::Point>& lattice_vertices);
+  nav_msgs::Path global_path_;
+
+  std::unique_ptr<LatticeGenerator> lat_gen_;
+
+  std::tuple<Path, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
+  generateReferencePath(const geometry_msgs::Pose& current_pose);
+
+  int getNearestWaypointId(const geometry_msgs::Pose& current_pose);
+
+  std::vector<geometry_msgs::Point> getBestSSSP(const std::vector<std::vector<geometry_msgs::Point>>& sssp_candidates);
 
   std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path);
+
+  Path pointsToPath(std::vector<geometry_msgs::Point> points);
 
   std::vector<double> generateVelocityProfile(const Path& path);
 
@@ -71,10 +87,16 @@ private:
   double mengerCurvature(const geometry_msgs::Point& a, const geometry_msgs::Point& b, const geometry_msgs::Point& c);
 
 public:
-  ReferenceTrajectoryGenerator(const double speed_limit, const double max_lat_acc, const double max_lon_acc,
-                               const double max_lon_dec);
+  ReferenceTrajectoryGenerator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
+                               const double lateral_spacing, const double k_length, const double speed_limit,
+                               const double max_lat_acc, const double max_lon_acc, const double max_lon_dec);
 
-  Trajectory generateReferenceTrajectory(const std::vector<geometry_msgs::Point>& lattice_vertices);
+  std::tuple<Trajectory, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
+  generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
+
+  void setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg);
+
+  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
   void setSpeedLimit(const double speed_limit);
 

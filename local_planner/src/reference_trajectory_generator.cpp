@@ -1,84 +1,203 @@
 #include <algorithm>
+#include <limits>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include <geometry_msgs/Point.h>
+#include <geometry_msgs/Pose.h>
+#include <nav_msgs/Path.h>
 #include <unsupported/Eigen/Splines>
 
+#include "local_planner/lattice.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
 #include "local_planner/reference_trajectory_generator.h"
 
-ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(const double speed_limit, const double max_lat_acc,
-                                                           const double max_lon_acc, const double max_lon_dec)
+ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(const int num_layers, const double longitudinal_spacing,
+                                                           const int num_lateral_samples, const double lateral_spacing,
+                                                           const double k_length, const double speed_limit,
+                                                           const double max_lat_acc, const double max_lon_acc,
+                                                           const double max_lon_dec)
 {
   setSpeedLimit(speed_limit);
   setMaxLatAcc(max_lat_acc);
   setMaxLonAcc(max_lon_acc);
   setMaxLonDec(max_lon_dec);
+
+  lat_gen_ = std::make_unique<LatticeGenerator>(num_layers, longitudinal_spacing, num_lateral_samples, lateral_spacing,
+                                                k_length);
 }
 
-Trajectory
-ReferenceTrajectoryGenerator::generateReferenceTrajectory(const std::vector<geometry_msgs::Point>& lattice_vertices)
+std::tuple<Trajectory, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
+ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
-  std::vector<geometry_msgs::Point> ref_path_points = cubicSplineInterpolate(lattice_vertices);
+  if (global_path_.poses.empty())
+  {
+    throw std::runtime_error("Global path has not been set");
+  }
 
-  Path reference_path = generateReferencePath(lattice_vertices);
+  Path reference_path;
+  std::unique_ptr<Lattice> lattice_ptr;
+  std::unique_ptr<std::vector<geometry_msgs::Point>> best_sssp_ptr;
+
+  tie(reference_path, lattice_ptr, best_sssp_ptr) = generateReferencePath(current_pose);
+
   std::vector<double> velocity_profile = generateVelocityProfile(reference_path);
 
-  return Trajectory(reference_path, velocity_profile);
+  return std::make_tuple(Trajectory(reference_path, velocity_profile), std::move(lattice_ptr),
+                         std::move(best_sssp_ptr));
 }
 
-Path ReferenceTrajectoryGenerator::generateReferencePath(const std::vector<geometry_msgs::Point>& lattice_vertices)
+std::tuple<Path, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
+ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
-  std::vector<geometry_msgs::Point> ref_path_points = cubicSplineInterpolate(lattice_vertices);
+  // Generate lattice
+  int nearest_wp_id = getNearestWaypointId(current_pose);
+  auto lattice_ptr = std::make_unique<Lattice>(
+      lat_gen_->generateLattice(nearest_wp_id, current_pose.position.x, current_pose.position.y));
 
+  // Get SSSP for each vertex in final layer
+  std::vector<std::vector<geometry_msgs::Point>> sssp_results;
+
+  for (int i = 1; i < lattice_ptr->getNumLateralSamples() + 1; ++i)
+  {
+    int offset = ((i % 2 == 0) ? 1 : -1) * i / 2;
+
+    std::vector<geometry_msgs::Point> sssp = lattice_ptr->getShortestPath(offset);
+    sssp_results.push_back(sssp);
+  }
+
+  // Select the best SSSP
+  std::unique_ptr<std::vector<geometry_msgs::Point>> best_sssp_ptr =
+      std::make_unique<std::vector<geometry_msgs::Point>>(getBestSSSP(sssp_results));
+
+  return std::make_tuple(pointsToPath(cubicSplineInterpolate(*best_sssp_ptr)), std::move(lattice_ptr),
+                         std::move(best_sssp_ptr));
+}
+
+int ReferenceTrajectoryGenerator::getNearestWaypointId(const geometry_msgs::Pose& current_pose)
+{
+  int nearest_wp_id = -1;
+  double nearest_wp_dist = std::numeric_limits<double>::max();
+
+  for (int i = 0; i < global_path_.poses.size(); ++i)
+  {
+    double dist = distance(current_pose.position, global_path_.poses.at(i).pose.position);
+
+    if (dist < nearest_wp_dist)
+    {
+      nearest_wp_id = i;
+      nearest_wp_dist = dist;
+    }
+  }
+
+  return nearest_wp_id;
+}
+
+std::vector<geometry_msgs::Point>
+ReferenceTrajectoryGenerator::getBestSSSP(const std::vector<std::vector<geometry_msgs::Point>>& sssp_candidates)
+{
+  // placeholder code
+
+  std::vector<geometry_msgs::Point> best_sssp;
+
+  for (auto& sssp : sssp_candidates)
+  {
+    if (!sssp.empty())
+    {
+      best_sssp = sssp;
+      break;
+    }
+  }
+
+  if (best_sssp.empty())
+  {
+    throw std::runtime_error("Failed to find a path to the final layer of the lattice");
+  }
+
+  return best_sssp;
+}
+
+std::vector<geometry_msgs::Point>
+ReferenceTrajectoryGenerator::cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path)
+{
+  Eigen::VectorXd xvals(path.size());
+  Eigen::VectorXd yvals(path.size());
+
+  for (int i = 0; i < path.size(); i++)
+  {
+    geometry_msgs::Point point = path.at(i);
+    xvals(i) = point.x;
+    yvals(i) = point.y;
+  }
+
+  Eigen::Spline<double, 2>::ControlPointVectorType ref_path_points(2, path.size());
+  ref_path_points.row(0) = xvals;
+  ref_path_points.row(1) = yvals;
+  const Eigen::Spline<double, 2> spline =
+      Eigen::SplineFitting<Eigen::Spline<double, 2>>::Interpolate(ref_path_points, 3);
+
+  std::vector<geometry_msgs::Point> spline_points;
+
+  for (double u = 0; u <= 1; u += 0.025)
+  {
+    Eigen::Spline<double, 2>::PointType p = spline(u);
+
+    geometry_msgs::Point point;
+    point.x = p(0, 0);
+    point.y = p(1, 0);
+
+    spline_points.push_back(point);
+  }
+
+  std::reverse(spline_points.begin(), spline_points.end());
+
+  return spline_points;
+}
+
+Path ReferenceTrajectoryGenerator::pointsToPath(std::vector<geometry_msgs::Point> points)
+{
   std::vector<double> distance_vec;
   std::vector<double> x_vec;
   std::vector<double> y_vec;
   std::vector<double> yaw_vec;
   std::vector<double> curvature_vec;
 
-  for (int i = 0; i < ref_path_points.size(); ++i)
+  for (int i = 0; i < points.size(); ++i)
   {
-    distance_vec.push_back(
-        (i == 0) ? 0.0 : distance_vec.at(i - 1) + distance(ref_path_points.at(i), ref_path_points.at(i - 1)));
+    distance_vec.push_back((i == 0) ? 0.0 : distance_vec.at(i - 1) + distance(points.at(i), points.at(i - 1)));
 
-    if (i == ref_path_points.size() - 1)
+    if (i == points.size() - 1)
     {
       yaw_vec.push_back(yaw_vec.at(i - 1));
     }
     else
     {
-      double dx = ref_path_points.at(i + 1).x - ref_path_points.at(i).x;
-      double dy = ref_path_points.at(i + 1).y - ref_path_points.at(i).y;
+      double dx = points.at(i + 1).x - points.at(i).x;
+      double dy = points.at(i + 1).y - points.at(i).y;
       double yaw = atan2(dy, dx);
       yaw_vec.push_back(yaw);
     }
 
-    x_vec.push_back(ref_path_points.at(i).x);
-    y_vec.push_back(ref_path_points.at(i).y);
+    x_vec.push_back(points.at(i).x);
+    y_vec.push_back(points.at(i).y);
 
     if (i == 0)
     {
-      curvature_vec.push_back(
-          mengerCurvature(ref_path_points.at(i), ref_path_points.at(i + 1), ref_path_points.at(i + 2)));
+      curvature_vec.push_back(mengerCurvature(points.at(i), points.at(i + 1), points.at(i + 2)));
     }
-    else if (i == ref_path_points.size() - 1)
+    else if (i == points.size() - 1)
     {
-      curvature_vec.push_back(
-          mengerCurvature(ref_path_points.at(i - 2), ref_path_points.at(i - 1), ref_path_points.at(i)));
+      curvature_vec.push_back(mengerCurvature(points.at(i - 2), points.at(i - 1), points.at(i)));
     }
     else
     {
-      curvature_vec.push_back(
-          mengerCurvature(ref_path_points.at(i - 1), ref_path_points.at(i), ref_path_points.at(i + 1)));
+      curvature_vec.push_back(mengerCurvature(points.at(i - 1), points.at(i), points.at(i + 1)));
     }
   }
 
-  Path reference_path("map", distance_vec, x_vec, y_vec, yaw_vec, curvature_vec);
-
-  return reference_path;
+  return Path("map", distance_vec, x_vec, y_vec, yaw_vec, curvature_vec);
 }
 
 std::vector<double> ReferenceTrajectoryGenerator::generateVelocityProfile(const Path& path)
@@ -181,43 +300,6 @@ bool ReferenceTrajectoryGenerator::isValidProfile(const Path& path, const std::v
   return true;
 }
 
-std::vector<geometry_msgs::Point>
-ReferenceTrajectoryGenerator::cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path)
-{
-  Eigen::VectorXd xvals(path.size());
-  Eigen::VectorXd yvals(path.size());
-
-  for (int i = 0; i < path.size(); i++)
-  {
-    geometry_msgs::Point point = path.at(i);
-    xvals(i) = point.x;
-    yvals(i) = point.y;
-  }
-
-  Eigen::Spline<double, 2>::ControlPointVectorType ref_path_points(2, path.size());
-  ref_path_points.row(0) = xvals;
-  ref_path_points.row(1) = yvals;
-  const Eigen::Spline<double, 2> spline =
-      Eigen::SplineFitting<Eigen::Spline<double, 2>>::Interpolate(ref_path_points, 3);
-
-  std::vector<geometry_msgs::Point> spline_ref_path_points;
-
-  for (double u = 0; u <= 1; u += 0.025)
-  {
-    Eigen::Spline<double, 2>::PointType p = spline(u);
-
-    geometry_msgs::Point point;
-    point.x = p(0, 0);
-    point.y = p(1, 0);
-
-    spline_ref_path_points.push_back(point);
-  }
-
-  std::reverse(spline_ref_path_points.begin(), spline_ref_path_points.end());
-
-  return spline_ref_path_points;
-}
-
 double ReferenceTrajectoryGenerator::getLonAcc(const double v_i, const double v_f, const double s)
 {
   return (pow(v_f, 2) - pow(v_i, 2)) / (2 * s);
@@ -251,6 +333,17 @@ double ReferenceTrajectoryGenerator::mengerCurvature(const geometry_msgs::Point&
   double area = triangleArea(length_ab, length_bc, length_ca);
 
   return (4 * area) / (length_ab * length_bc * length_ca);
+}
+
+void ReferenceTrajectoryGenerator::setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg)
+{
+  global_path_ = *global_path_msg;
+  lat_gen_->setGlobalPath(*global_path_msg);
+}
+
+void ReferenceTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
+{
+  lat_gen_->setCostmap(costmap_msg);
 }
 
 void ReferenceTrajectoryGenerator::setSpeedLimit(const double speed_limit)
