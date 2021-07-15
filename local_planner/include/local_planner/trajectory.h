@@ -11,6 +11,8 @@ private:
   std::vector<double> velocity_;
 
 public:
+  Trajectory();
+
   Trajectory(const Path& path, const std::vector<double>& velocity);
 
   double velocity(size_t n) const;

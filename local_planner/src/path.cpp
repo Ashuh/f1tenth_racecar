@@ -9,6 +9,10 @@
 
 #include "local_planner/path.h"
 
+Path::Path()
+{
+}
+
 Path::Path(const std::string& frame_id, const std::vector<double>& distance, const std::vector<double>& x,
            const std::vector<double>& y, const std::vector<double>& yaw, const std::vector<double>& curvature)
 {
