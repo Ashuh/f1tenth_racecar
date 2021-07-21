@@ -1,27 +1,29 @@
 #include <algorithm>
+#include <string>
 #include <vector>
 
 #include <geometry_msgs/Pose2D.h>
-#include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-#include "costmap_generator/costmap_layer.h"
-#include "costmap_generator/costmap_value.h"
+#include "costmap_generator/collision_checker.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
 #include "local_planner/cubic_spiral_optimizer.h"
 #include "local_planner/tracking_trajectory_generator.h"
 
-TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(const int num_paths, const double max_curvature,
-                                                         const double lateral_spacing, const double look_ahead_time)
+TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
+    const int num_paths, const double max_curvature, const double lateral_spacing, const double look_ahead_time,
+    const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
   : tf_listener_(tf_buffer_)
+  , cubic_spiral_opt_(max_curvature)
+  , collision_checker_(std::vector<double>{ 0, 0.2, 0.4 }, 0.3)
 {
   num_paths_ = num_paths;
   lateral_spacing_ = lateral_spacing;
   look_ahead_time_ = look_ahead_time;
-  cubic_spiral_opt_ = std::make_unique<CubicSpiralOptimizer>(max_curvature);
+  viz_ptr_ = viz_ptr;
 }
 
 Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Trajectory& reference_trajectory,
@@ -48,6 +50,8 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
   {
     (checkCollision(path) ? unsafe_paths : safe_paths).push_back(path);
   }
+
+  visualizePaths(safe_paths, unsafe_paths);
 
   std::vector<Trajectory> trajectories;
 
@@ -87,7 +91,7 @@ std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geom
     double goal_offset = (i - num_paths_ / 2) * lateral_spacing_;
 
     geometry_msgs::Pose2D goal = offsetGoal(reference_goal, goal_offset);
-    Path path = cubic_spiral_opt_->generateCubicSpiralPath(initial_curvature, 0.0, goal.x, goal.y, goal.theta, 10);
+    Path path = cubic_spiral_opt_.generateCubicSpiralPath(initial_curvature, 0.0, goal.x, goal.y, goal.theta, 10);
     paths.push_back(path);
   }
 
@@ -145,35 +149,20 @@ geometry_msgs::Pose2D TrackingTrajectoryGenerator::offsetGoal(const geometry_msg
 
 bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
 {
-  if (!costmap_.exists(CostmapLayer::INFLATION))
-  {
-    throw std::runtime_error(CostmapLayer::INFLATION + " layer is not available in costmap");
-  }
-
-  geometry_msgs::TransformStamped transform;
-
   try
   {
-    transform = tf_buffer_.lookupTransform(costmap_.getFrameId(), path.getFrameId(), ros::Time(0));
-  }
-  catch (const tf2::TransformException& ex)
-  {
-    ROS_ERROR("[Local Planner] %s", ex.what());
-    return true;
-  }
-
-  for (int i = 0; i < path.size(); ++i)
-  {
-    geometry_msgs::Point point = path.point(i);
-    tf2::doTransform(point, point, transform);
-
-    grid_map::Position position(point.x, point.y);
-
-    if (costmap_.isInside(position) &&
-        costmap_.atPosition(CostmapLayer::INFLATION, position) == static_cast<int>(CostmapValue::OCCUPIED))
+    for (int i = 0; i < path.size(); ++i)
     {
-      return true;
+      if (collision_checker_.checkCollision(path.poseStamped(i)))
+      {
+        return true;
+      }
     }
+  }
+  catch (const std::exception& ex)
+  {
+    ROS_ERROR("[Local Planner] TTG Collision check failed due to %s. Assuming there is a collision.", ex.what());
+    return true;
   }
 
   return false;
@@ -211,4 +200,54 @@ double TrackingTrajectoryGenerator::evaluateTrajectory(const Trajectory& referen
 void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
   grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_);
+  collision_checker_.setCostmap(costmap_msg);
+}
+
+visualization_msgs::Marker TrackingTrajectoryGenerator::generatePathMarker(const Path& path, const std::string& ns,
+                                                                           const std_msgs::ColorRGBA& color,
+                                                                           const int marker_id)
+{
+  visualization_msgs::Marker path_marker;
+  path_marker.action = visualization_msgs::Marker::ADD;
+  path_marker.type = visualization_msgs::Marker::LINE_STRIP;
+  path_marker.ns = ns;
+  path_marker.id = marker_id;
+  path_marker.lifetime = ros::Duration(0.1);
+  path_marker.header.frame_id = path.getFrameId();
+  path_marker.pose.orientation.w = 1.0;
+  path_marker.scale.x = 0.02;
+  path_marker.color = color;
+
+  for (int i = 0; i < path.size(); ++i)
+  {
+    path_marker.points.push_back(path.point(i));
+  }
+
+  return path_marker;
+}
+
+void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_paths,
+                                                 const std::vector<Path>& unsafe_paths)
+{
+  visualization_msgs::MarkerArray path_markers;
+
+  std_msgs::ColorRGBA green;
+  green.g = 1.0;
+  green.a = 1.0;
+
+  std_msgs::ColorRGBA red;
+  red.r = 1.0;
+  red.a = 1.0;
+
+  for (auto& path : safe_paths)
+  {
+    path_markers.markers.push_back(generatePathMarker(path, "safe_paths", green, marker_count_++));
+  }
+
+  for (auto& path : unsafe_paths)
+  {
+    path_markers.markers.push_back(generatePathMarker(path, "unsafe_paths", red, marker_count_++));
+  }
+
+  viz_ptr_->markers.insert(viz_ptr_->markers.end(), path_markers.markers.begin(), path_markers.markers.end());
 }
