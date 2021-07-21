@@ -7,6 +7,7 @@
 #include <geometry_msgs/Pose2D.h>
 #include <grid_map_msgs/GridMap.h>
 #include <tf2_ros/transform_listener.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
@@ -28,7 +29,6 @@ private:
   CubicSpiralOptimizer cubic_spiral_opt_;
   CollisionChecker collision_checker_;
 
-  int marker_count_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
   std::vector<Path> generateCandidatePaths(const geometry_msgs::Pose& reference_goal, const double initial_curvature);
@@ -47,9 +47,6 @@ private:
 
   double evaluateTrajectory(const Trajectory& reference_trajectory, const Trajectory& trajectory,
                             const geometry_msgs::Pose& goal);
-
-  visualization_msgs::Marker generatePathMarker(const Path& path, const std::string& ns,
-                                                const std_msgs::ColorRGBA& color, const int marker_id);
 
   void visualizePaths(const std::vector<Path>& safe_paths, const std::vector<Path>& unsafe_paths);
 

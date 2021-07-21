@@ -6,6 +6,7 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
 #include "local_planner/path.h"
@@ -203,50 +204,19 @@ void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::Const
   collision_checker_.setCostmap(costmap_msg);
 }
 
-visualization_msgs::Marker TrackingTrajectoryGenerator::generatePathMarker(const Path& path, const std::string& ns,
-                                                                           const std_msgs::ColorRGBA& color,
-                                                                           const int marker_id)
-{
-  visualization_msgs::Marker path_marker;
-  path_marker.action = visualization_msgs::Marker::ADD;
-  path_marker.type = visualization_msgs::Marker::LINE_STRIP;
-  path_marker.ns = ns;
-  path_marker.id = marker_id;
-  path_marker.lifetime = ros::Duration(0.1);
-  path_marker.header.frame_id = path.getFrameId();
-  path_marker.pose.orientation.w = 1.0;
-  path_marker.scale.x = 0.02;
-  path_marker.color = color;
-
-  for (int i = 0; i < path.size(); ++i)
-  {
-    path_marker.points.push_back(path.point(i));
-  }
-
-  return path_marker;
-}
-
 void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_paths,
                                                  const std::vector<Path>& unsafe_paths)
 {
   visualization_msgs::MarkerArray path_markers;
 
-  std_msgs::ColorRGBA green;
-  green.g = 1.0;
-  green.a = 1.0;
-
-  std_msgs::ColorRGBA red;
-  red.r = 1.0;
-  red.a = 1.0;
-
-  for (auto& path : safe_paths)
+  for (int i = 0; i < safe_paths.size(); ++i)
   {
-    path_markers.markers.push_back(generatePathMarker(path, "safe_paths", green, marker_count_++));
+    path_markers.markers.push_back(safe_paths.at(i).toLineMarker(i, "safe_paths", 0.02, 0, 1, 0));
   }
 
-  for (auto& path : unsafe_paths)
+  for (int i = 0; i < unsafe_paths.size(); ++i)
   {
-    path_markers.markers.push_back(generatePathMarker(path, "unsafe_paths", red, marker_count_++));
+    path_markers.markers.push_back(unsafe_paths.at(i).toLineMarker(i, "unsafe_paths", 0.02, 1, 0, 0));
   }
 
   viz_ptr_->markers.insert(viz_ptr_->markers.end(), path_markers.markers.begin(), path_markers.markers.end());
