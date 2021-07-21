@@ -6,8 +6,8 @@
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
-
-// #include "local_planner/waypoint.h"
+#include <geometry_msgs/PoseStamped.h>
+#include <visualization_msgs/Marker.h>
 
 class Path
 {
@@ -47,6 +47,12 @@ public:
   geometry_msgs::Point point(size_t n) const;
 
   geometry_msgs::Pose pose(size_t n) const;
+
+  geometry_msgs::PoseStamped poseStamped(size_t n) const;
+
+  virtual visualization_msgs::Marker toLineMarker(const int marker_id, const std::string& ns, const double scale,
+                                                  const double r, const double g, const double b,
+                                                  const double a = 1.0) const;
 };
 
 #endif  // LOCAL_PLANNER_PATH_H
