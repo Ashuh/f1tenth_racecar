@@ -1,11 +1,13 @@
 #ifndef LOCAL_PLANNER_LATTICE_H
 #define LOCAL_PLANNER_LATTICE_H
 
+#include <string>
 #include <utility>
 #include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <geometry_msgs/Point.h>
+#include <visualization_msgs/MarkerArray.h>
 
 class Lattice
 {
@@ -71,6 +73,18 @@ public:
   int getNumLayers() const;
 
   int getNumLateralSamples() const;
+
+  visualization_msgs::Marker generateVertexMarker(const int marker_id, const std::string& ns, const double scale,
+                                                  const double r, const double g, const double b,
+                                                  const double a = 1.0) const;
+
+  visualization_msgs::Marker generateEdgeMarker(const int marker_id, const std::string& ns, const double scale,
+                                                const double r, const double g, const double b,
+                                                const double a = 1.0) const;
+
+  visualization_msgs::MarkerArray generateWeightMarkers(int marker_id, const std::string& ns, const double scale,
+                                                        const double r, const double g, const double b,
+                                                        const double a = 1.0) const;
 
 private:
   int num_layers_;

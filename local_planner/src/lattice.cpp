@@ -1,9 +1,11 @@
+#include <string>
 #include <utility>
 #include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
 #include <geometry_msgs/Point.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "local_planner/lattice.h"
 
@@ -187,4 +189,117 @@ int Lattice::getNumLayers() const
 int Lattice::getNumLateralSamples() const
 {
   return num_lateral_samples_;
+}
+
+visualization_msgs::Marker Lattice::generateVertexMarker(const int marker_id, const std::string& ns, const double scale,
+                                                         const double r, const double g, const double b,
+                                                         const double a) const
+{
+  auto vertices = getVertices();
+
+  visualization_msgs::Marker vertex_marker;
+  vertex_marker.header.frame_id = "map";
+  vertex_marker.action = visualization_msgs::Marker::ADD;
+  vertex_marker.type = visualization_msgs::Marker::SPHERE_LIST;
+  vertex_marker.ns = ns;
+  vertex_marker.id = marker_id;
+  vertex_marker.lifetime = ros::Duration(0.1);
+  vertex_marker.scale.x = scale;
+  vertex_marker.scale.y = scale;
+  vertex_marker.scale.z = scale;
+  vertex_marker.color.r = r;
+  vertex_marker.color.g = g;
+  vertex_marker.color.b = b;
+  vertex_marker.color.a = a;
+
+  for (auto& v : vertices)
+  {
+    geometry_msgs::Point point;
+    point.x = v.x_;
+    point.y = v.y_;
+    vertex_marker.points.push_back(point);
+  }
+
+  return vertex_marker;
+}
+
+visualization_msgs::Marker Lattice::generateEdgeMarker(const int marker_id, const std::string& ns, const double scale,
+                                                       const double r, const double g, const double b,
+                                                       const double a) const
+{
+  std::vector<Lattice::Edge> edges;
+  std::vector<std::pair<Lattice::Vertex, Lattice::Vertex>> vertex_pairs;
+  getConnectedVertexPairs(vertex_pairs, edges);
+
+  visualization_msgs::Marker edge_marker;
+  edge_marker.header.frame_id = "map";
+  edge_marker.action = visualization_msgs::Marker::ADD;
+  edge_marker.type = visualization_msgs::Marker::LINE_LIST;
+  edge_marker.ns = ns;
+  edge_marker.id = marker_id;
+  edge_marker.lifetime = ros::Duration(0.1);
+  edge_marker.scale.x = scale;
+
+  edge_marker.color.r = r;
+  edge_marker.color.g = g;
+  edge_marker.color.b = b;
+  edge_marker.color.a = a;
+
+  for (auto& pair : vertex_pairs)
+  {
+    geometry_msgs::Point source;
+    geometry_msgs::Point target;
+
+    source.x = pair.first.x_;
+    source.y = pair.first.y_;
+    target.x = pair.second.x_;
+    target.y = pair.second.y_;
+
+    edge_marker.points.push_back(source);
+    edge_marker.points.push_back(target);
+  }
+
+  return edge_marker;
+}
+
+visualization_msgs::MarkerArray Lattice::generateWeightMarkers(int marker_id, const std::string& ns, const double scale,
+                                                               const double r, const double g, const double b,
+                                                               const double a) const
+{
+  std::vector<Lattice::Edge> edges;
+  std::vector<std::pair<Lattice::Vertex, Lattice::Vertex>> vertex_pairs;
+  getConnectedVertexPairs(vertex_pairs, edges);
+
+  visualization_msgs::MarkerArray weight_markers;
+
+  for (int i = 0; i < vertex_pairs.size(); ++i)
+  {
+    visualization_msgs::Marker text_marker;
+
+    text_marker.header.frame_id = "map";
+    text_marker.action = visualization_msgs::Marker::ADD;
+    text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+    text_marker.ns = ns;
+    text_marker.id = marker_id++;
+    text_marker.lifetime = ros::Duration(0.1);
+    text_marker.scale.z = scale;
+    text_marker.color.r = r;
+    text_marker.color.g = g;
+    text_marker.color.b = b;
+    text_marker.color.a = a;
+
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(2) << edges.at(i).weight_;
+    text_marker.text = oss.str();
+
+    geometry_msgs::Point text_point;
+    text_point.x = vertex_pairs.at(i).first.x_ + (vertex_pairs.at(i).second.x_ - vertex_pairs.at(i).first.x_) / 8;
+    text_point.y = vertex_pairs.at(i).first.y_ + (vertex_pairs.at(i).second.y_ - vertex_pairs.at(i).first.y_) / 8;
+    text_point.z = 0.1;
+
+    text_marker.pose.position = text_point;
+    weight_markers.markers.push_back(text_marker);
+  }
+
+  return weight_markers;
 }
