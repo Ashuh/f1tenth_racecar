@@ -14,66 +14,59 @@
 #include "local_planner/trajectory.h"
 #include "local_planner/reference_trajectory_generator.h"
 
-ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(const int num_layers, const double longitudinal_spacing,
-                                                           const int num_lateral_samples, const double lateral_spacing,
-                                                           const double k_length, const double speed_limit,
-                                                           const double max_lat_acc, const double max_lon_acc,
-                                                           const double max_lon_dec)
+ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
+    const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
+    const double lateral_spacing, const double k_length, const double speed_limit, const double max_lat_acc,
+    const double max_lon_acc, const double max_lon_dec, const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
+  : lat_gen_(num_layers, longitudinal_spacing, num_lateral_samples, lateral_spacing, k_length)
 {
   setSpeedLimit(speed_limit);
   setMaxLatAcc(max_lat_acc);
   setMaxLonAcc(max_lon_acc);
   setMaxLonDec(max_lon_dec);
-
-  lat_gen_ = std::make_unique<LatticeGenerator>(num_layers, longitudinal_spacing, num_lateral_samples, lateral_spacing,
-                                                k_length);
+  viz_ptr_ = viz_ptr;
 }
 
-std::tuple<Trajectory, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
-ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
+Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
   if (global_path_.poses.empty())
   {
     throw std::runtime_error("Global path has not been set");
   }
 
-  Path reference_path;
-  std::unique_ptr<Lattice> lattice_ptr;
-  std::unique_ptr<std::vector<geometry_msgs::Point>> best_sssp_ptr;
-
-  tie(reference_path, lattice_ptr, best_sssp_ptr) = generateReferencePath(current_pose);
-
+  Path reference_path = generateReferencePath(current_pose);
   std::vector<double> velocity_profile = generateVelocityProfile(reference_path);
+  Trajectory reference_trajectory(reference_path, velocity_profile);
+  visualizeReferenceTrajectory(reference_trajectory);
 
-  return std::make_tuple(Trajectory(reference_path, velocity_profile), std::move(lattice_ptr),
-                         std::move(best_sssp_ptr));
+  return reference_trajectory;
 }
 
-std::tuple<Path, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
-ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
+Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
   // Generate lattice
   int nearest_wp_id = getNearestWaypointId(current_pose);
-  auto lattice_ptr = std::make_unique<Lattice>(
-      lat_gen_->generateLattice(nearest_wp_id, current_pose.position.x, current_pose.position.y));
+
+  Lattice lattice = lat_gen_.generateLattice(nearest_wp_id, current_pose.position.x, current_pose.position.y);
+  visualizeLattice(lattice);
 
   // Get SSSP for each vertex in final layer
   std::vector<std::vector<geometry_msgs::Point>> sssp_results;
 
-  for (int i = 1; i < lattice_ptr->getNumLateralSamples() + 1; ++i)
+  for (int i = 1; i < lattice.getNumLateralSamples() + 1; ++i)
   {
     int offset = ((i % 2 == 0) ? 1 : -1) * i / 2;
 
-    std::vector<geometry_msgs::Point> sssp = lattice_ptr->getShortestPath(offset);
+    std::vector<geometry_msgs::Point> sssp = lattice.getShortestPath(offset);
     sssp_results.push_back(sssp);
   }
 
   // Select the best SSSP
-  std::unique_ptr<std::vector<geometry_msgs::Point>> best_sssp_ptr =
-      std::make_unique<std::vector<geometry_msgs::Point>>(getBestSSSP(sssp_results));
+  std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
+  visualizeSSSP(pointsToPath(best_sssp));
+  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
 
-  return std::make_tuple(pointsToPath(cubicSplineInterpolate(*best_sssp_ptr)), std::move(lattice_ptr),
-                         std::move(best_sssp_ptr));
+  return reference_path;
 }
 
 int ReferenceTrajectoryGenerator::getNearestWaypointId(const geometry_msgs::Pose& current_pose)
@@ -338,12 +331,12 @@ double ReferenceTrajectoryGenerator::mengerCurvature(const geometry_msgs::Point&
 void ReferenceTrajectoryGenerator::setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg)
 {
   global_path_ = *global_path_msg;
-  lat_gen_->setGlobalPath(*global_path_msg);
+  lat_gen_.setGlobalPath(*global_path_msg);
 }
 
 void ReferenceTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
-  lat_gen_->setCostmap(costmap_msg);
+  lat_gen_.setCostmap(costmap_msg);
 }
 
 void ReferenceTrajectoryGenerator::setSpeedLimit(const double speed_limit)
@@ -391,5 +384,45 @@ void ReferenceTrajectoryGenerator::setMaxLonDec(const double max_lon_dec)
   else
   {
     throw std::invalid_argument("Maximum longitudinal deceleration must be positive");
+  }
+}
+
+void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)
+{
+  if (viz_ptr_ != nullptr)
+  {
+    visualization_msgs::Marker vertex_marker = lattice.generateVertexMarker(0, "lattice/vertices", 0.02, 1, 1, 1);
+    visualization_msgs::Marker edge_marker = lattice.generateEdgeMarker(0, "lattice/edges", 0.002, 0, 0, 1, 0.7);
+    visualization_msgs::MarkerArray weight_markers = lattice.generateWeightMarkers(0, "lattice/weights", 0.02, 0, 0, 1);
+
+    visualization_msgs::MarkerArray lattice_marker;
+    lattice_marker.markers = { vertex_marker, edge_marker };
+    lattice_marker.markers.insert(lattice_marker.markers.end(), weight_markers.markers.begin(),
+                                  weight_markers.markers.end());
+
+    viz_ptr_->markers.insert(viz_ptr_->markers.end(), lattice_marker.markers.begin(), lattice_marker.markers.end());
+  }
+}
+
+void ReferenceTrajectoryGenerator::visualizeSSSP(const Path& path)
+{
+  if (viz_ptr_ != nullptr)
+  {
+    visualization_msgs::Marker path_marker = path.toLineMarker(0, "sssp", 0.02, 0, 0, 1);
+    viz_ptr_->markers.push_back(path_marker);
+  }
+}
+
+void ReferenceTrajectoryGenerator::visualizeReferenceTrajectory(const Trajectory& trajectory)
+{
+  if (viz_ptr_ != nullptr)
+  {
+    visualization_msgs::Marker path_marker = trajectory.toLineMarker(0, "reference_trajectory", 0.02, 0, 0, 0);
+    visualization_msgs::MarkerArray velocity_markers =
+        trajectory.toTextMarker(0, "reference_trajectory_velocity_profile", 0.08, 0.1, 0, 0, 0);
+
+    viz_ptr_->markers.push_back(path_marker);
+    viz_ptr_->markers.insert(viz_ptr_->markers.begin(), velocity_markers.markers.begin(),
+                             velocity_markers.markers.end());
   }
 }

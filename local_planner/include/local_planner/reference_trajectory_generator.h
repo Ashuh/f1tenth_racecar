@@ -8,6 +8,7 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Path.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "local_planner/lattice.h"
 #include "local_planner/lattice_generator.h"
@@ -24,10 +25,11 @@ private:
 
   nav_msgs::Path global_path_;
 
-  std::unique_ptr<LatticeGenerator> lat_gen_;
+  LatticeGenerator lat_gen_;
 
-  std::tuple<Path, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
-  generateReferencePath(const geometry_msgs::Pose& current_pose);
+  std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
+
+  Path generateReferencePath(const geometry_msgs::Pose& current_pose);
 
   int getNearestWaypointId(const geometry_msgs::Pose& current_pose);
 
@@ -86,13 +88,21 @@ private:
    */
   double mengerCurvature(const geometry_msgs::Point& a, const geometry_msgs::Point& b, const geometry_msgs::Point& c);
 
+  // void generatePathMarker(const Path& path);
+
+  void visualizeLattice(const Lattice& lattice);
+
+  void visualizeSSSP(const Path& path);
+
+  void visualizeReferenceTrajectory(const Trajectory& trajectory);
+
 public:
   ReferenceTrajectoryGenerator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
                                const double lateral_spacing, const double k_length, const double speed_limit,
-                               const double max_lat_acc, const double max_lon_acc, const double max_lon_dec);
+                               const double max_lat_acc, const double max_lon_acc, const double max_lon_dec,
+                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
-  std::tuple<Trajectory, std::unique_ptr<Lattice>, std::unique_ptr<std::vector<geometry_msgs::Point>>>
-  generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
+  Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
 
   void setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg);
 
@@ -107,4 +117,4 @@ public:
   void setMaxLonDec(const double max_lon_dec);
 };
 
-#endif  // LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
+#endif // LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
