@@ -58,8 +58,7 @@ public:
                               const double look_ahead_time,
                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
-  Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature,
-                                        std::vector<Path>& safe_paths, std::vector<Path>& unsafe_paths);
+  Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature);
 
   void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 };

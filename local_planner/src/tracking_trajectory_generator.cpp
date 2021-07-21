@@ -27,9 +27,7 @@ TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
 }
 
 Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Trajectory& reference_trajectory,
-                                                                   const double initial_curvature,
-                                                                   std::vector<Path>& safe_paths,
-                                                                   std::vector<Path>& unsafe_paths)
+                                                                   const double initial_curvature)
 {
   if (reference_trajectory.size() == 0)
   {
@@ -45,6 +43,8 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
   tf2::doTransform(reference_goal, reference_goal, transform);
 
   std::vector<Path> candidate_paths = generateCandidatePaths(reference_goal, initial_curvature);
+  std::vector<Path> safe_paths;
+  std::vector<Path> unsafe_paths;
 
   for (auto& path : candidate_paths)
   {
