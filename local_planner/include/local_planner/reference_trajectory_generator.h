@@ -23,15 +23,11 @@ private:
   double max_lon_acc_;
   double max_lon_dec_;
 
-  nav_msgs::Path global_path_;
-
   LatticeGenerator lat_gen_;
 
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
   Path generateReferencePath(const geometry_msgs::Pose& current_pose);
-
-  int getNearestWaypointId(const geometry_msgs::Pose& current_pose);
 
   std::vector<geometry_msgs::Point> getBestSSSP(const std::vector<std::vector<geometry_msgs::Point>>& sssp_candidates);
 
@@ -88,8 +84,6 @@ private:
    */
   double mengerCurvature(const geometry_msgs::Point& a, const geometry_msgs::Point& b, const geometry_msgs::Point& c);
 
-  // void generatePathMarker(const Path& path);
-
   void visualizeLattice(const Lattice& lattice);
 
   void visualizeSSSP(const Path& path);
@@ -117,4 +111,4 @@ public:
   void setMaxLonDec(const double max_lon_dec);
 };
 
-#endif // LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
+#endif  // LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H

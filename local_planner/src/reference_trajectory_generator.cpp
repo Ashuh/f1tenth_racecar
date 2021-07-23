@@ -1,6 +1,4 @@
 #include <algorithm>
-#include <limits>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -29,11 +27,6 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
 
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
-  if (global_path_.poses.empty())
-  {
-    throw std::runtime_error("Global path has not been set");
-  }
-
   Path reference_path = generateReferencePath(current_pose);
   std::vector<double> velocity_profile = generateVelocityProfile(reference_path);
   Trajectory reference_trajectory(reference_path, velocity_profile);
@@ -45,9 +38,7 @@ Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geome
 Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
   // Generate lattice
-  int nearest_wp_id = getNearestWaypointId(current_pose);
-
-  Lattice lattice = lat_gen_.generateLattice(nearest_wp_id, current_pose.position.x, current_pose.position.y);
+  Lattice lattice = lat_gen_.generateLattice(current_pose);
   visualizeLattice(lattice);
 
   // Get SSSP for each vertex in final layer
@@ -67,25 +58,6 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
 
   return reference_path;
-}
-
-int ReferenceTrajectoryGenerator::getNearestWaypointId(const geometry_msgs::Pose& current_pose)
-{
-  int nearest_wp_id = -1;
-  double nearest_wp_dist = std::numeric_limits<double>::max();
-
-  for (int i = 0; i < global_path_.poses.size(); ++i)
-  {
-    double dist = distance(current_pose.position, global_path_.poses.at(i).pose.position);
-
-    if (dist < nearest_wp_dist)
-    {
-      nearest_wp_id = i;
-      nearest_wp_dist = dist;
-    }
-  }
-
-  return nearest_wp_id;
 }
 
 std::vector<geometry_msgs::Point>
@@ -330,7 +302,6 @@ double ReferenceTrajectoryGenerator::mengerCurvature(const geometry_msgs::Point&
 
 void ReferenceTrajectoryGenerator::setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg)
 {
-  global_path_ = *global_path_msg;
   lat_gen_.setGlobalPath(*global_path_msg);
 }
 

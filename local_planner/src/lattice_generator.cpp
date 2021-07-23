@@ -1,3 +1,4 @@
+#include <limits>
 #include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
@@ -30,10 +31,12 @@ LatticeGenerator::LatticeGenerator(const int num_layers, const double longitudin
   }
 }
 
-Lattice LatticeGenerator::generateLattice(const int nearest_wp_id, const double source_x, const double source_y) const
+Lattice LatticeGenerator::generateLattice(const geometry_msgs::Pose& source_pose) const
 {
+  int nearest_wp_id = getNearestWaypointId(source_pose);
   std::vector<int> ref_waypoint_ids = getReferenceWaypointIds(nearest_wp_id);
-  std::vector<std::vector<Lattice::Vertex>> layers = generateLayers(ref_waypoint_ids, source_x, source_y);
+  std::vector<std::vector<Lattice::Vertex>> layers =
+      generateLayers(ref_waypoint_ids, source_pose.position.x, source_pose.position.y);
 
   Lattice::Graph graph;
   Lattice::PositionMap position_map;
@@ -92,6 +95,31 @@ Lattice LatticeGenerator::generateLattice(const int nearest_wp_id, const double 
   Lattice::Position source_position = layers.at(0).at(0).position_;
 
   return Lattice(graph, position_map, source_position, num_layers_, 2 * num_lateral_samples_per_side_ + 1);
+}
+
+int LatticeGenerator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
+{
+  if (global_path_.poses.empty())
+  {
+    throw std::runtime_error("Global path has not been set");
+  }
+
+  int nearest_wp_id = -1;
+  double nearest_wp_dist = std::numeric_limits<double>::max();
+
+  for (int i = 0; i < global_path_.poses.size(); ++i)
+  {
+    double dist = distance(current_pose.position.x, current_pose.position.y, global_path_.poses.at(i).pose.position.x,
+                           global_path_.poses.at(i).pose.position.y);
+
+    if (dist < nearest_wp_dist)
+    {
+      nearest_wp_id = i;
+      nearest_wp_dist = dist;
+    }
+  }
+
+  return nearest_wp_id;
 }
 
 std::vector<int> LatticeGenerator::getReferenceWaypointIds(const int nearest_wp_id) const

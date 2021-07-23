@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include <geometry_msgs/Pose.h>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <nav_msgs/Path.h>
@@ -27,6 +28,8 @@ private:
   nav_msgs::Path global_path_;
   grid_map::GridMap costmap_;
 
+  int getNearestWaypointId(const geometry_msgs::Pose& current_pose) const;
+
   std::vector<int> getReferenceWaypointIds(const int nearest_wp_id) const;
 
   int getLayerWaypointId(const int nearest_wp_id, const int layer) const;
@@ -49,7 +52,7 @@ public:
   LatticeGenerator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
                    const double lateral_spacing, const double k_length);
 
-  Lattice generateLattice(const int nearest_wp_id, const double source_x, const double source_y) const;
+  Lattice generateLattice(const geometry_msgs::Pose& source_pose) const;
 
   void setGlobalPath(const nav_msgs::Path& global_path);
 
