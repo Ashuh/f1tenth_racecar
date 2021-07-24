@@ -80,7 +80,7 @@ public:
 
     std::vector<int> getReferenceWaypointIds(const int nearest_wp_id) const;
 
-    int getLayerWaypointId(const int nearest_wp_id, const int layer) const;
+    int getWaypointIdAtDistance(const int start_id, const int target_dist) const;
 
     std::vector<std::vector<Lattice::Vertex>> generateLayers(const std::vector<int>& ref_waypoint_ids,
                                                              const double source_x, const double source_y) const;

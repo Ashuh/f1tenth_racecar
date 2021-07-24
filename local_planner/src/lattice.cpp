@@ -191,41 +191,50 @@ int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_
 
 std::vector<int> Lattice::Generator::getReferenceWaypointIds(const int nearest_wp_id) const
 {
-  std::vector<int> waypoint_ids;
+  std::vector<int> waypoint_ids = { nearest_wp_id };
 
   for (int i = 0; i < num_layers_; ++i)
   {
-    int layer_wp_id = getLayerWaypointId(nearest_wp_id, i);
-    waypoint_ids.push_back(layer_wp_id);
+    waypoint_ids.push_back(getWaypointIdAtDistance(waypoint_ids.at(i), longitudinal_spacing_));
   }
 
   return waypoint_ids;
 }
 
-int Lattice::Generator::getLayerWaypointId(const int nearest_wp_id, const int layer) const
+int Lattice::Generator::getWaypointIdAtDistance(const int start_id, const int target_dist) const
 {
-  const double layer_distance = layer * longitudinal_spacing_;
+  bool is_loop = global_path_.poses.at(global_path_.poses.size() - 1) == global_path_.poses.at(0);
 
-  double prev_x = global_path_.poses.at(nearest_wp_id).pose.position.x;
-  double prev_y = global_path_.poses.at(nearest_wp_id).pose.position.y;
+  double prev_x = global_path_.poses.at(start_id).pose.position.x;
+  double prev_y = global_path_.poses.at(start_id).pose.position.y;
   double cur_dist = 0.0;
 
-  for (int i = nearest_wp_id + 1; i < global_path_.poses.size(); ++i)
-  {
-    double cur_x = global_path_.poses.at(i).pose.position.x;
-    double cur_y = global_path_.poses.at(i).pose.position.y;
-    cur_dist += distance(cur_x, cur_y, prev_x, prev_y);
+  int cur_id = start_id;
 
-    if (cur_dist >= layer_distance)
+  while (cur_dist < target_dist)
+  {
+    if (cur_id == global_path_.poses.size())
     {
-      return i;
+      if (is_loop)
+      {
+        cur_id = 0;
+      }
+      else
+      {
+        return global_path_.poses.size() - 1;
+      }
     }
+
+    double cur_x = global_path_.poses.at(cur_id).pose.position.x;
+    double cur_y = global_path_.poses.at(cur_id).pose.position.y;
+    cur_dist += distance(cur_x, cur_y, prev_x, prev_y);
 
     prev_x = cur_x;
     prev_y = cur_y;
+    ++cur_id;
   }
 
-  return global_path_.poses.size() - 1;
+  return cur_id - 1;
 }
 
 std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(const std::vector<int>& ref_waypoint_ids,
@@ -235,9 +244,6 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   std::vector<std::vector<Lattice::Vertex>> layers;
 
   // Generate source vertex
-  double nearest_x = global_path_.poses.at(ref_waypoint_ids.at((0))).pose.position.x;
-  double nearest_y = global_path_.poses.at(ref_waypoint_ids.at((0))).pose.position.y;
-
   geometry_msgs::Pose nearest_wp_pose = global_path_.poses.at(ref_waypoint_ids.at((0))).pose;
   geometry_msgs::Pose origin_pose;
   origin_pose.orientation.w = 1;
