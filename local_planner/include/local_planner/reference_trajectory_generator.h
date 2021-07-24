@@ -11,7 +11,6 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "local_planner/lattice.h"
-#include "local_planner/lattice_generator.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
 
@@ -23,7 +22,7 @@ private:
   double max_lon_acc_;
   double max_lon_dec_;
 
-  LatticeGenerator lat_gen_;
+  Lattice::Generator lat_gen_;
 
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
