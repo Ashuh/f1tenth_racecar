@@ -101,6 +101,16 @@ public:
 
   void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
+  void setLengthWeight(const double weight);
+
+  void setNumLayers(const double num_layers);
+
+  void setLongitudinalSpacing(const double lon_spacing);
+
+  void setNumLateralSamplesPerSide(const double num_samples_per_side);
+
+  void setLateralSpacing(const double lat_spacing);
+
   void setSpeedLimit(const double speed_limit);
 
   void setMaxLatAcc(const double max_lat_acc);

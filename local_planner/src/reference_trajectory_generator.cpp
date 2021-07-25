@@ -310,6 +310,31 @@ void ReferenceTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::Cons
   lat_gen_.setCostmap(costmap_msg);
 }
 
+void ReferenceTrajectoryGenerator::setLengthWeight(const double weight)
+{
+  lat_gen_.setLengthWeight(weight);
+}
+
+void ReferenceTrajectoryGenerator::setNumLayers(const double num_layers)
+{
+  lat_gen_.setNumLayers(num_layers);
+}
+
+void ReferenceTrajectoryGenerator::setLongitudinalSpacing(const double lon_spacing)
+{
+  lat_gen_.setLongitudinalSpacing(lon_spacing);
+}
+
+void ReferenceTrajectoryGenerator::setNumLateralSamplesPerSide(const double num_samples_per_side)
+{
+  lat_gen_.setNumLateralSamplesPerSide(num_samples_per_side);
+}
+
+void ReferenceTrajectoryGenerator::setLateralSpacing(const double lat_spacing)
+{
+  lat_gen_.setLateralSpacing(lat_spacing);
+}
+
 void ReferenceTrajectoryGenerator::setSpeedLimit(const double speed_limit)
 {
   if (speed_limit > 0.0)

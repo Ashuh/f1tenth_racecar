@@ -408,9 +408,13 @@ void Lattice::Generator::setLengthWeight(const double weight)
 
 void Lattice::Generator::setNumLayers(const int num_layers)
 {
-  if (num_layers > 1)
+  if (num_layers > 0)
   {
     num_layers_ = num_layers;
+  }
+  else
+  {
+    throw std::invalid_argument("Number of layers must be at least 1");
   }
 }
 
@@ -420,6 +424,10 @@ void Lattice::Generator::setNumLateralSamplesPerSide(const int num_samples_per_s
   {
     num_lateral_samples_per_side_ = num_samples_per_side;
   }
+  else
+  {
+    throw std::invalid_argument("Number of lateral samples per side cannot be negative");
+  }
 }
 
 void Lattice::Generator::setLongitudinalSpacing(const double spacing)
@@ -428,6 +436,10 @@ void Lattice::Generator::setLongitudinalSpacing(const double spacing)
   {
     longitudinal_spacing_ = spacing;
   }
+  else
+  {
+    throw std::invalid_argument("Longitudinal spacing must be positive");
+  }
 }
 
 void Lattice::Generator::setLateralSpacing(const double spacing)
@@ -435,6 +447,10 @@ void Lattice::Generator::setLateralSpacing(const double spacing)
   if (spacing > 0.0)
   {
     lateral_spacing_ = spacing;
+  }
+  else
+  {
+    throw std::invalid_argument("Lateral spacing must be positive");
   }
 }
 
