@@ -104,14 +104,14 @@ int TrackingTrajectoryGenerator::getReferenceGoalId(const Trajectory& reference_
   double time = 0.0;
   int goal_id = 1;
 
-  while (goal_id < (reference_trajectory.size() - 1) && time < look_ahead_time_)
+  while (goal_id < reference_trajectory.size() && time < look_ahead_time_)
   {
     time += getArrivalTime(reference_trajectory.distance(goal_id) - reference_trajectory.distance(goal_id - 1),
                            reference_trajectory.velocity(goal_id - 1), reference_trajectory.velocity(goal_id));
     ++goal_id;
   }
 
-  return goal_id;
+  return goal_id - 1;
 }
 
 geometry_msgs::Pose2D TrackingTrajectoryGenerator::poseToPose2D(const geometry_msgs::Pose& pose)

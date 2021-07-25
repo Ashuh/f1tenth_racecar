@@ -521,7 +521,7 @@ std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos)
 
   try
   {
-    goal_id = getVertexIdFromPosition(Position(num_layers_ - 1, offset_pos));
+    goal_id = getVertexIdFromPosition(Position(num_layers_, offset_pos));
   }
   catch (const std::invalid_argument& ex)
   {
