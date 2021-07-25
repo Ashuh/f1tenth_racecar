@@ -34,15 +34,6 @@ public:
     bool operator==(const Position& other) const;
   };
 
-  struct Edge
-  {
-    double weight_;
-
-    Edge();
-
-    explicit Edge(const double weight);
-  };
-
   struct Vertex
   {
     Lattice::Position position_;
@@ -52,6 +43,18 @@ public:
     Vertex();
 
     Vertex(const Lattice::Position& position, const double x, const double y);
+  };
+
+  struct Edge
+  {
+    std::shared_ptr<Vertex> source_ptr_;
+    std::shared_ptr<Vertex> target_ptr_;
+
+    double weight_;
+
+    Edge();
+
+    Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared_ptr<Vertex>& target_ptr, const double weight);
   };
 
   typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> Graph;
@@ -121,8 +124,7 @@ public:
 
   std::vector<Vertex> getVertices() const;
 
-  void getConnectedVertexPairs(std::vector<std::pair<Vertex, Vertex>>& vertex_pairs,
-                               std::vector<Lattice::Edge>& edges) const;
+  std::vector<Lattice::Edge> getEdges() const;
 
   std::vector<geometry_msgs::Point> getShortestPath(const int offset_pos) const;
 

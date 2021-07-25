@@ -47,19 +47,6 @@ size_t Lattice::Position::Hash::operator()(const Lattice::Position& p) const
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                    Edge                                    */
-/* -------------------------------------------------------------------------- */
-
-Lattice::Edge::Edge()
-{
-}
-
-Lattice::Edge::Edge(const double weight)
-{
-  weight_ = weight;
-}
-
-/* -------------------------------------------------------------------------- */
 /*                                   Vertex                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -72,6 +59,22 @@ Lattice::Vertex::Vertex(const Lattice::Position& position, const double x, const
   position_ = position;
   x_ = x;
   y_ = y;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Edge                                    */
+/* -------------------------------------------------------------------------- */
+
+Lattice::Edge::Edge()
+{
+}
+
+Lattice::Edge::Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared_ptr<Vertex>& target_ptr,
+                    const double weight)
+{
+  source_ptr_ = source_ptr;
+  target_ptr_ = target_ptr;
+  weight_ = weight;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -314,7 +317,7 @@ Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, co
 
   double weight = k_length_ * length + (1 - k_length_) * lateral_distance;
 
-  return Lattice::Edge(weight);
+  return Edge(std::make_shared<Vertex>(source), std::make_shared<Vertex>(target), weight);
 }
 
 bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lattice::Vertex& target) const
@@ -481,20 +484,18 @@ std::vector<Lattice::Vertex> Lattice::getVertices() const
   return vertices;
 }
 
-void Lattice::getConnectedVertexPairs(std::vector<std::pair<Vertex, Vertex>>& vertex_pairs,
-                                      std::vector<Lattice::Edge>& edges) const
+std::vector<Lattice::Edge> Lattice::getEdges() const
 {
-  std::vector<std::pair<Vertex, Vertex>> pairs;
+  std::vector<Lattice::Edge> edges;
 
   auto es = boost::edges(graph_);
 
   for (auto eit = es.first; eit != es.second; ++eit)
   {
     edges.push_back(graph_[*eit]);
-    Vertex source = graph_[boost::source(*eit, graph_)];
-    Vertex target = graph_[boost::target(*eit, graph_)];
-    vertex_pairs.push_back(std::pair<Vertex, Vertex>(source, target));
   }
+
+  return edges;
 }
 
 std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos) const
@@ -595,10 +596,6 @@ visualization_msgs::Marker Lattice::generateEdgeMarker(const int marker_id, cons
                                                        const double r, const double g, const double b,
                                                        const double a) const
 {
-  std::vector<Lattice::Edge> edges;
-  std::vector<std::pair<Lattice::Vertex, Lattice::Vertex>> vertex_pairs;
-  getConnectedVertexPairs(vertex_pairs, edges);
-
   visualization_msgs::Marker edge_marker;
   edge_marker.header.frame_id = "map";
   edge_marker.action = visualization_msgs::Marker::ADD;
@@ -607,24 +604,23 @@ visualization_msgs::Marker Lattice::generateEdgeMarker(const int marker_id, cons
   edge_marker.id = marker_id;
   edge_marker.lifetime = ros::Duration(0.1);
   edge_marker.scale.x = scale;
-
   edge_marker.color.r = r;
   edge_marker.color.g = g;
   edge_marker.color.b = b;
   edge_marker.color.a = a;
 
-  for (auto& pair : vertex_pairs)
+  for (auto& e : getEdges())
   {
-    geometry_msgs::Point source;
-    geometry_msgs::Point target;
+    geometry_msgs::Point source_point;
+    geometry_msgs::Point target_point;
 
-    source.x = pair.first.x_;
-    source.y = pair.first.y_;
-    target.x = pair.second.x_;
-    target.y = pair.second.y_;
+    source_point.x = e.source_ptr_->x_;
+    source_point.y = e.source_ptr_->y_;
+    target_point.x = e.target_ptr_->x_;
+    target_point.y = e.target_ptr_->y_;
 
-    edge_marker.points.push_back(source);
-    edge_marker.points.push_back(target);
+    edge_marker.points.push_back(source_point);
+    edge_marker.points.push_back(target_point);
   }
 
   return edge_marker;
@@ -634,13 +630,9 @@ visualization_msgs::MarkerArray Lattice::generateWeightMarkers(int marker_id, co
                                                                const double r, const double g, const double b,
                                                                const double a) const
 {
-  std::vector<Lattice::Edge> edges;
-  std::vector<std::pair<Lattice::Vertex, Lattice::Vertex>> vertex_pairs;
-  getConnectedVertexPairs(vertex_pairs, edges);
-
   visualization_msgs::MarkerArray weight_markers;
 
-  for (int i = 0; i < vertex_pairs.size(); ++i)
+  for (auto& e : getEdges())
   {
     visualization_msgs::Marker text_marker;
 
@@ -657,12 +649,12 @@ visualization_msgs::MarkerArray Lattice::generateWeightMarkers(int marker_id, co
     text_marker.color.a = a;
 
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(2) << edges.at(i).weight_;
+    oss << std::fixed << std::setprecision(2) << e.weight_;
     text_marker.text = oss.str();
 
     geometry_msgs::Point text_point;
-    text_point.x = vertex_pairs.at(i).first.x_ + (vertex_pairs.at(i).second.x_ - vertex_pairs.at(i).first.x_) / 8;
-    text_point.y = vertex_pairs.at(i).first.y_ + (vertex_pairs.at(i).second.y_ - vertex_pairs.at(i).first.y_) / 8;
+    text_point.x = e.source_ptr_->x_ + (e.target_ptr_->x_ - e.source_ptr_->x_) / 8;
+    text_point.y = e.source_ptr_->y_ + (e.target_ptr_->y_ - e.source_ptr_->y_) / 8;
     text_point.z = 0.1;
 
     text_marker.pose.position = text_point;
