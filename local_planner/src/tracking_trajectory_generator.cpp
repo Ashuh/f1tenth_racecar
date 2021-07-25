@@ -21,9 +21,9 @@ TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
   , cubic_spiral_opt_(max_curvature)
   , collision_checker_(std::vector<double>{ 0, 0.2, 0.4 }, 0.3)
 {
-  num_paths_ = num_paths;
-  lateral_spacing_ = lateral_spacing;
-  look_ahead_time_ = look_ahead_time;
+  setNumPaths(num_paths);
+  setLateralSpacing(lateral_spacing);
+  setLookAheadTime(look_ahead_time);
   viz_ptr_ = viz_ptr;
 }
 
@@ -202,6 +202,42 @@ void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::Const
 {
   grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_);
   collision_checker_.setCostmap(costmap_msg);
+}
+
+void TrackingTrajectoryGenerator::setNumPaths(const int num_paths)
+{
+  if (num_paths > 0)
+  {
+    num_paths_ = num_paths;
+  }
+  else
+  {
+    throw std::invalid_argument("Number of paths must be at least 1");
+  }
+}
+
+void TrackingTrajectoryGenerator::setLateralSpacing(const double lat_spacing)
+{
+  if (lat_spacing > 0.0)
+  {
+    lateral_spacing_ = lat_spacing;
+  }
+  else
+  {
+    throw std::invalid_argument("Lateral spacing must be greater than 0");
+  }
+}
+
+void TrackingTrajectoryGenerator::setLookAheadTime(const double look_ahead_time)
+{
+  if (look_ahead_time > 0.0)
+  {
+    look_ahead_time_ = look_ahead_time;
+  }
+  else
+  {
+    throw std::invalid_argument("Look ahead time must be greater than 0");
+  }
 }
 
 void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_paths,

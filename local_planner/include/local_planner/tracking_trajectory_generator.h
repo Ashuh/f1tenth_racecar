@@ -58,6 +58,12 @@ public:
   Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature);
 
   void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+
+  void setNumPaths(const int num_paths);
+
+  void setLateralSpacing(const double lat_spacing);
+
+  void setLookAheadTime(const double look_ahead_time);
 };
 
 #endif  // LOCAL_PLANNER_TRACKING_TRAJECTORY_GENERATOR_H
