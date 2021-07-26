@@ -104,21 +104,21 @@ Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_po
 {
   int nearest_wp_id = getNearestWaypointId(source_pose);
   std::vector<int> ref_waypoint_ids = getReferenceWaypointIds(nearest_wp_id);
-  std::vector<std::vector<Lattice::Vertex>> layers =
+  std::vector<std::vector<Vertex>> layers =
       generateLayers(ref_waypoint_ids, source_pose.position.x, source_pose.position.y);
 
-  Lattice::Graph graph;
-  Lattice::PositionMap position_map;
+  Graph graph;
+  PositionMap position_map;
 
   for (int i = 0; i < layers.size() - 1; ++i)
   {
-    std::vector<Lattice::Vertex> cur_layer = layers.at(i);
-    std::vector<Lattice::Vertex> next_layer = layers.at(i + 1);
+    std::vector<Vertex> cur_layer = layers.at(i);
+    std::vector<Vertex> next_layer = layers.at(i + 1);
 
     for (int j = 0; j < cur_layer.size(); ++j)
     {
-      Lattice::Vertex source_vertex = cur_layer.at(j);
-      Lattice::VertexDescriptor source_id;
+      Vertex source_vertex = cur_layer.at(j);
+      VertexDescriptor source_id;
 
       auto src_it = position_map.find(source_vertex.position_);
 
@@ -134,8 +134,8 @@ Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_po
 
       for (int k = 0; k < next_layer.size(); k++)
       {
-        Lattice::Vertex target_vertex = next_layer.at(k);
-        Lattice::VertexDescriptor target_id;
+        Vertex target_vertex = next_layer.at(k);
+        VertexDescriptor target_id;
 
         auto tgt_it = position_map.find(target_vertex.position_);
 
@@ -154,14 +154,14 @@ Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_po
 
         if (!checkCollision(source_vertex, target_vertex))
         {
-          Lattice::Edge edge = generateEdge(source_vertex, target_vertex);
+          Edge edge = generateEdge(source_vertex, target_vertex);
           boost::add_edge(source_id, target_id, edge, graph);
         }
       }
     }
   }
 
-  Lattice::Position source_position = layers.at(0).at(0).position_;
+  Position source_position = layers.at(0).at(0).position_;
 
   return Lattice(graph, position_map, source_position, num_layers_, 2 * num_lateral_samples_per_side_ + 1);
 }
@@ -243,7 +243,7 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
                                                                              const double source_x,
                                                                              const double source_y) const
 {
-  std::vector<std::vector<Lattice::Vertex>> layers;
+  std::vector<std::vector<Vertex>> layers;
 
   // Generate source vertex
   geometry_msgs::Pose nearest_wp_pose = global_path_.poses.at(ref_waypoint_ids.at((0))).pose;
@@ -266,19 +266,19 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   tf2::doTransform(source_point, source_point, transform);
   int offset_pos = source_point.y / lateral_spacing_;
 
-  Lattice::Vertex source_vertex(Lattice::Position(0, offset_pos), source_x, source_y);
-  std::vector<Lattice::Vertex> source_layer;
+  Vertex source_vertex(Position(0, offset_pos), source_x, source_y);
+  std::vector<Vertex> source_layer;
   source_layer.push_back(source_vertex);
   layers.push_back(source_layer);
 
   // Generate regular layers of vertices
   for (int i = 1; i < ref_waypoint_ids.size(); ++i)
   {
-    std::vector<Lattice::Vertex> layer;
+    std::vector<Vertex> layer;
 
     for (int j = -num_lateral_samples_per_side_; j <= num_lateral_samples_per_side_; ++j)
     {
-      Lattice::Vertex vertex = generateVertexAtLayer(ref_waypoint_ids, i, j);
+      Vertex vertex = generateVertexAtLayer(ref_waypoint_ids, i, j);
       layer.push_back(vertex);
     }
 
@@ -288,7 +288,7 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   return layers;
 }
 
-Lattice::Vertex Lattice::Generator::generateVertexAtLayer(const std::vector<int> layer_waypoint_ids, const int layer,
+Lattice::Vertex Lattice::Generator::generateVertexAtLayer(const std::vector<int>& layer_waypoint_ids, const int layer,
                                                           const int lateral_pos) const
 {
   tf2::Quaternion quat_tf;
@@ -305,7 +305,7 @@ Lattice::Vertex Lattice::Generator::generateVertexAtLayer(const std::vector<int>
   double x_offset = lateral_offset * cos(ref_yaw + M_PI_2);
   double y_offset = lateral_offset * sin(ref_yaw + M_PI_2);
 
-  return Lattice::Vertex(Lattice::Position(layer, lateral_pos), ref_x + x_offset, ref_y + y_offset);
+  return Vertex(Position(layer, lateral_pos), ref_x + x_offset, ref_y + y_offset);
 }
 
 Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, const Lattice::Vertex& target) const
@@ -451,7 +451,7 @@ std::vector<Lattice::VertexDescriptor> Lattice::computeShortestPathsPredecessors
 
 std::vector<Lattice::Vertex> Lattice::getVertices() const
 {
-  std::vector<Lattice::Vertex> vertices;
+  std::vector<Vertex> vertices;
 
   auto vs = boost::vertices(graph_);
   for (auto vit = vs.first; vit != vs.second; ++vit)
@@ -465,7 +465,7 @@ std::vector<Lattice::Vertex> Lattice::getVertices() const
 
 std::vector<Lattice::Edge> Lattice::getEdges() const
 {
-  std::vector<Lattice::Edge> edges;
+  std::vector<Edge> edges;
 
   auto es = boost::edges(graph_);
 

@@ -23,7 +23,7 @@ public:
   {
     struct Hash
     {
-      size_t operator()(const Lattice::Position& p) const;
+      size_t operator()(const Position& p) const;
     };
 
     int layer_;
@@ -38,13 +38,13 @@ public:
 
   struct Vertex
   {
-    Lattice::Position position_;
+    Position position_;
     double x_;
     double y_;
 
     Vertex();
 
-    Vertex(const Lattice::Position& position, const double x, const double y);
+    Vertex(const Position& position, const double x, const double y);
   };
 
   struct Edge
@@ -79,7 +79,6 @@ public:
     tf2_ros::TransformListener tf_listener_;
 
     nav_msgs::Path global_path_;
-    // grid_map::GridMap costmap_;
     CollisionChecker collision_checker_;
 
     int getNearestWaypointId(const geometry_msgs::Pose& current_pose) const;
@@ -88,19 +87,19 @@ public:
 
     int getWaypointIdAtDistance(const int start_id, const int target_dist) const;
 
-    std::vector<std::vector<Lattice::Vertex>> generateLayers(const std::vector<int>& ref_waypoint_ids,
-                                                             const double source_x, const double source_y) const;
+    std::vector<std::vector<Vertex>> generateLayers(const std::vector<int>& ref_waypoint_ids, const double source_x,
+                                                    const double source_y) const;
 
-    Lattice::Vertex generateVertexAtLayer(const std::vector<int> layer_waypoint_ids, const int layer,
-                                          const int lateral_pos) const;
+    Vertex generateVertexAtLayer(const std::vector<int>& layer_waypoint_ids, const int layer,
+                                 const int lateral_pos) const;
 
-    Lattice::Edge generateEdge(const Lattice::Vertex& source, const Lattice::Vertex& target) const;
+    Edge generateEdge(const Vertex& source, const Vertex& target) const;
 
-    bool checkCollision(const Lattice::Vertex& source, const Lattice::Vertex& target) const;
+    bool checkCollision(const Vertex& source, const Vertex& target) const;
 
     double distance(const double x_1, const double y_1, const double x_2, const double y_2) const;
 
-    double distance(const Lattice::Vertex& source, const Lattice::Vertex& target) const;
+    double distance(const Vertex& source, const Vertex& target) const;
 
   public:
     Generator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
@@ -127,7 +126,7 @@ public:
 
   std::vector<Vertex> getVertices() const;
 
-  std::vector<Lattice::Edge> getEdges() const;
+  std::vector<Edge> getEdges() const;
 
   std::vector<geometry_msgs::Point> getShortestPath(const int offset_pos) const;
 
