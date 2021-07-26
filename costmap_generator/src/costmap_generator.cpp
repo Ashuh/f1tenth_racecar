@@ -109,11 +109,11 @@ void CostmapGenerator::generateStaticLayer()
     grid_map::Position local_pos;
     local_map_.getPosition(*iterator, local_pos);
 
-    geometry_msgs::PointStamped point;
-    point.point.x = local_pos.x();
-    point.point.y = local_pos.y();
+    geometry_msgs::Point point;
+    point.x = local_pos.x();
+    point.y = local_pos.y();
     tf2::doTransform(point, point, transform);
-    grid_map::Position global_pos(point.point.x, point.point.y);
+    grid_map::Position global_pos(point.x, point.y);
 
     data(index(0), index(1)) = (global_map_.isInside(global_pos)) ?
                                    global_map_.atPosition(CostmapLayer::STATIC, global_pos) :
