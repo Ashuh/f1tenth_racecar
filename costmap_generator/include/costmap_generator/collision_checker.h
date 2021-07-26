@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
@@ -33,7 +34,15 @@ private:
    */
   static grid_map::GridMap inflateMap(const grid_map::GridMap& costmap, const double radius);
 
-  std::vector<geometry_msgs::PointStamped> getCirclePositionsFromPose(const geometry_msgs::PoseStamped& pose_stamped);
+  std::vector<geometry_msgs::PointStamped>
+  getCirclePositionsFromPose(const geometry_msgs::PoseStamped& pose_stamped) const;
+
+  std::vector<geometry_msgs::PoseStamped> lineToPoses(const geometry_msgs::PointStamped& source,
+                                                      const geometry_msgs::PointStamped& target) const;
+
+  geometry_msgs::PointStamped transformToCostmapFrame(const geometry_msgs::PointStamped& point_stamped) const;
+
+  geometry_msgs::PoseStamped transformToCostmapFrame(const geometry_msgs::PoseStamped& pose_stamped) const;
 
 public:
   CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius);
@@ -45,7 +54,9 @@ public:
    * @param pose The pose to check for collision.
    * @return True if there is a collision.
    */
-  bool checkCollision(const geometry_msgs::PoseStamped& pose_stamped);
+  bool checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const;
+
+  bool checkCollision(const geometry_msgs::PointStamped& source, const geometry_msgs::PointStamped& target) const;
 
   void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 

@@ -12,8 +12,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "costmap_generator/costmap_layer.h"
-#include "costmap_generator/costmap_value.h"
+#include "costmap_generator/collision_checker.h"
 #include "local_planner/lattice.h"
 
 /* -------------------------------------------------------------------------- */
@@ -84,7 +83,7 @@ Lattice::Edge::Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared
 Lattice::Generator::Generator(const int num_layers, const double longitudinal_spacing,
                               const int num_lateral_samples_per_side, const double lateral_spacing,
                               const double k_length)
-  : tf_listener_(tf_buffer_)
+  : collision_checker_(std::vector<double>{ 0, 0.2, 0.4 }, 0.3), tf_listener_(tf_buffer_)
 {
   num_layers_ = num_layers;
   longitudinal_spacing_ = longitudinal_spacing;
@@ -322,54 +321,18 @@ Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, co
 
 bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lattice::Vertex& target) const
 {
-  if (!costmap_.exists(CostmapLayer::INFLATION))
-  {
-    throw std::runtime_error(CostmapLayer::INFLATION + " layer is not available in costmap");
-  }
+  geometry_msgs::PointStamped source_point;
+  geometry_msgs::PointStamped target_point;
 
-  geometry_msgs::TransformStamped transform;
+  source_point.header.frame_id = "map";
+  source_point.point.x = source.x_;
+  source_point.point.y = source.y_;
 
-  try
-  {
-    transform = tf_buffer_.lookupTransform(costmap_.getFrameId(), "map", ros::Time(0));
-  }
-  catch (const tf2::TransformException& ex)
-  {
-    ROS_ERROR("[Local Planner] %s", ex.what());
-    return true;
-  }
+  target_point.header.frame_id = "map";
+  target_point.point.x = target.x_;
+  target_point.point.y = target.y_;
 
-  geometry_msgs::Point source_point;
-  source_point.x = source.x_;
-  source_point.y = source.y_;
-  tf2::doTransform(source_point, source_point, transform);
-
-  geometry_msgs::Point target_point;
-  target_point.x = target.x_;
-  target_point.y = target.y_;
-  tf2::doTransform(target_point, target_point, transform);
-
-  grid_map::Position start_pos(source_point.x, source_point.y);
-  grid_map::Position end_pos(target_point.x, target_point.y);
-
-  if (!costmap_.isInside(start_pos) || !costmap_.isInside(end_pos))
-  {
-    // Assume no collision if edge is outside of costmap
-    return false;
-  }
-
-  const grid_map::Matrix& data = costmap_[CostmapLayer::INFLATION];
-  for (grid_map::LineIterator iterator(costmap_, start_pos, end_pos); !iterator.isPastEnd(); ++iterator)
-  {
-    const grid_map::Index index(*iterator);
-
-    if (data(index(0), index(1)) == static_cast<int>(CostmapValue::OCCUPIED))
-    {
-      return true;
-    }
-  }
-
-  return false;
+  return collision_checker_.checkCollision(source_point, target_point);
 }
 
 double Lattice::Generator::distance(const double x_1, const double y_1, const double x_2, const double y_2) const
@@ -391,7 +354,7 @@ void Lattice::Generator::setGlobalPath(const nav_msgs::Path& global_path)
 
 void Lattice::Generator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
-  grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_);
+  collision_checker_.setCostmap(costmap_msg);
 }
 
 void Lattice::Generator::setLengthWeight(const double weight)

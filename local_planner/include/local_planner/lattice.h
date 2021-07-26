@@ -14,6 +14,8 @@
 #include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include "costmap_generator/collision_checker.h"
+
 class Lattice
 {
 public:
@@ -77,7 +79,8 @@ public:
     tf2_ros::TransformListener tf_listener_;
 
     nav_msgs::Path global_path_;
-    grid_map::GridMap costmap_;
+    // grid_map::GridMap costmap_;
+    CollisionChecker collision_checker_;
 
     int getNearestWaypointId(const geometry_msgs::Pose& current_pose) const;
 
