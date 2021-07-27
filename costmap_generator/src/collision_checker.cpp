@@ -1,3 +1,4 @@
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -24,13 +25,14 @@ CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets, co
 
 bool CollisionChecker::checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const
 {
+  std::lock_guard<std::mutex> lock(mutex_);
+
   if (!inflated_costmap_.exists(CostmapLayer::INFLATION))
   {
     throw std::runtime_error("Costmap has not been set for collision checking");
   }
 
   geometry_msgs::PoseStamped pose_stamped_transformed = transformToCostmapFrame(pose_stamped);
-
   std::vector<geometry_msgs::PointStamped> circle_points = getCirclePositionsFromPose(pose_stamped_transformed);
 
   for (const auto& point_stamped : circle_points)
@@ -184,7 +186,10 @@ void CollisionChecker::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costma
 {
   grid_map::GridMap input_map;
   grid_map::GridMapRosConverter::fromMessage(*costmap_msg, input_map);
-  inflated_costmap_ = inflateMap(input_map, circle_radius_);
+  grid_map::GridMap temp = inflateMap(input_map, circle_radius_);
+
+  std::lock_guard<std::mutex> lock(mutex_);
+  inflated_costmap_ = temp;
 }
 
 nav_msgs::OccupancyGrid CollisionChecker::getInflatedGridMsg() const

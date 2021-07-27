@@ -1,6 +1,7 @@
 #ifndef COSTMAP_GENERATOR_COLLISION_CHECKER_H
 #define COSTMAP_GENERATOR_COLLISION_CHECKER_H
 
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -23,6 +24,8 @@ private:
 
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
+
+  mutable std::mutex mutex_;
 
   /**
    * @brief Inflates the occupied cells in the costmap such that all cells within the specified inflation radius are
