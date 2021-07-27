@@ -52,7 +52,7 @@ void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
   local_map_[CostmapLayer::INFLATION].setConstant(static_cast<int>(CostmapValue::FREE));
 
   generateStaticLayer();
-  inflateOccupiedCells();
+  // inflateOccupiedCells();
 
   grid_map_msgs::GridMap local_map_msg;
   grid_map::GridMapRosConverter::toMessage(local_map_, local_map_msg);
@@ -123,52 +123,17 @@ void CostmapGenerator::generateStaticLayer()
 
 void CostmapGenerator::inflateOccupiedCells()
 {
-  grid_map::Matrix occupancy_data = local_map_[CostmapLayer::STATIC].cwiseMax(local_map_[CostmapLayer::SCAN]);
+  // grid_map::Matrix occupancy_data = local_map_[CostmapLayer::STATIC].cwiseMax(local_map_[CostmapLayer::SCAN]);
 
-  for (grid_map::GridMapIterator full_it(local_map_); !full_it.isPastEnd(); ++full_it)
-  {
-    const grid_map::Index center_index(*full_it);
+  // for (grid_map::GridMapIterator full_it(local_map_); !full_it.isPastEnd(); ++full_it)
+  // {
+  //   const grid_map::Index center_index(*full_it);
 
-    if (occupancy_data(center_index(0), center_index(1)) == static_cast<int>(CostmapValue::OCCUPIED))
-    {
-      grid_map::Position center_pos;
-      local_map_.getPosition(*full_it, center_pos);
-      inflateCell(center_pos);
-    }
-  }
-}
-
-void CostmapGenerator::inflateCell(const grid_map::Position& center_pos)
-{
-  double scale = soft_inflation_radius_ - hard_inflation_radius_;
-
-  grid_map::Matrix& inflation_data = local_map_[CostmapLayer::INFLATION];
-
-  for (grid_map::CircleIterator circle_it(local_map_, center_pos, soft_inflation_radius_); !circle_it.isPastEnd();
-       ++circle_it)
-  {
-    const grid_map::Index circle_index(*circle_it);
-    double cur_val = inflation_data(circle_index(0), circle_index(1));
-
-    if (cur_val == static_cast<int>(CostmapValue::OCCUPIED))
-    {
-      continue;
-    }
-
-    grid_map::Position it_pos;
-    local_map_.getPosition(*circle_it, it_pos);
-    double d_x = it_pos.x() - center_pos.x();
-    double d_y = it_pos.y() - center_pos.y();
-    double dist = sqrt(pow(d_x, 2) + pow(d_y, 2));
-
-    if (dist <= hard_inflation_radius_)
-    {
-      inflation_data(circle_index(0), circle_index(1)) = static_cast<int>(CostmapValue::OCCUPIED);
-    }
-    else
-    {
-      double cost = (soft_inflation_radius_ - dist) / scale * static_cast<int>(CostmapValue::OCCUPIED);
-      inflation_data(circle_index(0), circle_index(1)) = std::max(cur_val, cost);
-    }
-  }
+  //   if (occupancy_data(center_index(0), center_index(1)) == static_cast<int>(CostmapValue::OCCUPIED))
+  //   {
+  //     grid_map::Position center_pos;
+  //     local_map_.getPosition(*full_it, center_pos);
+  //     inflateCell(center_pos);
+  //   }
+  // }
 }
