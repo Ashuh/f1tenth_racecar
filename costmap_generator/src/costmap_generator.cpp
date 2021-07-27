@@ -25,21 +25,17 @@ CostmapGenerator::CostmapGenerator() : tf_listener_(tf_buffer_)
   std::string scan_topic;
   std::string costmap_topic;
 
-  ROS_ASSERT(private_nh.getParam("grid_resolution", grid_resolution));
-  ROS_ASSERT(private_nh.getParam("grid_size_x", grid_size_x));
-  ROS_ASSERT(private_nh.getParam("grid_size_y", grid_size_y));
-  ROS_ASSERT(private_nh.getParam("hard_inflation_radius", hard_inflation_radius_));
-  ROS_ASSERT(private_nh.getParam("soft_inflation_radius", soft_inflation_radius_));
+  private_nh.param("grid_resolution", grid_resolution, 0.05);
+  private_nh.param("grid_size_x", grid_size_x, 10.0);
+  private_nh.param("grid_size_y", grid_size_y, 10.0);
 
-  ROS_ASSERT(private_nh.getParam("map_topic", map_topic));
-  ROS_ASSERT(private_nh.getParam("scan_topic", scan_topic));
-  ROS_ASSERT(private_nh.getParam("costmap_topic", costmap_topic));
+  private_nh.param("map_topic", map_topic, std::string("map"));
+  private_nh.param("scan_topic", scan_topic, std::string("scan"));
+  private_nh.param("costmap_topic", costmap_topic, std::string("costmap"));
 
   map_sub_ = nh_.subscribe(map_topic, 1, &CostmapGenerator::mapCallback, this);
   scan_sub_ = nh_.subscribe(scan_topic, 1, &CostmapGenerator::scanCallback, this);
-
   cost_map_pub_ = nh_.advertise<grid_map_msgs::GridMap>(costmap_topic, 1, true);
-
   timer_ = nh_.createTimer(ros::Duration(0.1), &CostmapGenerator::timerCallback, this);
 
   global_map_ = grid_map::GridMap({ CostmapLayer::STATIC });
