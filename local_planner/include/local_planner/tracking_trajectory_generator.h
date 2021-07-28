@@ -16,10 +16,28 @@
 
 class TrackingTrajectoryGenerator
 {
+public:
+  struct SamplingPattern
+  {
+    int num_paths_;
+    double lateral_spacing_;
+    double look_ahead_time_;
+
+    SamplingPattern(const int num_paths, const double lateral_spacing, const double look_ahead_time);
+  };
+
+  TrackingTrajectoryGenerator(const SamplingPattern& sampling_pattern, const double max_curvature,
+                              const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
+                              const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
+
+  Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature);
+
+  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+
+  void setSamplingPattern(const SamplingPattern& pattern);
+
 private:
-  int num_paths_;
-  double lateral_spacing_;
-  double look_ahead_time_;
+  SamplingPattern sampling_pattern_;
 
   grid_map::GridMap costmap_;
 
@@ -27,8 +45,8 @@ private:
   tf2_ros::TransformListener tf_listener_;
 
   CubicSpiralOptimizer cubic_spiral_opt_;
-  std::shared_ptr<CollisionChecker> collision_checker_ptr_;
 
+  std::shared_ptr<CollisionChecker> collision_checker_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
   std::vector<Path> generateCandidatePaths(const geometry_msgs::Pose& reference_goal, const double initial_curvature);
@@ -49,22 +67,6 @@ private:
                             const geometry_msgs::Pose& goal);
 
   void visualizePaths(const std::vector<Path>& safe_paths, const std::vector<Path>& unsafe_paths);
-
-public:
-  TrackingTrajectoryGenerator(const int num_paths, const double max_curvature, const double lateral_spacing,
-                              const double look_ahead_time,
-                              const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
-                              const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
-
-  Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature);
-
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
-
-  void setNumPaths(const int num_paths);
-
-  void setLateralSpacing(const double lat_spacing);
-
-  void setLookAheadTime(const double look_ahead_time);
 };
 
 #endif  // LOCAL_PLANNER_TRACKING_TRAJECTORY_GENERATOR_H

@@ -80,15 +80,10 @@ Lattice::Edge::Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared
 /*                              Lattice Generator                             */
 /* -------------------------------------------------------------------------- */
 
-Lattice::Generator::Generator(const int num_layers, const double longitudinal_spacing,
-                              const int num_lateral_samples_per_side, const double lateral_spacing,
-                              const double k_length, const std::shared_ptr<CollisionChecker>& collision_checker_ptr)
-  : tf_listener_(tf_buffer_)
+Lattice::Generator::Generator(const Pattern& pattern, const double k_length,
+                              const std::shared_ptr<CollisionChecker>& collision_checker_ptr)
+  : tf_listener_(tf_buffer_), pattern_(pattern)
 {
-  setNumLayers(num_layers);
-  setLongitudinalSpacing(longitudinal_spacing);
-  setNumLateralSamplesPerSide(num_lateral_samples_per_side);
-  setLateralSpacing(lateral_spacing);
   setLengthWeight(k_length);
 
   if (collision_checker_ptr != nullptr)
@@ -99,6 +94,12 @@ Lattice::Generator::Generator(const int num_layers, const double longitudinal_sp
   {
     throw std::invalid_argument("Collision checker pointer is null");
   }
+}
+
+Lattice::Generator::Generator(const Generator& generator) : tf_listener_(tf_buffer_), pattern_(generator.pattern_)
+{
+  k_length_ = generator.k_length_;
+  collision_checker_ptr_ = generator.collision_checker_ptr_;
 }
 
 Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_pose) const
@@ -164,7 +165,8 @@ Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_po
 
   Position source_position = layers.at(0).at(0).position_;
 
-  return Lattice(graph, position_map, source_position, num_layers_, 2 * num_lateral_samples_per_side_ + 1);
+  return Lattice(graph, position_map, source_position, pattern_.num_layers_,
+                 2 * pattern_.num_lateral_samples_per_side_ + 1);
 }
 
 int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
@@ -196,15 +198,15 @@ std::vector<int> Lattice::Generator::getReferenceWaypointIds(const int nearest_w
 {
   std::vector<int> waypoint_ids = { nearest_wp_id };
 
-  for (int i = 0; i < num_layers_; ++i)
+  for (int i = 0; i < pattern_.num_layers_; ++i)
   {
-    waypoint_ids.push_back(getWaypointIdAtDistance(waypoint_ids.at(i), longitudinal_spacing_));
+    waypoint_ids.push_back(getWaypointIdAtDistance(waypoint_ids.at(i), pattern_.longitudinal_spacing_));
   }
 
   return waypoint_ids;
 }
 
-int Lattice::Generator::getWaypointIdAtDistance(const int start_id, const int target_dist) const
+int Lattice::Generator::getWaypointIdAtDistance(const int start_id, const double target_dist) const
 {
   bool is_loop = global_path_.poses.at(global_path_.poses.size() - 1) == global_path_.poses.at(0);
 
@@ -265,7 +267,7 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   source_point.y = source_y;
 
   tf2::doTransform(source_point, source_point, transform);
-  int offset_pos = source_point.y / lateral_spacing_;
+  int offset_pos = source_point.y / pattern_.lateral_spacing_;
 
   Vertex source_vertex(Position(0, offset_pos), source_x, source_y);
   std::vector<Vertex> source_layer;
@@ -277,7 +279,7 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   {
     std::vector<Vertex> layer;
 
-    for (int j = -num_lateral_samples_per_side_; j <= num_lateral_samples_per_side_; ++j)
+    for (int j = -pattern_.num_lateral_samples_per_side_; j <= pattern_.num_lateral_samples_per_side_; ++j)
     {
       Vertex vertex = generateVertexAtLayer(ref_waypoint_ids, i, j);
       layer.push_back(vertex);
@@ -302,7 +304,7 @@ Lattice::Vertex Lattice::Generator::generateVertexAtLayer(const std::vector<int>
   double ref_y = global_path_.poses.at(layer_waypoint_ids.at(layer)).pose.position.y;
   double ref_yaw = yaw;
 
-  double lateral_offset = lateral_pos * lateral_spacing_;
+  double lateral_offset = lateral_pos * pattern_.lateral_spacing_;
   double x_offset = lateral_offset * cos(ref_yaw + M_PI_2);
   double y_offset = lateral_offset * sin(ref_yaw + M_PI_2);
 
@@ -313,7 +315,7 @@ Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, co
 {
   double length = distance(source, target);
   double lateral_distance =
-      abs(target.position_.lateral_position_ - source.position_.lateral_position_) * lateral_spacing_;
+      abs(target.position_.lateral_position_ - source.position_.lateral_position_) * pattern_.lateral_spacing_;
 
   double weight = k_length_ * length + (1 - k_length_) * lateral_distance;
 
@@ -370,52 +372,27 @@ void Lattice::Generator::setLengthWeight(const double weight)
   }
 }
 
-void Lattice::Generator::setNumLayers(const int num_layers)
+void Lattice::Generator::setPattern(const Pattern& pattern)
 {
-  if (num_layers > 0)
-  {
-    num_layers_ = num_layers;
-  }
-  else
-  {
-    throw std::invalid_argument("Number of layers must be at least 1");
-  }
+  pattern_ = pattern;
 }
 
-void Lattice::Generator::setNumLateralSamplesPerSide(const int num_samples_per_side)
-{
-  if (num_samples_per_side >= 0)
-  {
-    num_lateral_samples_per_side_ = num_samples_per_side;
-  }
-  else
-  {
-    throw std::invalid_argument("Number of lateral samples per side cannot be negative");
-  }
-}
+/* -------------------------------------------------------------------------- */
+/*                          Lattice Generator Pattern                         */
+/* -------------------------------------------------------------------------- */
 
-void Lattice::Generator::setLongitudinalSpacing(const double spacing)
+Lattice::Generator::Pattern::Pattern(const int num_layers, const double longitudinal_spacing,
+                                     const int num_lateral_samples_per_side, const double lateral_spacing)
 {
-  if (spacing > 0.0)
+  if (num_layers <= 0 || longitudinal_spacing <= 0.0 || num_lateral_samples_per_side < 0 || lateral_spacing <= 0.0)
   {
-    longitudinal_spacing_ = spacing;
+    throw std::invalid_argument("Invalid lattice pattern specified");
   }
-  else
-  {
-    throw std::invalid_argument("Longitudinal spacing must be positive");
-  }
-}
 
-void Lattice::Generator::setLateralSpacing(const double spacing)
-{
-  if (spacing > 0.0)
-  {
-    lateral_spacing_ = spacing;
-  }
-  else
-  {
-    throw std::invalid_argument("Lateral spacing must be positive");
-  }
+  num_layers_ = num_layers;
+  longitudinal_spacing_ = longitudinal_spacing;
+  num_lateral_samples_per_side_ = num_lateral_samples_per_side;
+  lateral_spacing_ = lateral_spacing;
 }
 
 /* -------------------------------------------------------------------------- */

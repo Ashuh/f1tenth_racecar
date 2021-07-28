@@ -14,15 +14,25 @@
 #include "local_planner/cubic_spiral_optimizer.h"
 #include "local_planner/tracking_trajectory_generator.h"
 
+TrackingTrajectoryGenerator::SamplingPattern::SamplingPattern(const int num_paths, const double lateral_spacing,
+                                                              const double look_ahead_time)
+{
+  if (num_paths < 1 || lateral_spacing < 0.0 || look_ahead_time < 0.0)
+  {
+    throw std::invalid_argument("Invalid sampling pattern specified");
+  }
+
+  num_paths_ = num_paths;
+  lateral_spacing_ = lateral_spacing;
+  look_ahead_time_ = look_ahead_time;
+}
+
 TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
-    const int num_paths, const double max_curvature, const double lateral_spacing, const double look_ahead_time,
+    const SamplingPattern& sampling_pattern, const double max_curvature,
     const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : tf_listener_(tf_buffer_), cubic_spiral_opt_(max_curvature)
+  : tf_listener_(tf_buffer_), sampling_pattern_(sampling_pattern), cubic_spiral_opt_(max_curvature)
 {
-  setNumPaths(num_paths);
-  setLateralSpacing(lateral_spacing);
-  setLookAheadTime(look_ahead_time);
   viz_ptr_ = viz_ptr;
 
   if (collision_checker_ptr != nullptr)
@@ -95,9 +105,9 @@ std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geom
 {
   std::vector<Path> paths;
 
-  for (int i = 0; i < num_paths_; ++i)
+  for (int i = 0; i < sampling_pattern_.num_paths_; ++i)
   {
-    double goal_offset = (i - num_paths_ / 2) * lateral_spacing_;
+    double goal_offset = (i - sampling_pattern_.num_paths_ / 2) * sampling_pattern_.lateral_spacing_;
 
     geometry_msgs::Pose2D goal = offsetGoal(reference_goal, goal_offset);
     Path path = cubic_spiral_opt_.generateCubicSpiralPath(initial_curvature, 0.0, goal.x, goal.y, goal.theta, 10);
@@ -112,7 +122,7 @@ int TrackingTrajectoryGenerator::getReferenceGoalId(const Trajectory& reference_
   double time = 0.0;
   int goal_id = 1;
 
-  while (goal_id < reference_trajectory.size() && time < look_ahead_time_)
+  while (goal_id < reference_trajectory.size() && time < sampling_pattern_.look_ahead_time_)
   {
     time += getArrivalTime(reference_trajectory.distance(goal_id) - reference_trajectory.distance(goal_id - 1),
                            reference_trajectory.velocity(goal_id - 1), reference_trajectory.velocity(goal_id));
@@ -212,40 +222,9 @@ void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::Const
   collision_checker_ptr_->setCostmap(costmap_msg);
 }
 
-void TrackingTrajectoryGenerator::setNumPaths(const int num_paths)
+void TrackingTrajectoryGenerator::setSamplingPattern(const SamplingPattern& pattern)
 {
-  if (num_paths > 0)
-  {
-    num_paths_ = num_paths;
-  }
-  else
-  {
-    throw std::invalid_argument("Number of paths must be at least 1");
-  }
-}
-
-void TrackingTrajectoryGenerator::setLateralSpacing(const double lat_spacing)
-{
-  if (lat_spacing > 0.0)
-  {
-    lateral_spacing_ = lat_spacing;
-  }
-  else
-  {
-    throw std::invalid_argument("Lateral spacing must be greater than 0");
-  }
-}
-
-void TrackingTrajectoryGenerator::setLookAheadTime(const double look_ahead_time)
-{
-  if (look_ahead_time > 0.0)
-  {
-    look_ahead_time_ = look_ahead_time;
-  }
-  else
-  {
-    throw std::invalid_argument("Look ahead time must be greater than 0");
-  }
+  sampling_pattern_ = pattern;
 }
 
 void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_paths,

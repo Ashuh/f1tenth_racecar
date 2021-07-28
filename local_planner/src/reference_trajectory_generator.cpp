@@ -12,17 +12,26 @@
 #include "local_planner/trajectory.h"
 #include "local_planner/reference_trajectory_generator.h"
 
-ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
-    const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
-    const double lateral_spacing, const double k_length, const double speed_limit, const double max_lat_acc,
-    const double max_lon_acc, const double max_lon_dec, const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
-    const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : lat_gen_(num_layers, longitudinal_spacing, num_lateral_samples, lateral_spacing, k_length, collision_checker_ptr)
+ReferenceTrajectoryGenerator::VelocityConstraints::VelocityConstraints(const double max_speed, const double max_lat_acc,
+                                                                       const double max_lon_acc,
+                                                                       const double max_lon_dec)
 {
-  setSpeedLimit(speed_limit);
-  setMaxLatAcc(max_lat_acc);
-  setMaxLonAcc(max_lon_acc);
-  setMaxLonDec(max_lon_dec);
+  if (max_speed <= 0.0 || max_lat_acc <= 0.0 || max_lon_acc <= 0.0 || max_lon_dec <= 0.0)
+  {
+    throw std::invalid_argument("Invalid velocity constraints specified");
+  }
+
+  max_speed_ = max_speed;
+  max_lat_acc_ = max_lat_acc;
+  max_lon_acc_ = max_lon_acc;
+  max_lon_dec_ = max_lon_dec;
+}
+
+ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
+    const Lattice::Generator& lattice_generator, const VelocityConstraints& velocity_constraints,
+    const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
+  : lat_gen_(lattice_generator), velocity_constraints_(velocity_constraints)
+{
   viz_ptr_ = viz_ptr;
 }
 
@@ -172,8 +181,8 @@ std::vector<double> ReferenceTrajectoryGenerator::generateVelocityProfile(const 
 
   for (int i = 0; i < path.size(); ++i)
   {
-    double curvature_speed_limit = max_lat_acc_ / path.curvature(i);
-    velocity_profile.push_back(std::min(speed_limit_, curvature_speed_limit));
+    double curvature_speed_limit = velocity_constraints_.max_lat_acc_ / path.curvature(i);
+    velocity_profile.push_back(std::min(velocity_constraints_.max_speed_, curvature_speed_limit));
   }
 
   do
@@ -190,9 +199,11 @@ std::vector<double> ReferenceTrajectoryGenerator::generateVelocityProfile(const 
         {
           double wp_distance = path.distance(i) - path.distance(i - 1);
 
-          if (-getLonAcc(velocity_profile.at(i - 1), velocity_profile.at(i), wp_distance) > max_lon_dec_)
+          if (-getLonAcc(velocity_profile.at(i - 1), velocity_profile.at(i), wp_distance) >
+              velocity_constraints_.max_lon_dec_)
           {
-            velocity_profile.at(i - 1) = getFinalVelocity(velocity_profile.at(i), max_lon_dec_, wp_distance);
+            velocity_profile.at(i - 1) =
+                getFinalVelocity(velocity_profile.at(i), velocity_constraints_.max_lon_dec_, wp_distance);
           }
         }
       }
@@ -206,9 +217,11 @@ std::vector<double> ReferenceTrajectoryGenerator::generateVelocityProfile(const 
 
           double acc = getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance);
 
-          if (getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance) > max_lon_acc_)
+          if (getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance) >
+              velocity_constraints_.max_lon_acc_)
           {
-            velocity_profile.at(i + 1) = getFinalVelocity(velocity_profile.at(i), max_lon_acc_, wp_distance);
+            velocity_profile.at(i + 1) =
+                getFinalVelocity(velocity_profile.at(i), velocity_constraints_.max_lon_acc_, wp_distance);
           }
         }
       }
@@ -257,7 +270,7 @@ bool ReferenceTrajectoryGenerator::isValidProfile(const Path& path, const std::v
     double lon_acc =
         getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), path.distance(i + 1) - path.distance(i));
 
-    if (lon_acc > max_lon_acc_ * 1.01 || -lon_acc > max_lon_dec_ * 1.01)
+    if (lon_acc > velocity_constraints_.max_lon_acc_ * 1.01 || -lon_acc > velocity_constraints_.max_lon_dec_ * 1.01)
     {
       return false;
     }
@@ -316,72 +329,14 @@ void ReferenceTrajectoryGenerator::setLengthWeight(const double weight)
   lat_gen_.setLengthWeight(weight);
 }
 
-void ReferenceTrajectoryGenerator::setNumLayers(const double num_layers)
+void ReferenceTrajectoryGenerator::setLatticePattern(const Lattice::Generator::Pattern& pattern)
 {
-  lat_gen_.setNumLayers(num_layers);
+  lat_gen_.setPattern(pattern);
 }
 
-void ReferenceTrajectoryGenerator::setLongitudinalSpacing(const double lon_spacing)
+void ReferenceTrajectoryGenerator::setVelocityConstraints(const VelocityConstraints& constraints)
 {
-  lat_gen_.setLongitudinalSpacing(lon_spacing);
-}
-
-void ReferenceTrajectoryGenerator::setNumLateralSamplesPerSide(const double num_samples_per_side)
-{
-  lat_gen_.setNumLateralSamplesPerSide(num_samples_per_side);
-}
-
-void ReferenceTrajectoryGenerator::setLateralSpacing(const double lat_spacing)
-{
-  lat_gen_.setLateralSpacing(lat_spacing);
-}
-
-void ReferenceTrajectoryGenerator::setSpeedLimit(const double speed_limit)
-{
-  if (speed_limit > 0.0)
-  {
-    speed_limit_ = speed_limit;
-  }
-  else
-  {
-    throw std::invalid_argument("Speed limit must be positive");
-  }
-}
-
-void ReferenceTrajectoryGenerator::setMaxLatAcc(const double max_lat_acc)
-{
-  if (max_lat_acc > 0.0)
-  {
-    max_lat_acc_ = max_lat_acc;
-  }
-  else
-  {
-    throw std::invalid_argument("Maximum lateral acceleration must be positive");
-  }
-}
-
-void ReferenceTrajectoryGenerator::setMaxLonAcc(const double max_lon_acc)
-{
-  if (max_lon_acc > 0.0)
-  {
-    max_lon_acc_ = max_lon_acc;
-  }
-  else
-  {
-    throw std::invalid_argument("Maximum longitudinal acceleration must be positive");
-  }
-}
-
-void ReferenceTrajectoryGenerator::setMaxLonDec(const double max_lon_dec)
-{
-  if (max_lon_dec > 0.0)
-  {
-    max_lon_dec_ = max_lon_dec;
-  }
-  else
-  {
-    throw std::invalid_argument("Maximum longitudinal deceleration must be positive");
-  }
+  velocity_constraints_ = constraints;
 }
 
 void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)

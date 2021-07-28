@@ -2,7 +2,6 @@
 #define LOCAL_PLANNER_LATTICE_H
 
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
@@ -66,13 +65,35 @@ public:
 
   class Generator
   {
+  public:
+    struct Pattern
+    {
+      int num_layers_;
+      double longitudinal_spacing_;
+      int num_lateral_samples_per_side_;
+      double lateral_spacing_;
+
+      Pattern(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples_per_side,
+              const double lateral_spacing);
+    };
+
+    Generator(const Pattern& lattice_pattern, const double k_length,
+              const std::shared_ptr<CollisionChecker>& collision_checker_ptr);
+
+    Generator(const Generator& generator);
+
+    Lattice generateLattice(const geometry_msgs::Pose& source_pose) const;
+
+    void setGlobalPath(const nav_msgs::Path& global_path);
+
+    void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+
+    void setLengthWeight(const double weight);
+
+    void setPattern(const Pattern& pattern);
+
   private:
-    int num_layers_;
-    double longitudinal_spacing_;
-
-    int num_lateral_samples_per_side_;
-    double lateral_spacing_;
-
+    Pattern pattern_;
     double k_length_;
 
     tf2_ros::Buffer tf_buffer_;
@@ -101,27 +122,6 @@ public:
     double distance(const double x_1, const double y_1, const double x_2, const double y_2) const;
 
     double distance(const Vertex& source, const Vertex& target) const;
-
-  public:
-    Generator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
-              const double lateral_spacing, const double k_length,
-              const std::shared_ptr<CollisionChecker>& collision_checker_ptr);
-
-    Lattice generateLattice(const geometry_msgs::Pose& source_pose) const;
-
-    void setGlobalPath(const nav_msgs::Path& global_path);
-
-    void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
-
-    void setLengthWeight(const double weight);
-
-    void setNumLayers(const int num_layers);
-
-    void setNumLateralSamplesPerSide(const int num_samples_per_side);
-
-    void setLongitudinalSpacing(const double spacing);
-
-    void setLateralSpacing(const double spacing);
   };
 
   std::vector<VertexDescriptor> computeShortestPathsPredecessors() const;

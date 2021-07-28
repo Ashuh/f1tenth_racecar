@@ -1,7 +1,6 @@
 #ifndef LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 #define LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -16,11 +15,36 @@
 
 class ReferenceTrajectoryGenerator
 {
+public:
+  struct VelocityConstraints
+  {
+    double max_speed_;
+    double max_lat_acc_;
+    double max_lon_acc_;
+    double max_lon_dec_;
+
+    VelocityConstraints(const double max_speed, const double max_lat_acc, const double max_lon_acc,
+                        const double max_lon_dec);
+  };
+
+  ReferenceTrajectoryGenerator(const Lattice::Generator& lattice_generator,
+                               const VelocityConstraints& velocity_constraints,
+                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
+
+  Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
+
+  void setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg);
+
+  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+
+  void setLatticePattern(const Lattice::Generator::Pattern& pattern);
+
+  void setLengthWeight(const double weight);
+
+  void setVelocityConstraints(const VelocityConstraints& constraints);
+
 private:
-  double speed_limit_;
-  double max_lat_acc_;
-  double max_lon_acc_;
-  double max_lon_dec_;
+  VelocityConstraints velocity_constraints_;
 
   Lattice::Generator lat_gen_;
 
@@ -88,37 +112,6 @@ private:
   void visualizeSSSP(const Path& path);
 
   void visualizeReferenceTrajectory(const Trajectory& trajectory);
-
-public:
-  ReferenceTrajectoryGenerator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
-                               const double lateral_spacing, const double k_length, const double speed_limit,
-                               const double max_lat_acc, const double max_lon_acc, const double max_lon_dec,
-                               const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
-                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
-
-  Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
-
-  void setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg);
-
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
-
-  void setLengthWeight(const double weight);
-
-  void setNumLayers(const double num_layers);
-
-  void setLongitudinalSpacing(const double lon_spacing);
-
-  void setNumLateralSamplesPerSide(const double num_samples_per_side);
-
-  void setLateralSpacing(const double lat_spacing);
-
-  void setSpeedLimit(const double speed_limit);
-
-  void setMaxLatAcc(const double max_lat_acc);
-
-  void setMaxLonAcc(const double max_lon_acc);
-
-  void setMaxLonDec(const double max_lon_dec);
 };
 
 #endif  // LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
