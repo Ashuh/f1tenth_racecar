@@ -85,19 +85,11 @@ Lattice::Generator::Generator(const int num_layers, const double longitudinal_sp
                               const double k_length)
   : collision_checker_(std::vector<double>{ 0, 0.2, 0.4 }, 0.3), tf_listener_(tf_buffer_)
 {
-  num_layers_ = num_layers;
-  longitudinal_spacing_ = longitudinal_spacing;
-  num_lateral_samples_per_side_ = num_lateral_samples_per_side;
-  lateral_spacing_ = lateral_spacing;
-
-  if (k_length < 0.0 || k_length > 1.0)
-  {
-    throw std::invalid_argument("k_length must be between 0 and 1");
-  }
-  else
-  {
-    k_length_ = k_length;
-  }
+  setNumLayers(num_layers);
+  setLongitudinalSpacing(longitudinal_spacing);
+  setNumLateralSamplesPerSide(num_lateral_samples_per_side);
+  setLateralSpacing(lateral_spacing);
+  setLengthWeight(k_length);
 }
 
 Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_pose) const
