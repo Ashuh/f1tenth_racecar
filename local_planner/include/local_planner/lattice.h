@@ -79,7 +79,8 @@ public:
     tf2_ros::TransformListener tf_listener_;
 
     nav_msgs::Path global_path_;
-    CollisionChecker collision_checker_;
+
+    std::shared_ptr<CollisionChecker> collision_checker_ptr_;
 
     int getNearestWaypointId(const geometry_msgs::Pose& current_pose) const;
 
@@ -103,7 +104,8 @@ public:
 
   public:
     Generator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
-              const double lateral_spacing, const double k_length);
+              const double lateral_spacing, const double k_length,
+              const std::shared_ptr<CollisionChecker>& collision_checker_ptr);
 
     Lattice generateLattice(const geometry_msgs::Pose& source_pose) const;
 

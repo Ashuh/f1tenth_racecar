@@ -93,6 +93,7 @@ public:
   ReferenceTrajectoryGenerator(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples,
                                const double lateral_spacing, const double k_length, const double speed_limit,
                                const double max_lat_acc, const double max_lon_acc, const double max_lon_dec,
+                               const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
                                const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
   Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);

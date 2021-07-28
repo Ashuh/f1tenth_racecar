@@ -27,7 +27,7 @@ private:
   tf2_ros::TransformListener tf_listener_;
 
   CubicSpiralOptimizer cubic_spiral_opt_;
-  CollisionChecker collision_checker_;
+  std::shared_ptr<CollisionChecker> collision_checker_ptr_;
 
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
@@ -53,6 +53,7 @@ private:
 public:
   TrackingTrajectoryGenerator(const int num_paths, const double max_curvature, const double lateral_spacing,
                               const double look_ahead_time,
+                              const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
   Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature);

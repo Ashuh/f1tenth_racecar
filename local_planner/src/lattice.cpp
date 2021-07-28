@@ -82,14 +82,23 @@ Lattice::Edge::Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared
 
 Lattice::Generator::Generator(const int num_layers, const double longitudinal_spacing,
                               const int num_lateral_samples_per_side, const double lateral_spacing,
-                              const double k_length)
-  : collision_checker_(std::vector<double>{ 0, 0.2, 0.4 }, 0.3), tf_listener_(tf_buffer_)
+                              const double k_length, const std::shared_ptr<CollisionChecker>& collision_checker_ptr)
+  : tf_listener_(tf_buffer_)
 {
   setNumLayers(num_layers);
   setLongitudinalSpacing(longitudinal_spacing);
   setNumLateralSamplesPerSide(num_lateral_samples_per_side);
   setLateralSpacing(lateral_spacing);
   setLengthWeight(k_length);
+
+  if (collision_checker_ptr != nullptr)
+  {
+    collision_checker_ptr_ = collision_checker_ptr;
+  }
+  else
+  {
+    throw std::invalid_argument("Collision checker pointer is null");
+  }
 }
 
 Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_pose) const
@@ -324,7 +333,7 @@ bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lat
   target_point.point.x = target.x_;
   target_point.point.y = target.y_;
 
-  return collision_checker_.checkCollision(source_point, target_point);
+  return collision_checker_ptr_->checkCollision(source_point, target_point);
 }
 
 double Lattice::Generator::distance(const double x_1, const double y_1, const double x_2, const double y_2) const
@@ -346,7 +355,7 @@ void Lattice::Generator::setGlobalPath(const nav_msgs::Path& global_path)
 
 void Lattice::Generator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
-  collision_checker_.setCostmap(costmap_msg);
+  collision_checker_ptr_->setCostmap(costmap_msg);
 }
 
 void Lattice::Generator::setLengthWeight(const double weight)

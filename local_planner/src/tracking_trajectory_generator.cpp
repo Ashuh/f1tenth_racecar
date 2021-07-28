@@ -16,15 +16,23 @@
 
 TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
     const int num_paths, const double max_curvature, const double lateral_spacing, const double look_ahead_time,
+    const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : tf_listener_(tf_buffer_)
-  , cubic_spiral_opt_(max_curvature)
-  , collision_checker_(std::vector<double>{ 0, 0.2, 0.4 }, 0.3)
+  : tf_listener_(tf_buffer_), cubic_spiral_opt_(max_curvature)
 {
   setNumPaths(num_paths);
   setLateralSpacing(lateral_spacing);
   setLookAheadTime(look_ahead_time);
   viz_ptr_ = viz_ptr;
+
+  if (collision_checker_ptr != nullptr)
+  {
+    collision_checker_ptr_ = collision_checker_ptr;
+  }
+  else
+  {
+    throw std::invalid_argument("Collision checker pointer is null");
+  }
 }
 
 Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Trajectory& reference_trajectory,
@@ -154,7 +162,7 @@ bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
   {
     for (int i = 0; i < path.size(); ++i)
     {
-      if (collision_checker_.checkCollision(path.poseStamped(i)))
+      if (collision_checker_ptr_->checkCollision(path.poseStamped(i)))
       {
         return true;
       }
@@ -201,7 +209,7 @@ double TrackingTrajectoryGenerator::evaluateTrajectory(const Trajectory& referen
 void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
   grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_);
-  collision_checker_.setCostmap(costmap_msg);
+  collision_checker_ptr_->setCostmap(costmap_msg);
 }
 
 void TrackingTrajectoryGenerator::setNumPaths(const int num_paths)
