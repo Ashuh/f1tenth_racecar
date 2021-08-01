@@ -360,7 +360,7 @@ void ReferenceTrajectoryGenerator::visualizeSSSP(const Path& path)
 {
   if (viz_ptr_ != nullptr)
   {
-    visualization_msgs::Marker path_marker = path.toLineMarker(0, "sssp", 0.02, 0, 0, 1);
+    visualization_msgs::Marker path_marker = path.generatePathMarker(0, "sssp", 0.02, 0, 0, 1);
     viz_ptr_->markers.push_back(path_marker);
   }
 }
@@ -369,9 +369,9 @@ void ReferenceTrajectoryGenerator::visualizeReferenceTrajectory(const Trajectory
 {
   if (viz_ptr_ != nullptr)
   {
-    visualization_msgs::Marker path_marker = trajectory.toLineMarker(0, "reference_trajectory", 0.02, 0, 0, 0);
+    visualization_msgs::Marker path_marker = trajectory.generatePathMarker(0, "reference_trajectory", 0.02, 0, 0, 0);
     visualization_msgs::MarkerArray velocity_markers =
-        trajectory.toTextMarker(0, "reference_trajectory_velocity_profile", 0.08, 0.1, 0, 0, 0);
+        trajectory.generateVelocityMarkers(0, "reference_trajectory_velocity_profile", 0.08, 0.1, 0, 0, 0);
 
     viz_ptr_->markers.push_back(path_marker);
     viz_ptr_->markers.insert(viz_ptr_->markers.begin(), velocity_markers.markers.begin(),

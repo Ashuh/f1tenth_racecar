@@ -20,9 +20,10 @@ double Trajectory::velocity(size_t n) const
   return velocity_.at(n);
 }
 
-visualization_msgs::MarkerArray Trajectory::toTextMarker(int marker_id, const std::string& ns, const double scale,
-                                                         const double z_offset, const double r, const double g,
-                                                         const double b, const double a) const
+visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_id, const std::string& ns,
+                                                                    const double scale, const double z_offset,
+                                                                    const double r, const double g, const double b,
+                                                                    const double a) const
 {
   visualization_msgs::MarkerArray velocity_markers;
 

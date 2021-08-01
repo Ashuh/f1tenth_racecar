@@ -91,8 +91,9 @@ geometry_msgs::PoseStamped Path::poseStamped(size_t n) const
   return pose_stamped;
 }
 
-visualization_msgs::Marker Path::toLineMarker(const int marker_id, const std::string& ns, const double scale,
-                                              const double r, const double g, const double b, const double a) const
+visualization_msgs::Marker Path::generatePathMarker(const int marker_id, const std::string& ns, const double scale,
+                                                    const double r, const double g, const double b,
+                                                    const double a) const
 {
   visualization_msgs::Marker path_marker;
   path_marker.action = visualization_msgs::Marker::ADD;

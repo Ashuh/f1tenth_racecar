@@ -234,12 +234,12 @@ void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_p
 
   for (int i = 0; i < safe_paths.size(); ++i)
   {
-    path_markers.markers.push_back(safe_paths.at(i).toLineMarker(i, "safe_paths", 0.02, 0, 1, 0));
+    path_markers.markers.push_back(safe_paths.at(i).generatePathMarker(i, "safe_paths", 0.02, 0, 1, 0));
   }
 
   for (int i = 0; i < unsafe_paths.size(); ++i)
   {
-    path_markers.markers.push_back(unsafe_paths.at(i).toLineMarker(i, "unsafe_paths", 0.02, 1, 0, 0));
+    path_markers.markers.push_back(unsafe_paths.at(i).generatePathMarker(i, "unsafe_paths", 0.02, 1, 0, 0));
   }
 
   viz_ptr_->markers.insert(viz_ptr_->markers.end(), path_markers.markers.begin(), path_markers.markers.end());

@@ -50,9 +50,9 @@ public:
 
   geometry_msgs::PoseStamped poseStamped(size_t n) const;
 
-  virtual visualization_msgs::Marker toLineMarker(const int marker_id, const std::string& ns, const double scale,
-                                                  const double r, const double g, const double b,
-                                                  const double a = 1.0) const;
+  virtual visualization_msgs::Marker generatePathMarker(const int marker_id, const std::string& ns, const double scale,
+                                                        const double r, const double g, const double b,
+                                                        const double a = 1.0) const;
 };
 
 #endif  // LOCAL_PLANNER_PATH_H

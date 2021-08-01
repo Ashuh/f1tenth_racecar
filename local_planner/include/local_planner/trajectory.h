@@ -20,7 +20,7 @@ public:
 
   double velocity(size_t n) const;
 
-  visualization_msgs::MarkerArray toTextMarker(int marker_id, const std::string& ns, const double scale,
+  visualization_msgs::MarkerArray generateVelocityMarkers(int marker_id, const std::string& ns, const double scale,
                                                const double z_offset, const double r, const double g, const double b,
                                                const double a = 1.0) const;
 };
