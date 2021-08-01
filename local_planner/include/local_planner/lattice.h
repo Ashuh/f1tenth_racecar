@@ -17,7 +17,7 @@
 
 class Lattice
 {
-public:
+private:
   struct Position
   {
     struct Hash
@@ -63,6 +63,18 @@ public:
   typedef Graph::edge_descriptor EdgeDescriptor;
   typedef std::unordered_map<Lattice::Position, Lattice::VertexDescriptor, Lattice::Position::Hash> PositionMap;
 
+  int num_layers_;
+  int num_lateral_samples_;
+
+  Graph graph_;
+  Position source_position_;
+  PositionMap position_map_;
+  std::vector<VertexDescriptor> predecessors_;
+
+  Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position, const int num_layers,
+          const int num_lateral_samples);
+
+public:
   class Generator
   {
   public:
@@ -151,18 +163,6 @@ public:
   visualization_msgs::MarkerArray generateWeightMarkers(int marker_id, const std::string& ns, const double scale,
                                                         const double r, const double g, const double b,
                                                         const double a = 1.0) const;
-
-private:
-  int num_layers_;
-  int num_lateral_samples_;
-
-  Graph graph_;
-  Position source_position_;
-  PositionMap position_map_;
-  std::vector<VertexDescriptor> predecessors_;
-
-  Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position, const int num_layers,
-          const int num_lateral_samples);
 };
 
 #endif  // LOCAL_PLANNER_LATTICE_H
