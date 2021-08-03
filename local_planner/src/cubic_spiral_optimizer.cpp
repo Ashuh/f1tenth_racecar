@@ -281,6 +281,11 @@ ifopt::Component::VecBound CubicSpiralOptimizer::CubicSpiralVariableSet::GetBoun
 /*                             CubicSpiralCostTerm                            */
 /* -------------------------------------------------------------------------- */
 
+constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_BE_;
+constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_X_;
+constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_Y_;
+constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_HDG_;
+
 CubicSpiralOptimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double initial_curvature,
                                                                const double goal_curvature, const double goal_x,
                                                                const double goal_y, const double goal_heading,
