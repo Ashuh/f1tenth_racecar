@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(local_planner)
 
-add_compile_options(-std=c++17)
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -9,6 +9,7 @@ add_compile_options(-std=c++17)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   ifopt
+  dynamic_reconfigure
   geometry_msgs
   nav_msgs
   visualization_msgs
@@ -20,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -94,10 +95,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/local_planner.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -128,6 +128,9 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
+  src/lattice.cpp
+  src/reference_trajectory_generator.cpp
+  src/tracking_trajectory_generator.cpp
   src/cubic_spiral_optimizer.cpp
   src/path.cpp
   src/trajectory.cpp
