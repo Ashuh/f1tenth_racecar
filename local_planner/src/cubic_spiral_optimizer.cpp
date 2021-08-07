@@ -11,42 +11,33 @@
 /*                                 CubicSpiral                                */
 /* -------------------------------------------------------------------------- */
 
-CubicSpiral::CubicSpiral(const Eigen::Vector4d& coeffs)
+CubicSpiral::CubicSpiral(const Eigen::Vector4d& coeffs, const double length)
 {
   a_ = coeffs;
+  length_ = length;
 }
 
-Path CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
+Path CubicSpiral::toPath(const int num_samples)
 {
-  // std::vector<Waypoint> waypoints;
-
   std::vector<double> distance;
   std::vector<double> x;
   std::vector<double> y;
   std::vector<double> yaw;
   std::vector<double> curvature;
 
-  for (int i = 0; i < s_points.size(); ++i)
+  double spacing = length_ / (num_samples - 1);
+
+  for (int i = 0; i < num_samples; ++i)
   {
-    // Waypoint wp;
-    distance.push_back(s_points(i));
-    x.push_back(getX(s_points(i)));
-    y.push_back(getY(s_points(i)));
-    yaw.push_back(getHeading(s_points(i)));
-    curvature.push_back(getCurvature(s_points(i)));
-
-    // wp.x_ = getX(s_points(i));
-    // wp.y_ = getY(s_points(i));
-    // wp.yaw_ = getHeading(s_points(i));
-    // wp.curvature_ = getCurvature(s_points(i));
-    // wp.distance_ = s_points(i);
-
-    // waypoints.push_back(wp);
+    double s = i * spacing;
+    distance.push_back(s);
+    x.push_back(getX(s));
+    y.push_back(getY(s));
+    yaw.push_back(getHeading(s));
+    curvature.push_back(getCurvature(s));
   }
 
   return Path("base_link", distance, x, y, yaw, curvature);
-
-  // return CubicSpiralPath("base_link", waypoints);
 }
 
 // Eigen::VectorXd CubicSpiral::Optimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)
@@ -128,20 +119,8 @@ Path CubicSpiral::Optimizer::generateCubicSpiralPath(const double initial_curvat
 {
   Eigen::Matrix<double, 5, 1> p =
       optimizeCubicSpiralParams(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading);
-  CubicSpiral spiral(paramsToCoeffs(p));
 
-  Eigen::VectorXd s_points;
-  s_points.resize(num_samples);
-  double delta_s = p(4) / (num_samples - 1);
-
-  for (int i = 0; i < num_samples; ++i)
-  {
-    s_points(i) = i * delta_s;
-  }
-
-  Path path = spiral.sampleCubicSpiral(s_points);
-
-  return path;
+  return CubicSpiral(paramsToCoeffs(p), p(4)).toPath(num_samples);
 }
 
 Eigen::Matrix<double, 5, 1> CubicSpiral::Optimizer::optimizeCubicSpiralParams(const double initial_curvature,

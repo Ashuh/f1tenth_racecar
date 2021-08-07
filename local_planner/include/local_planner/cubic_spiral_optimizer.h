@@ -14,6 +14,8 @@ class CubicSpiral
 private:
   Eigen::Vector4d a_;
 
+  double length_;
+
   // Eigen::VectorXd sampleX(const Eigen::VectorXd& s_points);
 
   // Eigen::VectorXd sampleY(const Eigen::VectorXd& s_points);
@@ -29,9 +31,9 @@ private:
   double getCurvature(const double s);
 
 public:
-  explicit CubicSpiral(const Eigen::Vector4d& coeffs);
+  CubicSpiral(const Eigen::Vector4d& coeffs, const double length);
 
-  Path sampleCubicSpiral(const Eigen::VectorXd& s_points);
+  Path toPath(const int num_samples);
 
   class Optimizer
   {
