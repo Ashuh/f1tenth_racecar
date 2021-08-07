@@ -8,83 +8,15 @@
 #include "local_planner/cubic_spiral_optimizer.h"
 
 /* -------------------------------------------------------------------------- */
-/*                            CubicSpiralOptimizer                            */
-/* -------------------------------------------------------------------------- */
-
-CubicSpiralOptimizer::CubicSpiralOptimizer(double max_curvature) : max_curvature_(max_curvature)
-{
-}
-
-Path CubicSpiralOptimizer::generateCubicSpiralPath(const double initial_curvature, const double goal_curvature,
-                                                   const double goal_x, const double goal_y, const double goal_heading,
-                                                   const unsigned int num_samples)
-{
-  Eigen::Matrix<double, 5, 1> p =
-      optimizeCubicSpiralParams(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading);
-  Eigen::Vector4d coeffs = paramsToCoeffs(p);
-  CubicSpiral spiral(coeffs);
-
-  Eigen::VectorXd s_points;
-  s_points.resize(num_samples);
-  double delta_s = p(4) / (num_samples - 1);
-
-  for (int i = 0; i < num_samples; ++i)
-  {
-    s_points(i) = i * delta_s;
-  }
-
-  Path path = spiral.sampleCubicSpiral(s_points);
-
-  return path;
-}
-
-Eigen::Matrix<double, 5, 1> CubicSpiralOptimizer::optimizeCubicSpiralParams(const double initial_curvature,
-                                                                            const double goal_curvature,
-                                                                            const double goal_x, const double goal_y,
-                                                                            const double goal_heading)
-{
-  double min_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
-
-  ifopt::Problem nlp;
-  CommonTerms common_terms;
-  nlp.AddVariableSet(std::make_shared<CubicSpiralVariableSet>(min_dist, initial_curvature, goal_curvature,
-                                                              max_curvature_, common_terms));
-  nlp.AddCostSet(std::make_shared<CubicSpiralCostTerm>(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading,
-                                                       common_terms));
-
-  ifopt::IpoptSolver ipopt;
-  ipopt.SetOption("linear_solver", "mumps");
-  ipopt.SetOption("limited_memory_update_type", "bfgs");
-  ipopt.SetOption("print_level", 0);
-  ipopt.Solve(nlp);
-  Eigen::Vector3d vars = nlp.GetOptVariables()->GetValues();
-  Eigen::Matrix<double, 5, 1> p;
-  p << initial_curvature, vars(0), vars(1), goal_curvature, vars(2);
-
-  return p;
-}
-
-Eigen::Vector4d CubicSpiralOptimizer::paramsToCoeffs(const Eigen::Matrix<double, 5, 1> p)
-{
-  Eigen::Vector4d a;
-  a(0) = p(0);
-  a(1) = -(11.0 * p(0) / 2.0 - 9.0 * p(1) + 9.0 * p(2) / 2.0 - p(3)) / p(4);
-  a(2) = (9.0 * p(0) - 45.0 * p(1) / 2.0 + 18.0 * p(2) - 9.0 * p(3) / 2.0) / pow(p(4), 2);
-  a(3) = -(9.0 * p(0) / 2.0 - 27.0 * p(1) / 2.0 + 27.0 * p(2) / 2.0 - 9.0 * p(3) / 2.0) / pow(p(4), 3);
-
-  return a;
-}
-
-/* -------------------------------------------------------------------------- */
 /*                                 CubicSpiral                                */
 /* -------------------------------------------------------------------------- */
 
-CubicSpiralOptimizer::CubicSpiral::CubicSpiral(const Eigen::Vector4d coeffs)
+CubicSpiral::CubicSpiral(const Eigen::Vector4d& coeffs)
 {
   a_ = coeffs;
 }
 
-Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
+Path CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd& s_points)
 {
   // std::vector<Waypoint> waypoints;
 
@@ -117,7 +49,7 @@ Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd&
   // return CubicSpiralPath("base_link", waypoints);
 }
 
-// Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)
+// Eigen::VectorXd CubicSpiral::Optimizer::CubicSpiral::sampleX(const Eigen::VectorXd& s_points)
 // {
 //   Eigen::VectorXd x_points;
 //   x_points.resize(s_points.size());
@@ -130,7 +62,7 @@ Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd&
 //   return x_points;
 // }
 
-// Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleY(const Eigen::VectorXd& s_points)
+// Eigen::VectorXd CubicSpiral::Optimizer::CubicSpiral::sampleY(const Eigen::VectorXd& s_points)
 // {
 //   Eigen::VectorXd y_points;
 //   y_points.resize(s_points.size());
@@ -143,7 +75,7 @@ Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd&
 //   return y_points;
 // }
 
-// Eigen::VectorXd CubicSpiralOptimizer::CubicSpiral::sampleHeading(const Eigen::VectorXd& s_points)
+// Eigen::VectorXd CubicSpiral::Optimizer::CubicSpiral::sampleHeading(const Eigen::VectorXd& s_points)
 // {
 //   Eigen::VectorXd headings;
 //   headings.resize(s_points.size());
@@ -156,7 +88,7 @@ Path CubicSpiralOptimizer::CubicSpiral::sampleCubicSpiral(const Eigen::VectorXd&
 //   return headings;
 // }
 
-double CubicSpiralOptimizer::CubicSpiral::getX(const double s)
+double CubicSpiral::getX(const double s)
 {
   return (s / 24) *
          (cos(getHeading(0)) + (4 * cos(getHeading(1 * s / 8))) + (2 * cos(getHeading(s / 4))) +
@@ -164,7 +96,7 @@ double CubicSpiralOptimizer::CubicSpiral::getX(const double s)
           (2 * cos(getHeading(3 * s / 4))) + (4 * cos(getHeading(7 * s / 8))) + (cos(getHeading(s))));
 }
 
-double CubicSpiralOptimizer::CubicSpiral::getY(const double s)
+double CubicSpiral::getY(const double s)
 {
   return (s / 24) *
          (sin(getHeading(0)) + (4 * sin(getHeading(1 * s / 8))) + (2 * sin(getHeading(s / 4))) +
@@ -172,25 +104,92 @@ double CubicSpiralOptimizer::CubicSpiral::getY(const double s)
           (2 * sin(getHeading(3 * s / 4))) + (4 * sin(getHeading(7 * s / 8))) + (sin(getHeading(s))));
 }
 
-double CubicSpiralOptimizer::CubicSpiral::getHeading(const double s)
+double CubicSpiral::getHeading(const double s)
 {
   return (a_(3) * pow(s, 4) / 4) + ((a_(2) * pow(s, 3) / 3) + (a_(1) * pow(s, 2) / 2) + (a_(0) * s));
 }
 
-double CubicSpiralOptimizer::CubicSpiral::getCurvature(const double s)
+double CubicSpiral::getCurvature(const double s)
 {
   return (a_(3) * pow(s, 3)) + (a_(2) * pow(s, 2)) + (a_(1) * s) + a_(0);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            CubicSpiralOptimizer                            */
+/* -------------------------------------------------------------------------- */
+
+CubicSpiral::Optimizer::Optimizer(double max_curvature) : max_curvature_(max_curvature)
+{
+}
+
+Path CubicSpiral::Optimizer::generateCubicSpiralPath(const double initial_curvature, const double goal_curvature,
+                                                     const double goal_x, const double goal_y,
+                                                     const double goal_heading, const unsigned int num_samples)
+{
+  Eigen::Matrix<double, 5, 1> p =
+      optimizeCubicSpiralParams(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading);
+  CubicSpiral spiral(paramsToCoeffs(p));
+
+  Eigen::VectorXd s_points;
+  s_points.resize(num_samples);
+  double delta_s = p(4) / (num_samples - 1);
+
+  for (int i = 0; i < num_samples; ++i)
+  {
+    s_points(i) = i * delta_s;
+  }
+
+  Path path = spiral.sampleCubicSpiral(s_points);
+
+  return path;
+}
+
+Eigen::Matrix<double, 5, 1> CubicSpiral::Optimizer::optimizeCubicSpiralParams(const double initial_curvature,
+                                                                              const double goal_curvature,
+                                                                              const double goal_x, const double goal_y,
+                                                                              const double goal_heading)
+{
+  double min_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
+
+  ifopt::Problem nlp;
+  CommonTerms common_terms;
+  nlp.AddVariableSet(std::make_shared<CubicSpiralVariableSet>(min_dist, initial_curvature, goal_curvature,
+                                                              max_curvature_, common_terms));
+  nlp.AddCostSet(std::make_shared<CubicSpiralCostTerm>(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading,
+                                                       common_terms));
+
+  ifopt::IpoptSolver ipopt;
+  ipopt.SetOption("linear_solver", "mumps");
+  ipopt.SetOption("limited_memory_update_type", "bfgs");
+  ipopt.SetOption("print_level", 0);
+  ipopt.Solve(nlp);
+  Eigen::Vector3d vars = nlp.GetOptVariables()->GetValues();
+  Eigen::Matrix<double, 5, 1> p;
+  p << initial_curvature, vars(0), vars(1), goal_curvature, vars(2);
+
+  return p;
+}
+
+Eigen::Vector4d CubicSpiral::Optimizer::paramsToCoeffs(const Eigen::Matrix<double, 5, 1>& p)
+{
+  Eigen::Vector4d a;
+  a(0) = p(0);
+  a(1) = -(11.0 * p(0) / 2.0 - 9.0 * p(1) + 9.0 * p(2) / 2.0 - p(3)) / p(4);
+  a(2) = (9.0 * p(0) - 45.0 * p(1) / 2.0 + 18.0 * p(2) - 9.0 * p(3) / 2.0) / pow(p(4), 2);
+  a(3) = -(9.0 * p(0) / 2.0 - 27.0 * p(1) / 2.0 + 27.0 * p(2) / 2.0 - 9.0 * p(3) / 2.0) / pow(p(4), 3);
+
+  return a;
 }
 
 /* -------------------------------------------------------------------------- */
 /*                           CubicSpiralVariableSet                           */
 /* -------------------------------------------------------------------------- */
 
-CubicSpiralOptimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const double min_dist,
-                                                                     const double initial_curvature,
-                                                                     const double goal_curvature,
-                                                                     const double max_curvature,
-                                                                     CommonTerms& common_terms)
+CubicSpiral::Optimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const double min_dist,
+                                                                       const double initial_curvature,
+                                                                       const double goal_curvature,
+                                                                       const double max_curvature,
+                                                                       CommonTerms& common_terms)
   : min_dist_(min_dist)
   , p_0_(initial_curvature)
   , p_3_(goal_curvature)
@@ -208,7 +207,7 @@ CubicSpiralOptimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const doubl
   updateCommonTerms(p);
 }
 
-void CubicSpiralOptimizer::CubicSpiralVariableSet::SetVariables(const Eigen::VectorXd& x)
+void CubicSpiral::Optimizer::CubicSpiralVariableSet::SetVariables(const Eigen::VectorXd& x)
 {
   if (p_1_ == x(0) && p_2_ == x(1) && s_f_ == x(2))
   {
@@ -224,7 +223,7 @@ void CubicSpiralOptimizer::CubicSpiralVariableSet::SetVariables(const Eigen::Vec
   updateCommonTerms(p);
 }
 
-void CubicSpiralOptimizer::CubicSpiralVariableSet::updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p)
+void CubicSpiral::Optimizer::CubicSpiralVariableSet::updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p)
 {
   common_terms_.t_1_ = (p(4) * (p(0) + 3 * p(1) + 3 * p(2) + p(3))) / 8;
   common_terms_.t_2_ = (p(4) * (15 * p(0) + 51 * p(1) - 3 * p(2) + p(3))) / 128;
@@ -262,12 +261,12 @@ void CubicSpiralOptimizer::CubicSpiralVariableSet::updateCommonTerms(const Eigen
   common_terms_.cos_t_8_ = cos(common_terms_.t_8_);
 }
 
-Eigen::VectorXd CubicSpiralOptimizer::CubicSpiralVariableSet::GetValues() const
+Eigen::VectorXd CubicSpiral::Optimizer::CubicSpiralVariableSet::GetValues() const
 {
   return Eigen::Vector3d(p_1_, p_2_, s_f_);
 }
 
-ifopt::Component::VecBound CubicSpiralOptimizer::CubicSpiralVariableSet::GetBounds() const
+ifopt::Component::VecBound CubicSpiral::Optimizer::CubicSpiralVariableSet::GetBounds() const
 {
   ifopt::Component::VecBound bounds(GetRows());
   bounds.at(0) = ifopt::Bounds(-max_curvature_, max_curvature_);
@@ -281,15 +280,15 @@ ifopt::Component::VecBound CubicSpiralOptimizer::CubicSpiralVariableSet::GetBoun
 /*                             CubicSpiralCostTerm                            */
 /* -------------------------------------------------------------------------- */
 
-constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_BE_;
-constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_X_;
-constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_Y_;
-constexpr unsigned int CubicSpiralOptimizer::CubicSpiralCostTerm::K_HDG_;
+constexpr unsigned int CubicSpiral::Optimizer::CubicSpiralCostTerm::K_BE_;
+constexpr unsigned int CubicSpiral::Optimizer::CubicSpiralCostTerm::K_X_;
+constexpr unsigned int CubicSpiral::Optimizer::CubicSpiralCostTerm::K_Y_;
+constexpr unsigned int CubicSpiral::Optimizer::CubicSpiralCostTerm::K_HDG_;
 
-CubicSpiralOptimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double initial_curvature,
-                                                               const double goal_curvature, const double goal_x,
-                                                               const double goal_y, const double goal_heading,
-                                                               CommonTerms& common_terms)
+CubicSpiral::Optimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double initial_curvature,
+                                                                 const double goal_curvature, const double goal_x,
+                                                                 const double goal_y, const double goal_heading,
+                                                                 CommonTerms& common_terms)
   : p_0_(initial_curvature)
   , p_3_(goal_curvature)
   , goal_x_(goal_x)
@@ -300,7 +299,7 @@ CubicSpiralOptimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double init
 {
 }
 
-double CubicSpiralOptimizer::CubicSpiralCostTerm::bendingEnergyCost(const Eigen::Matrix<double, 5, 1>& p) const
+double CubicSpiral::Optimizer::CubicSpiralCostTerm::bendingEnergyCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
   return (p(4) * (64 * pow(p(0), 2) + 99 * p(0) * p(1) - 36 * p(0) * p(2) + 19 * p(0) * p(3) + 324 * pow(p(1), 2) -
                   81 * p(1) * p(2) - 36 * p(1) * p(3) + 324 * pow(p(2), 2) + 99 * p(2) * p(3) + 64 * pow(p(3), 2))) /
@@ -308,7 +307,7 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::bendingEnergyCost(const Eigen:
 }
 
 Eigen::Vector3d
-CubicSpiralOptimizer::CubicSpiralCostTerm::bendingEnergyCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
+CubicSpiral::Optimizer::CubicSpiralCostTerm::bendingEnergyCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
   double grad_p_1 = (p(4) * (99 * p(0) + 648 * p(1) - 81 * p(2) - 36 * p(3))) / 840;
 
@@ -322,7 +321,7 @@ CubicSpiralOptimizer::CubicSpiralCostTerm::bendingEnergyCostGrad(const Eigen::Ma
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
-double CubicSpiralOptimizer::CubicSpiralCostTerm::xCost(const Eigen::Matrix<double, 5, 1>& p) const
+double CubicSpiral::Optimizer::CubicSpiralCostTerm::xCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
   double x_f = (p(4) * (cos(common_terms_.t_1_) + 2 * cos(common_terms_.t_2_) + 2 * cos(common_terms_.t_3_) +
                         2 * cos(common_terms_.t_4_) + 4 * cos(common_terms_.t_5_) + 4 * cos(common_terms_.t_6_) +
@@ -332,7 +331,7 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::xCost(const Eigen::Matrix<doub
   return pow((goal_x_ - x_f), 2);
 }
 
-Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::xCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
+Eigen::Vector3d CubicSpiral::Optimizer::CubicSpiralCostTerm::xCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
   double grad_p_1 =
       -(pow(p(4), 2) *
@@ -385,7 +384,7 @@ Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::xCostGrad(const Eigen
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
-double CubicSpiralOptimizer::CubicSpiralCostTerm::yCost(const Eigen::Matrix<double, 5, 1>& p) const
+double CubicSpiral::Optimizer::CubicSpiralCostTerm::yCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
   double y_f = (p(4) * (common_terms_.sin_t_1_ + 2 * common_terms_.sin_t_2_ + 2 * common_terms_.sin_t_3_ +
                         2 * common_terms_.sin_t_4_ + 4 * common_terms_.sin_t_5_ + 4 * common_terms_.sin_t_6_ +
@@ -395,7 +394,7 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::yCost(const Eigen::Matrix<doub
   return pow((goal_y_ - y_f), 2);
 }
 
-Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::yCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
+Eigen::Vector3d CubicSpiral::Optimizer::CubicSpiralCostTerm::yCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
   double grad_p_1 = (pow(p(4), 2) *
                      (1024 * common_terms_.cos_t_1_ + 2176 * common_terms_.cos_t_2_ + 2376 * common_terms_.cos_t_3_ +
@@ -445,12 +444,12 @@ Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::yCostGrad(const Eigen
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
-double CubicSpiralOptimizer::CubicSpiralCostTerm::headingCost(const Eigen::Matrix<double, 5, 1>& p) const
+double CubicSpiral::Optimizer::CubicSpiralCostTerm::headingCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
   return pow(goal_heading_ - common_terms_.t_1_, 2);
 }
 
-Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::headingCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
+Eigen::Vector3d CubicSpiral::Optimizer::CubicSpiralCostTerm::headingCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
   double grad_p_1 = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
 
@@ -461,7 +460,7 @@ Eigen::Vector3d CubicSpiralOptimizer::CubicSpiralCostTerm::headingCostGrad(const
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
-double CubicSpiralOptimizer::CubicSpiralCostTerm::GetCost() const
+double CubicSpiral::Optimizer::CubicSpiralCostTerm::GetCost() const
 {
   Eigen::Vector3d vars = GetVariables()->GetComponent("vars")->GetValues();
   Eigen::Matrix<double, 5, 1> p;
@@ -470,8 +469,8 @@ double CubicSpiralOptimizer::CubicSpiralCostTerm::GetCost() const
   return (K_BE_ * bendingEnergyCost(p)) + (K_X_ * xCost(p)) + (K_Y_ * yCost(p)) + (K_HDG_ * headingCost(p));
 }
 
-void CubicSpiralOptimizer::CubicSpiralCostTerm::FillJacobianBlock(std::string var_set,
-                                                                  ifopt::Component::Jacobian& jac) const
+void CubicSpiral::Optimizer::CubicSpiralCostTerm::FillJacobianBlock(std::string var_set,
+                                                                    ifopt::Component::Jacobian& jac) const
 {
   if (var_set == "vars")
   {

@@ -44,7 +44,7 @@ private:
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
 
-  CubicSpiralOptimizer cubic_spiral_opt_;
+  CubicSpiral::Optimizer cubic_spiral_opt_;
 
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
