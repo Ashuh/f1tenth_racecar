@@ -52,49 +52,54 @@ public:
 
     static Eigen::Vector4d paramsToCoeffs(const Eigen::Matrix<double, 5, 1>& p);
 
-    struct CommonTerms
+    struct SimpsonsRuleHelpers
     {
-      double t_1_;
-      double t_2_;
-      double t_3_;
-      double t_4_;
-      double t_5_;
-      double t_6_;
-      double t_7_;
-      double t_8_;
-      double t_9_;
-      double t_10_;
-      double t_11_;
-      double t_12_;
-      double t_13_;
-      double t_14_;
-      double t_15_;
-      double t_16_;
+      double yaw1_;
+      double yaw2_;
+      double yaw3_;
+      double yaw4_;
+      double yaw5_;
+      double yaw6_;
+      double yaw7_;
+      double yaw8_;
 
-      double sin_t_1_;
-      double sin_t_2_;
-      double sin_t_3_;
-      double sin_t_4_;
-      double sin_t_5_;
-      double sin_t_6_;
-      double sin_t_7_;
-      double sin_t_8_;
+      double sin_yaw1_;
+      double sin_yaw2_;
+      double sin_yaw3_;
+      double sin_yaw4_;
+      double sin_yaw5_;
+      double sin_yaw6_;
+      double sin_yaw7_;
+      double sin_yaw8_;
 
-      double cos_t_1_;
-      double cos_t_2_;
-      double cos_t_3_;
-      double cos_t_4_;
-      double cos_t_5_;
-      double cos_t_6_;
-      double cos_t_7_;
-      double cos_t_8_;
+      double cos_yaw1_;
+      double cos_yaw2_;
+      double cos_yaw3_;
+      double cos_yaw4_;
+      double cos_yaw5_;
+      double cos_yaw6_;
+      double cos_yaw7_;
+      double cos_yaw8_;
+
+      double d_yaw1_x4_;
+      double d_yaw2_x2_;
+      double d_yaw3_x4_;
+      double d_yaw4_x2_;
+      double d_yaw5_x4_;
+      double d_yaw6_x2_;
+      double d_yaw7_x4_;
+      double d_yaw8_x1_;
+
+      SimpsonsRuleHelpers();
+
+      explicit SimpsonsRuleHelpers(const Eigen::Matrix<double, 5, 1>& p);
     };
 
     class CubicSpiralVariableSet : public ifopt::VariableSet
     {
     public:
       CubicSpiralVariableSet(const double min_dist, const double initial_curvature, const double goal_curvature,
-                             const double max_curvature, CommonTerms& common_terms);
+                             const double max_curvature, SimpsonsRuleHelpers& helpers);
 
       void SetVariables(const Eigen::VectorXd& vars) override;
 
@@ -112,16 +117,16 @@ public:
       const double p_3_;  // curvature at s =  s_f_
       double s_f_;        // length
 
-      CommonTerms& common_terms_;
+      SimpsonsRuleHelpers& helpers_;
 
-      void updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p);
+      // void updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p);
     };
 
     class CubicSpiralCostTerm : public ifopt::CostTerm
     {
     public:
       CubicSpiralCostTerm(const double initial_curvature, const double goal_curvature, const double goal_x,
-                          const double goal_y, const double goal_heading, CommonTerms& common_terms);
+                          const double goal_y, const double goal_heading, SimpsonsRuleHelpers& common_terms);
 
       double GetCost() const override;
 
@@ -139,7 +144,7 @@ public:
       const double goal_y_;
       const double goal_heading_;
 
-      CommonTerms& common_terms_;
+      SimpsonsRuleHelpers& helpers_;
 
       double bendingEnergyCost(const Eigen::Matrix<double, 5, 1>& p) const;
 

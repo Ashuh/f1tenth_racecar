@@ -131,11 +131,11 @@ Eigen::Matrix<double, 5, 1> CubicSpiral::Optimizer::optimizeCubicSpiralParams(co
   double min_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
 
   ifopt::Problem nlp;
-  CommonTerms common_terms;
-  nlp.AddVariableSet(std::make_shared<CubicSpiralVariableSet>(min_dist, initial_curvature, goal_curvature,
-                                                              max_curvature_, common_terms));
-  nlp.AddCostSet(std::make_shared<CubicSpiralCostTerm>(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading,
-                                                       common_terms));
+  SimpsonsRuleHelpers helpers;
+  nlp.AddVariableSet(
+      std::make_shared<CubicSpiralVariableSet>(min_dist, initial_curvature, goal_curvature, max_curvature_, helpers));
+  nlp.AddCostSet(
+      std::make_shared<CubicSpiralCostTerm>(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading, helpers));
 
   ifopt::IpoptSolver ipopt;
   ipopt.SetOption("linear_solver", "mumps");
@@ -168,12 +168,12 @@ CubicSpiral::Optimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const dou
                                                                        const double initial_curvature,
                                                                        const double goal_curvature,
                                                                        const double max_curvature,
-                                                                       CommonTerms& common_terms)
+                                                                       SimpsonsRuleHelpers& helpers)
   : min_dist_(min_dist)
   , p_0_(initial_curvature)
   , p_3_(goal_curvature)
   , max_curvature_(max_curvature)
-  , common_terms_(common_terms)
+  , helpers_(helpers)
   , VariableSet(3, "vars")
 {
   p_1_ = 0.0;
@@ -183,7 +183,8 @@ CubicSpiral::Optimizer::CubicSpiralVariableSet::CubicSpiralVariableSet(const dou
   Eigen::Matrix<double, 5, 1> p;
   p << p_0_, p_1_, p_2_, p_3_, s_f_;
 
-  updateCommonTerms(p);
+  // updateCommonTerms(p);
+  helpers_ = SimpsonsRuleHelpers(p);
 }
 
 void CubicSpiral::Optimizer::CubicSpiralVariableSet::SetVariables(const Eigen::VectorXd& x)
@@ -199,45 +200,8 @@ void CubicSpiral::Optimizer::CubicSpiralVariableSet::SetVariables(const Eigen::V
 
   Eigen::Matrix<double, 5, 1> p;
   p << p_0_, x(0), x(1), p_3_, x(2);
-  updateCommonTerms(p);
-}
-
-void CubicSpiral::Optimizer::CubicSpiralVariableSet::updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p)
-{
-  common_terms_.t_1_ = (p(4) * (p(0) + 3 * p(1) + 3 * p(2) + p(3))) / 8;
-  common_terms_.t_2_ = (p(4) * (15 * p(0) + 51 * p(1) - 3 * p(2) + p(3))) / 128;
-  common_terms_.t_3_ = (3 * p(4) * (77 * p(0) + 297 * p(1) + 135 * p(2) + 3 * p(3))) / 2048;
-  common_terms_.t_4_ = (p(4) * (247 * p(0) + 363 * p(1) - 123 * p(2) + 25 * p(3))) / 2048;
-  common_terms_.t_5_ = (5 * p(4) * (731 * p(0) + 2895 * p(1) + 465 * p(2) + 5 * p(3))) / 32768;
-  common_terms_.t_6_ = (7 * p(4) * (561 * p(0) + 1869 * p(1) + 1491 * p(2) + 175 * p(3))) / 32768;
-  common_terms_.t_7_ = (3 * p(4) * (1357 * p(0) + 3321 * p(1) - 729 * p(2) + 147 * p(3))) / 32768;
-  common_terms_.t_8_ = (p(4) * (2871 * p(0) + 1851 * p(1) - 795 * p(2) + 169 * p(3))) / 32768;
-  common_terms_.t_9_ = p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8;
-  common_terms_.t_10_ = (15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64;
-  common_terms_.t_11_ = (247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024;
-  common_terms_.t_12_ = (231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024;
-  common_terms_.t_13_ = (2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192;
-  common_terms_.t_14_ = (4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192;
-  common_terms_.t_15_ = (3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192;
-  common_terms_.t_16_ = (3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 + (1225 * p(3)) / 8192;
-
-  common_terms_.sin_t_1_ = sin(common_terms_.t_1_);
-  common_terms_.sin_t_2_ = sin(common_terms_.t_2_);
-  common_terms_.sin_t_3_ = sin(common_terms_.t_3_);
-  common_terms_.sin_t_4_ = sin(common_terms_.t_4_);
-  common_terms_.sin_t_5_ = sin(common_terms_.t_5_);
-  common_terms_.sin_t_6_ = sin(common_terms_.t_6_);
-  common_terms_.sin_t_7_ = sin(common_terms_.t_7_);
-  common_terms_.sin_t_8_ = sin(common_terms_.t_8_);
-
-  common_terms_.cos_t_1_ = cos(common_terms_.t_1_);
-  common_terms_.cos_t_2_ = cos(common_terms_.t_2_);
-  common_terms_.cos_t_3_ = cos(common_terms_.t_3_);
-  common_terms_.cos_t_4_ = cos(common_terms_.t_4_);
-  common_terms_.cos_t_5_ = cos(common_terms_.t_5_);
-  common_terms_.cos_t_6_ = cos(common_terms_.t_6_);
-  common_terms_.cos_t_7_ = cos(common_terms_.t_7_);
-  common_terms_.cos_t_8_ = cos(common_terms_.t_8_);
+  // updateCommonTerms(p);
+  helpers_ = SimpsonsRuleHelpers(p);
 }
 
 Eigen::VectorXd CubicSpiral::Optimizer::CubicSpiralVariableSet::GetValues() const
@@ -267,13 +231,13 @@ constexpr unsigned int CubicSpiral::Optimizer::CubicSpiralCostTerm::K_HDG_;
 CubicSpiral::Optimizer::CubicSpiralCostTerm::CubicSpiralCostTerm(const double initial_curvature,
                                                                  const double goal_curvature, const double goal_x,
                                                                  const double goal_y, const double goal_heading,
-                                                                 CommonTerms& common_terms)
+                                                                 SimpsonsRuleHelpers& helpers)
   : p_0_(initial_curvature)
   , p_3_(goal_curvature)
   , goal_x_(goal_x)
   , goal_y_(goal_y)
   , goal_heading_(goal_heading)
-  , common_terms_(common_terms)
+  , helpers_(helpers)
   , ifopt::CostTerm("cost")
 {
 }
@@ -302,10 +266,10 @@ CubicSpiral::Optimizer::CubicSpiralCostTerm::bendingEnergyCostGrad(const Eigen::
 
 double CubicSpiral::Optimizer::CubicSpiralCostTerm::xCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  double x_f = (p(4) * (cos(common_terms_.t_1_) + 2 * cos(common_terms_.t_2_) + 2 * cos(common_terms_.t_3_) +
-                        2 * cos(common_terms_.t_4_) + 4 * cos(common_terms_.t_5_) + 4 * cos(common_terms_.t_6_) +
-                        4 * cos(common_terms_.t_7_) + 4 * cos(common_terms_.t_8_) + 1)) /
-               24;
+  double x_f =
+      (p(4) * (helpers_.cos_yaw8_ + 2 * helpers_.cos_yaw4_ + 2 * helpers_.cos_yaw6_ + 2 * helpers_.cos_yaw2_ +
+               4 * helpers_.cos_yaw5_ + 4 * helpers_.cos_yaw7_ + 4 * helpers_.cos_yaw3_ + 4 * helpers_.cos_yaw1_ + 1)) /
+      24;
 
   return pow((goal_x_ - x_f), 2);
 }
@@ -314,127 +278,97 @@ Eigen::Vector3d CubicSpiral::Optimizer::CubicSpiralCostTerm::xCostGrad(const Eig
 {
   double grad_p_1 =
       -(pow(p(4), 2) *
-        (1024 * common_terms_.sin_t_1_ + 2176 * common_terms_.sin_t_2_ + 2376 * common_terms_.sin_t_3_ +
-         968 * common_terms_.sin_t_4_ + 4825 * common_terms_.sin_t_5_ + 4361 * common_terms_.sin_t_6_ +
-         3321 * common_terms_.sin_t_7_ + 617 * common_terms_.sin_t_8_) *
-        (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
-         (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
-         (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
-         (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24)) /
+        (1024 * helpers_.sin_yaw8_ + 2176 * helpers_.sin_yaw4_ + 2376 * helpers_.sin_yaw6_ + 968 * helpers_.sin_yaw2_ +
+         4825 * helpers_.sin_yaw5_ + 4361 * helpers_.sin_yaw7_ + 3321 * helpers_.sin_yaw3_ + 617 * helpers_.sin_yaw1_) *
+        (p(4) / 24 - goal_x_ + (p(4) * helpers_.cos_yaw4_) / 12 + (p(4) * helpers_.cos_yaw6_) / 12 +
+         (p(4) * helpers_.cos_yaw2_) / 12 + (p(4) * helpers_.cos_yaw5_) / 6 + (p(4) * helpers_.cos_yaw7_) / 6 +
+         (p(4) * helpers_.cos_yaw3_) / 6 + (p(4) * helpers_.cos_yaw1_) / 6 + (p(4) * helpers_.cos_yaw8_) / 24)) /
       32768;
 
   double grad_p_2 =
       -(pow(p(4), 2) *
-        (1024 * common_terms_.sin_t_1_ - 128 * common_terms_.sin_t_2_ + 1080 * common_terms_.sin_t_3_ -
-         328 * common_terms_.sin_t_4_ + 775 * common_terms_.sin_t_5_ + 3479 * common_terms_.sin_t_6_ -
-         729 * common_terms_.sin_t_7_ - 265 * common_terms_.sin_t_8_) *
-        (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
-         (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
-         (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 +
-         (p(4) * common_terms_.cos_t_8_) / 6 + (p(4) * common_terms_.cos_t_1_) / 24)) /
+        (1024 * helpers_.sin_yaw8_ - 128 * helpers_.sin_yaw4_ + 1080 * helpers_.sin_yaw6_ - 328 * helpers_.sin_yaw2_ +
+         775 * helpers_.sin_yaw5_ + 3479 * helpers_.sin_yaw7_ - 729 * helpers_.sin_yaw3_ - 265 * helpers_.sin_yaw1_) *
+        (p(4) / 24 - goal_x_ + (p(4) * helpers_.cos_yaw4_) / 12 + (p(4) * helpers_.cos_yaw6_) / 12 +
+         (p(4) * helpers_.cos_yaw2_) / 12 + (p(4) * helpers_.cos_yaw5_) / 6 + (p(4) * helpers_.cos_yaw7_) / 6 +
+         (p(4) * helpers_.cos_yaw3_) / 6 + (p(4) * helpers_.cos_yaw1_) / 6 + (p(4) * helpers_.cos_yaw8_) / 24)) /
       32768;
 
   double grad_s_f =
       2 *
-      (common_terms_.cos_t_1_ / 24 + common_terms_.cos_t_2_ / 12 + common_terms_.cos_t_3_ / 12 +
-       common_terms_.cos_t_4_ / 12 + common_terms_.cos_t_5_ / 6 + common_terms_.cos_t_6_ / 6 +
-       common_terms_.cos_t_7_ / 6 + common_terms_.cos_t_8_ / 6 -
-       (p(4) * (common_terms_.sin_t_1_ * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8) +
-                common_terms_.sin_t_2_ * ((15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64) +
-                common_terms_.sin_t_4_ *
-                    ((247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024) +
-                common_terms_.sin_t_3_ *
-                    ((231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024) +
-                common_terms_.sin_t_8_ *
-                    ((2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192) +
-                common_terms_.sin_t_7_ *
-                    ((4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192) +
-                common_terms_.sin_t_5_ *
-                    ((3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192) +
-                common_terms_.sin_t_6_ *
-                    ((3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 + (1225 * p(3)) / 8192))) /
+      (helpers_.cos_yaw8_ / 24 + helpers_.cos_yaw4_ / 12 + helpers_.cos_yaw6_ / 12 + helpers_.cos_yaw2_ / 12 +
+       helpers_.cos_yaw5_ / 6 + helpers_.cos_yaw7_ / 6 + helpers_.cos_yaw3_ / 6 + helpers_.cos_yaw1_ / 6 -
+       (p(4) * (helpers_.sin_yaw8_ * helpers_.d_yaw8_x1_ + helpers_.sin_yaw4_ * helpers_.d_yaw4_x2_ +
+                helpers_.sin_yaw2_ * helpers_.d_yaw2_x2_ + helpers_.sin_yaw6_ * helpers_.d_yaw6_x2_ +
+                helpers_.sin_yaw1_ * helpers_.d_yaw1_x4_ + helpers_.sin_yaw3_ * helpers_.d_yaw3_x4_ +
+                helpers_.sin_yaw5_ * helpers_.d_yaw5_x4_ + helpers_.sin_yaw7_ * helpers_.d_yaw7_x4_)) /
            24 +
        1 / 24.0) *
-      (p(4) / 24 - goal_x_ + (p(4) * common_terms_.cos_t_2_) / 12 + (p(4) * common_terms_.cos_t_3_) / 12 +
-       (p(4) * common_terms_.cos_t_4_) / 12 + (p(4) * common_terms_.cos_t_5_) / 6 +
-       (p(4) * common_terms_.cos_t_6_) / 6 + (p(4) * common_terms_.cos_t_7_) / 6 + (p(4) * common_terms_.cos_t_8_) / 6 +
-       (p(4) * common_terms_.cos_t_1_) / 24);
+      (p(4) / 24 - goal_x_ + (p(4) * helpers_.cos_yaw4_) / 12 + (p(4) * helpers_.cos_yaw6_) / 12 +
+       (p(4) * helpers_.cos_yaw2_) / 12 + (p(4) * helpers_.cos_yaw5_) / 6 + (p(4) * helpers_.cos_yaw7_) / 6 +
+       (p(4) * helpers_.cos_yaw3_) / 6 + (p(4) * helpers_.cos_yaw1_) / 6 + (p(4) * helpers_.cos_yaw8_) / 24);
 
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
 double CubicSpiral::Optimizer::CubicSpiralCostTerm::yCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  double y_f = (p(4) * (common_terms_.sin_t_1_ + 2 * common_terms_.sin_t_2_ + 2 * common_terms_.sin_t_3_ +
-                        2 * common_terms_.sin_t_4_ + 4 * common_terms_.sin_t_5_ + 4 * common_terms_.sin_t_6_ +
-                        4 * common_terms_.sin_t_7_ + 4 * common_terms_.sin_t_8_)) /
-               24;
+  double y_f =
+      (p(4) * (helpers_.sin_yaw8_ + 2 * helpers_.sin_yaw4_ + 2 * helpers_.sin_yaw6_ + 2 * helpers_.sin_yaw2_ +
+               4 * helpers_.sin_yaw5_ + 4 * helpers_.sin_yaw7_ + 4 * helpers_.sin_yaw3_ + 4 * helpers_.sin_yaw1_)) /
+      24;
 
   return pow((goal_y_ - y_f), 2);
 }
 
 Eigen::Vector3d CubicSpiral::Optimizer::CubicSpiralCostTerm::yCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  double grad_p_1 = (pow(p(4), 2) *
-                     (1024 * common_terms_.cos_t_1_ + 2176 * common_terms_.cos_t_2_ + 2376 * common_terms_.cos_t_3_ +
-                      968 * common_terms_.cos_t_4_ + 4825 * common_terms_.cos_t_5_ + 4361 * common_terms_.cos_t_6_ +
-                      3321 * common_terms_.cos_t_7_ + 617 * common_terms_.cos_t_8_) *
-                     ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
-                      (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
-                      (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
-                      (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24)) /
-                    32768;
+  double grad_p_1 =
+      (pow(p(4), 2) *
+       (1024 * helpers_.cos_yaw8_ + 2176 * helpers_.cos_yaw4_ + 2376 * helpers_.cos_yaw6_ + 968 * helpers_.cos_yaw2_ +
+        4825 * helpers_.cos_yaw5_ + 4361 * helpers_.cos_yaw7_ + 3321 * helpers_.cos_yaw3_ + 617 * helpers_.cos_yaw1_) *
+       ((p(4) * helpers_.sin_yaw4_) / 12 - goal_y_ + (p(4) * helpers_.sin_yaw6_) / 12 +
+        (p(4) * helpers_.sin_yaw2_) / 12 + (p(4) * helpers_.sin_yaw5_) / 6 + (p(4) * helpers_.sin_yaw7_) / 6 +
+        (p(4) * helpers_.sin_yaw3_) / 6 + (p(4) * helpers_.sin_yaw1_) / 6 + (p(4) * helpers_.sin_yaw8_) / 24)) /
+      32768;
 
-  double grad_p_2 = (pow(p(4), 2) *
-                     (1024 * common_terms_.cos_t_1_ - 128 * common_terms_.cos_t_2_ + 1080 * common_terms_.cos_t_3_ -
-                      328 * common_terms_.cos_t_4_ + 775 * common_terms_.cos_t_5_ + 3479 * common_terms_.cos_t_6_ -
-                      729 * common_terms_.cos_t_7_ - 265 * common_terms_.cos_t_8_) *
-                     ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
-                      (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
-                      (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 +
-                      (p(4) * common_terms_.sin_t_8_) / 6 + (p(4) * common_terms_.sin_t_1_) / 24)) /
-                    32768;
+  double grad_p_2 =
+      (pow(p(4), 2) *
+       (1024 * helpers_.cos_yaw8_ - 128 * helpers_.cos_yaw4_ + 1080 * helpers_.cos_yaw6_ - 328 * helpers_.cos_yaw2_ +
+        775 * helpers_.cos_yaw5_ + 3479 * helpers_.cos_yaw7_ - 729 * helpers_.cos_yaw3_ - 265 * helpers_.cos_yaw1_) *
+       ((p(4) * helpers_.sin_yaw4_) / 12 - goal_y_ + (p(4) * helpers_.sin_yaw6_) / 12 +
+        (p(4) * helpers_.sin_yaw2_) / 12 + (p(4) * helpers_.sin_yaw5_) / 6 + (p(4) * helpers_.sin_yaw7_) / 6 +
+        (p(4) * helpers_.sin_yaw3_) / 6 + (p(4) * helpers_.sin_yaw1_) / 6 + (p(4) * helpers_.sin_yaw8_) / 24)) /
+      32768;
 
   double grad_s_f =
       2 *
-      (common_terms_.sin_t_1_ / 24 + common_terms_.sin_t_2_ / 12 + common_terms_.sin_t_3_ / 12 +
-       common_terms_.sin_t_4_ / 12 + common_terms_.sin_t_5_ / 6 + common_terms_.sin_t_6_ / 6 +
-       common_terms_.sin_t_7_ / 6 + common_terms_.sin_t_8_ / 6 +
-       (p(4) * (common_terms_.cos_t_1_ * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8) +
-                common_terms_.cos_t_2_ * ((15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64) +
-                common_terms_.cos_t_4_ *
-                    ((247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024) +
-                common_terms_.cos_t_3_ *
-                    ((231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024) +
-                common_terms_.cos_t_8_ *
-                    ((2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192) +
-                common_terms_.cos_t_7_ *
-                    ((4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192) +
-                common_terms_.cos_t_5_ *
-                    ((3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192) +
-                common_terms_.cos_t_6_ *
-                    ((3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 + (1225 * p(3)) / 8192))) /
+      (helpers_.sin_yaw8_ / 24 + helpers_.sin_yaw4_ / 12 + helpers_.sin_yaw6_ / 12 + helpers_.sin_yaw2_ / 12 +
+       helpers_.sin_yaw5_ / 6 + helpers_.sin_yaw7_ / 6 + helpers_.sin_yaw3_ / 6 + helpers_.sin_yaw1_ / 6 +
+       (p(4) * (helpers_.cos_yaw8_ * helpers_.d_yaw8_x1_ + helpers_.cos_yaw4_ * helpers_.d_yaw4_x2_ +
+                helpers_.cos_yaw2_ * helpers_.d_yaw2_x2_ + helpers_.cos_yaw6_ * helpers_.d_yaw6_x2_ +
+                helpers_.cos_yaw1_ * helpers_.d_yaw1_x4_ + helpers_.cos_yaw3_ * helpers_.d_yaw3_x4_ +
+                helpers_.cos_yaw5_ * helpers_.d_yaw5_x4_ + helpers_.cos_yaw7_ * helpers_.d_yaw7_x4_)) /
            24) *
-      ((p(4) * common_terms_.sin_t_2_) / 12 - goal_y_ + (p(4) * common_terms_.sin_t_3_) / 12 +
-       (p(4) * common_terms_.sin_t_4_) / 12 + (p(4) * common_terms_.sin_t_5_) / 6 +
-       (p(4) * common_terms_.sin_t_6_) / 6 + (p(4) * common_terms_.sin_t_7_) / 6 + (p(4) * common_terms_.sin_t_8_) / 6 +
-       (p(4) * common_terms_.sin_t_1_) / 24);
+      ((p(4) * helpers_.sin_yaw4_) / 12 - goal_y_ + (p(4) * helpers_.sin_yaw6_) / 12 +
+       (p(4) * helpers_.sin_yaw2_) / 12 + (p(4) * helpers_.sin_yaw5_) / 6 + (p(4) * helpers_.sin_yaw7_) / 6 +
+       (p(4) * helpers_.sin_yaw3_) / 6 + (p(4) * helpers_.sin_yaw1_) / 6 + (p(4) * helpers_.sin_yaw8_) / 24);
 
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
 
 double CubicSpiral::Optimizer::CubicSpiralCostTerm::headingCost(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  return pow(goal_heading_ - common_terms_.t_1_, 2);
+  return pow(goal_heading_ - helpers_.yaw8_, 2);
 }
 
 Eigen::Vector3d CubicSpiral::Optimizer::CubicSpiralCostTerm::headingCostGrad(const Eigen::Matrix<double, 5, 1>& p) const
 {
-  double grad_p_1 = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
+  double grad_p_1 = -(3 * p(4) * (goal_heading_ - helpers_.yaw8_)) / 4;
 
-  double grad_p_2 = -(3 * p(4) * (goal_heading_ - common_terms_.t_1_)) / 4;
+  double grad_p_2 = -(3 * p(4) * (goal_heading_ - helpers_.yaw8_)) / 4;
 
-  double grad_s_f = -2 * (goal_heading_ - common_terms_.t_1_) * (p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8);
+  double grad_s_f = -2 * (goal_heading_ - helpers_.yaw8_) * helpers_.d_yaw8_x1_;
 
   return Eigen::Vector3d(grad_p_1, grad_p_2, grad_s_f);
 }
@@ -464,4 +398,51 @@ void CubicSpiral::Optimizer::CubicSpiralCostTerm::FillJacobianBlock(std::string 
     jac.coeffRef(0, 1) = grad(1);
     jac.coeffRef(0, 2) = grad(2);
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             SimpsonsRuleHelpers                            */
+/* -------------------------------------------------------------------------- */
+
+CubicSpiral::Optimizer::SimpsonsRuleHelpers::SimpsonsRuleHelpers()
+{
+}
+
+CubicSpiral::Optimizer::SimpsonsRuleHelpers::SimpsonsRuleHelpers(const Eigen::Matrix<double, 5, 1>& p)
+{
+  yaw1_ = (p(4) * (2871 * p(0) + 1851 * p(1) - 795 * p(2) + 169 * p(3))) / 32768;
+  yaw2_ = (p(4) * (247 * p(0) + 363 * p(1) - 123 * p(2) + 25 * p(3))) / 2048;
+  yaw3_ = (3 * p(4) * (1357 * p(0) + 3321 * p(1) - 729 * p(2) + 147 * p(3))) / 32768;
+  yaw4_ = (p(4) * (15 * p(0) + 51 * p(1) - 3 * p(2) + p(3))) / 128;
+  yaw5_ = (5 * p(4) * (731 * p(0) + 2895 * p(1) + 465 * p(2) + 5 * p(3))) / 32768;
+  yaw6_ = (3 * p(4) * (77 * p(0) + 297 * p(1) + 135 * p(2) + 3 * p(3))) / 2048;
+  yaw7_ = (7 * p(4) * (561 * p(0) + 1869 * p(1) + 1491 * p(2) + 175 * p(3))) / 32768;
+  yaw8_ = (p(4) * (p(0) + 3 * p(1) + 3 * p(2) + p(3))) / 8;
+
+  d_yaw1_x4_ = (2871 * p(0)) / 8192 + (1851 * p(1)) / 8192 - (795 * p(2)) / 8192 + (169 * p(3)) / 8192;
+  d_yaw2_x2_ = (247 * p(0)) / 1024 + (363 * p(1)) / 1024 - (123 * p(2)) / 1024 + (25 * p(3)) / 1024;
+  d_yaw3_x4_ = (4071 * p(0)) / 8192 + (9963 * p(1)) / 8192 - (2187 * p(2)) / 8192 + (441 * p(3)) / 8192;
+  d_yaw4_x2_ = (15 * p(0)) / 64 + (51 * p(1)) / 64 - (3 * p(2)) / 64 + p(3) / 64;
+  d_yaw5_x4_ = (3655 * p(0)) / 8192 + (14475 * p(1)) / 8192 + (2325 * p(2)) / 8192 + (25 * p(3)) / 8192;
+  d_yaw6_x2_ = (231 * p(0)) / 1024 + (891 * p(1)) / 1024 + (405 * p(2)) / 1024 + (9 * p(3)) / 1024;
+  d_yaw7_x4_ = (3927 * p(0)) / 8192 + (13083 * p(1)) / 8192 + (10437 * p(2)) / 8192 + (1225 * p(3)) / 8192;
+  d_yaw8_x1_ = p(0) / 8 + (3 * p(1)) / 8 + (3 * p(2)) / 8 + p(3) / 8;
+
+  sin_yaw1_ = sin(yaw1_);
+  sin_yaw2_ = sin(yaw2_);
+  sin_yaw3_ = sin(yaw3_);
+  sin_yaw4_ = sin(yaw4_);
+  sin_yaw5_ = sin(yaw5_);
+  sin_yaw6_ = sin(yaw6_);
+  sin_yaw7_ = sin(yaw7_);
+  sin_yaw8_ = sin(yaw8_);
+
+  cos_yaw1_ = cos(yaw1_);
+  cos_yaw2_ = cos(yaw2_);
+  cos_yaw3_ = cos(yaw3_);
+  cos_yaw4_ = cos(yaw4_);
+  cos_yaw5_ = cos(yaw5_);
+  cos_yaw6_ = cos(yaw6_);
+  cos_yaw7_ = cos(yaw7_);
+  cos_yaw8_ = cos(yaw8_);
 }
