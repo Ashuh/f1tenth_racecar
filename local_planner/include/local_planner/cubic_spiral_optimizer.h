@@ -35,22 +35,54 @@ public:
 
   Path toPath(const int num_samples);
 
-  class Optimizer
+  class AbstractOptimizer
   {
   public:
-    explicit Optimizer(double max_curvature);
+    explicit AbstractOptimizer(const double max_curvature);
 
-    Path generateCubicSpiralPath(const double initial_curvature, const double goal_curvature, const double goal_x,
-                                 const double goal_y, const double goal_heading, const unsigned int num_samples);
+    virtual Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double initial_curvature,
+                                                                  const double goal_curvature, const double goal_x,
+                                                                  const double goal_y, const double goal_yaw) const = 0;
 
-  private:
-    const double max_curvature_;
+  protected:
+    double max_curvature_;
 
-    Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double initial_curvature, const double goal_curvature,
-                                                          const double goal_x, const double goal_y,
-                                                          const double goal_heading);
+    static constexpr unsigned int K_BE_ = 1;
+    static constexpr unsigned int K_X_ = 25;
+    static constexpr unsigned int K_Y_ = 25;
+    static constexpr unsigned int K_HDG_ = 30;
+
+    struct SimpsonsRuleHelpers;
 
     static Eigen::Vector4d paramsToCoeffs(const Eigen::Matrix<double, 5, 1>& p);
+
+    static double bendingEnergyCost(const Eigen::Matrix<double, 5, 1>& p);
+
+    static double xCost(const Eigen::Matrix<double, 5, 1>& p, const double goal_x);
+
+    static double xCost(const double p4, const SimpsonsRuleHelpers& h, const double goal_x);
+
+    static double yCost(const Eigen::Matrix<double, 5, 1>& p, const double goal_y);
+
+    static double yCost(const double p4, const SimpsonsRuleHelpers& h, const double goal_y);
+
+    static double yawCost(const Eigen::Matrix<double, 5, 1>& p, const double goal_yaw);
+
+    static double yawCost(const double yaw_f, const double goal_yaw);
+
+    static Eigen::Vector3d bendingEnergyCostGrad(const Eigen::Matrix<double, 5, 1>& p);
+
+    static Eigen::Vector3d xCostGrad(const Eigen::Matrix<double, 5, 1>& p, const double goal_x);
+
+    static Eigen::Vector3d xCostGrad(const double p4, const SimpsonsRuleHelpers& h, const double goal_x);
+
+    static Eigen::Vector3d yCostGrad(const Eigen::Matrix<double, 5, 1>& p, const double goal_y);
+
+    static Eigen::Vector3d yCostGrad(const double p4, const SimpsonsRuleHelpers& h, const double goal_y);
+
+    static Eigen::Vector3d yawCostGrad(const Eigen::Matrix<double, 5, 1>& p, const double goal_yaw);
+
+    static Eigen::Vector3d yawCostGrad(const double p4, const SimpsonsRuleHelpers& h, const double goal_yaw);
 
     struct SimpsonsRuleHelpers
     {
@@ -94,7 +126,21 @@ public:
 
       explicit SimpsonsRuleHelpers(const Eigen::Matrix<double, 5, 1>& p);
     };
+  };
 
+  class OptimizerIFOPT : public AbstractOptimizer
+  {
+  public:
+    explicit OptimizerIFOPT(double max_curvature);
+
+    Path generateCubicSpiralPath(const double initial_curvature, const double goal_curvature, const double goal_x,
+                                 const double goal_y, const double goal_heading, const unsigned int num_samples);
+
+    Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double initial_curvature, const double goal_curvature,
+                                                          const double goal_x, const double goal_y,
+                                                          const double goal_heading) const override;
+
+  private:
     class CubicSpiralVariableSet : public ifopt::VariableSet
     {
     public:
@@ -118,49 +164,26 @@ public:
       double s_f_;        // length
 
       SimpsonsRuleHelpers& helpers_;
-
-      // void updateCommonTerms(const Eigen::Matrix<double, 5, 1>& p);
     };
 
     class CubicSpiralCostTerm : public ifopt::CostTerm
     {
     public:
       CubicSpiralCostTerm(const double initial_curvature, const double goal_curvature, const double goal_x,
-                          const double goal_y, const double goal_heading, SimpsonsRuleHelpers& common_terms);
+                          const double goal_y, const double goal_yaw, SimpsonsRuleHelpers& common_terms);
 
       double GetCost() const override;
 
       void FillJacobianBlock(std::string var_set, ifopt::Component::Jacobian& jac) const override;
 
     private:
-      static constexpr unsigned int K_BE_ = 1;
-      static constexpr unsigned int K_X_ = 25;
-      static constexpr unsigned int K_Y_ = 25;
-      static constexpr unsigned int K_HDG_ = 30;
-
       const double p_0_;  // curvature at s = 0
       const double p_3_;  // curvature at s =  s_f_
       const double goal_x_;
       const double goal_y_;
-      const double goal_heading_;
+      const double goal_yaw_;
 
       SimpsonsRuleHelpers& helpers_;
-
-      double bendingEnergyCost(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      Eigen::Vector3d bendingEnergyCostGrad(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      double xCost(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      Eigen::Vector3d xCostGrad(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      double yCost(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      Eigen::Vector3d yCostGrad(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      double headingCost(const Eigen::Matrix<double, 5, 1>& p) const;
-
-      Eigen::Vector3d headingCostGrad(const Eigen::Matrix<double, 5, 1>& p) const;
     };
   };
 };
