@@ -96,7 +96,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
-  cfg/local_planner.cfg
+  cfg/LocalPlanner.cfg
 )
 
 ###################################
