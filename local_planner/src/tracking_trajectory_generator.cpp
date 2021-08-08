@@ -11,7 +11,7 @@
 #include "costmap_generator/collision_checker.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
-#include "local_planner/cubic_spiral_optimizer.h"
+#include "local_planner/cubic_spiral.h"
 #include "local_planner/tracking_trajectory_generator.h"
 
 TrackingTrajectoryGenerator::SamplingPattern::SamplingPattern(const int num_paths, const double lateral_spacing,

@@ -131,7 +131,7 @@ add_library(${PROJECT_NAME}
   src/lattice.cpp
   src/reference_trajectory_generator.cpp
   src/tracking_trajectory_generator.cpp
-  src/cubic_spiral_optimizer.cpp
+  src/cubic_spiral.cpp
   src/path.cpp
   src/trajectory.cpp
   src/velocity_profile_generator.cpp

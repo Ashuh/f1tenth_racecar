@@ -11,7 +11,7 @@
 
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
-#include "local_planner/cubic_spiral_optimizer.h"
+#include "local_planner/cubic_spiral.h"
 #include "costmap_generator/collision_checker.h"
 
 class TrackingTrajectoryGenerator
