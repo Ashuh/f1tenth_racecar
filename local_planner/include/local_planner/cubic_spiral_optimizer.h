@@ -40,9 +40,8 @@ public:
   public:
     explicit AbstractOptimizer(const double max_curvature);
 
-    virtual Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double initial_curvature,
-                                                                  const double goal_curvature, const double goal_x,
-                                                                  const double goal_y, const double goal_yaw) const = 0;
+    virtual CubicSpiral optimizeCubicSpiral(const double initial_curvature, const double goal_curvature,
+                                            const double goal_x, const double goal_y, const double goal_yaw) const = 0;
 
   protected:
     double max_curvature_;
@@ -133,12 +132,8 @@ public:
   public:
     explicit OptimizerIFOPT(double max_curvature);
 
-    Path generateCubicSpiralPath(const double initial_curvature, const double goal_curvature, const double goal_x,
-                                 const double goal_y, const double goal_heading, const unsigned int num_samples);
-
-    Eigen::Matrix<double, 5, 1> optimizeCubicSpiralParams(const double initial_curvature, const double goal_curvature,
-                                                          const double goal_x, const double goal_y,
-                                                          const double goal_heading) const override;
+    CubicSpiral optimizeCubicSpiral(const double initial_curvature, const double goal_curvature, const double goal_x,
+                                    const double goal_y, const double goal_heading) const override;
 
   private:
     class CubicSpiralVariableSet : public ifopt::VariableSet

@@ -110,7 +110,7 @@ std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geom
     double goal_offset = (i - sampling_pattern_.num_paths_ / 2) * sampling_pattern_.lateral_spacing_;
 
     geometry_msgs::Pose2D goal = offsetGoal(reference_goal, goal_offset);
-    Path path = cubic_spiral_opt_.generateCubicSpiralPath(initial_curvature, 0.0, goal.x, goal.y, goal.theta, 10);
+    Path path = cubic_spiral_opt_.optimizeCubicSpiral(initial_curvature, 0.0, goal.x, goal.y, goal.theta).toPath(10);
     paths.push_back(path);
   }
 

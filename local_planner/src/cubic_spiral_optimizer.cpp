@@ -505,21 +505,9 @@ CubicSpiral::OptimizerIFOPT::OptimizerIFOPT(double max_curvature) : AbstractOpti
 {
 }
 
-Path CubicSpiral::OptimizerIFOPT::generateCubicSpiralPath(const double initial_curvature, const double goal_curvature,
-                                                          const double goal_x, const double goal_y,
-                                                          const double goal_heading, const unsigned int num_samples)
-{
-  Eigen::Matrix<double, 5, 1> p =
-      optimizeCubicSpiralParams(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading);
-
-  return CubicSpiral(paramsToCoeffs(p), p(4)).toPath(num_samples);
-}
-
-Eigen::Matrix<double, 5, 1> CubicSpiral::OptimizerIFOPT::optimizeCubicSpiralParams(const double initial_curvature,
-                                                                                   const double goal_curvature,
-                                                                                   const double goal_x,
-                                                                                   const double goal_y,
-                                                                                   const double goal_heading) const
+CubicSpiral CubicSpiral::OptimizerIFOPT::optimizeCubicSpiral(const double initial_curvature,
+                                                             const double goal_curvature, const double goal_x,
+                                                             const double goal_y, const double goal_heading) const
 {
   double min_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
 
@@ -539,7 +527,7 @@ Eigen::Matrix<double, 5, 1> CubicSpiral::OptimizerIFOPT::optimizeCubicSpiralPara
   Eigen::Matrix<double, 5, 1> p;
   p << initial_curvature, vars(0), vars(1), goal_curvature, vars(2);
 
-  return p;
+  return CubicSpiral(paramsToCoeffs(p), p(4));
 }
 
 Eigen::Vector4d CubicSpiral::AbstractOptimizer::paramsToCoeffs(const Eigen::Matrix<double, 5, 1>& p)
