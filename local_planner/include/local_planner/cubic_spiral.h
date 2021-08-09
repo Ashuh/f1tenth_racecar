@@ -183,4 +183,4 @@ public:
   };
 };
 
-#endif // LOCAL_PLANNER_CUBIC_SPIRAL_H
+#endif  // LOCAL_PLANNER_CUBIC_SPIRAL_H
