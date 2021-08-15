@@ -43,7 +43,7 @@ DS4Controller::DS4Controller()
 void DS4Controller::statusCallback(const ds4_driver::Status status_msg)
 {
   last_message_time_ = ros::Time::now();
-  battery_percentage_ = status_msg.battery_percentage;
+  battery_percentage_ = std::min(status_msg.battery_percentage, 1.0f);  // Fix driver reporting value greater than 1
   publishDriveMsg(status_msg.axis_right_y, status_msg.axis_left_x);
 
   f1tenth_msgs::DriveMode drive_mode_msg;
