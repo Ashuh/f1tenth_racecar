@@ -21,13 +21,13 @@ DS4Controller::DS4Controller()
   std::string drive_topic;
   std::string drive_mode_topic;
 
-  ROS_ASSERT(private_nh.getParam("status_topic", status_topic_));
-  ROS_ASSERT(private_nh.getParam("feedback_topic", feedback_topic));
-  ROS_ASSERT(private_nh.getParam("manual_drive_topic", drive_topic));
-  ROS_ASSERT(private_nh.getParam("drive_mode_topic", drive_mode_topic));
-  ROS_ASSERT(private_nh.getParam("timeout", timeout_));
-  ROS_ASSERT(private_nh.getParam("max_steering_angle", max_steering_angle_));
-  ROS_ASSERT(private_nh.getParam("max_speed", max_speed_));
+  getParam("status_topic", status_topic_);
+  getParam("feedback_topic", feedback_topic);
+  getParam("joy_drive_topic", drive_topic);
+  getParam("drive_mode_topic", drive_mode_topic);
+  getParam("timeout", timeout_);
+  getParam("max_steering_angle", max_steering_angle_);
+  getParam("max_speed", max_speed_);
 
   status_sub_ = nh_.subscribe(status_topic_, 1, &DS4Controller::statusCallback, this);
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
@@ -125,6 +125,23 @@ void DS4Controller::batteryToRGB(float& r, float& g, float& b)
   r = std::min(2.0 * (1 - battery_percentage_), 1.0);
   g = std::min(2.0 * battery_percentage_, 1.0);
   b = 0;
+}
+
+template <typename T>
+void DS4Controller::getParam(const std::string& key, T& result)
+{
+  ros::NodeHandle private_nh("~");
+
+  std::string found;
+  if (private_nh.searchParam(key, found))
+  {
+    private_nh.getParam(found, result);
+  }
+  else
+  {
+    ROS_FATAL("[DS4 Controller] Parameter [%s] not found, shutting down", key.c_str());
+    ros::shutdown();
+  }
 }
 }  // namespace utils
 }  // namespace f1tenth_racecar

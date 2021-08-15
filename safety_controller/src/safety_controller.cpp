@@ -16,17 +16,17 @@ SafetyController::SafetyController()
 
   std::string odom_topic;
   std::string time_to_collision_topic;
-  std::string raw_drive_topic;
+  std::string selected_drive_topic;
   std::string safe_drive_topic;
 
-  ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
-  ROS_ASSERT(private_nh.getParam("time_to_collision_topic", time_to_collision_topic));
-  ROS_ASSERT(private_nh.getParam("raw_drive_topic", raw_drive_topic));
-  ROS_ASSERT(private_nh.getParam("safe_drive_topic", safe_drive_topic));
+  getParam("odom_topic", odom_topic);
+  getParam("time_to_collision_topic", time_to_collision_topic);
+  getParam("selected_drive_topic", selected_drive_topic);
+  getParam("safe_drive_topic", safe_drive_topic);
 
   odom_sub_ = nh_.subscribe(odom_topic, 1, &SafetyController::odomCallback, this);
   time_to_collision_sub_ = nh_.subscribe(time_to_collision_topic, 1, &SafetyController::timeToCollisionCallback, this);
-  raw_drive_sub_ = nh_.subscribe(raw_drive_topic, 1, &SafetyController::driveCallback, this);
+  selected_drive_sub_ = nh_.subscribe(selected_drive_topic, 1, &SafetyController::driveCallback, this);
 
   safe_drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(safe_drive_topic, 1);
 }
@@ -51,6 +51,23 @@ void SafetyController::timeToCollisionCallback(const std_msgs::Float64 time_to_c
 void SafetyController::odomCallback(const nav_msgs::Odometry odom_msg)
 {
   current_velocity_ = odom_msg.twist.twist.linear.x;
+}
+
+template <typename T>
+void SafetyController::getParam(const std::string& key, T& result)
+{
+  ros::NodeHandle private_nh("~");
+
+  std::string found;
+  if (private_nh.searchParam(key, found))
+  {
+    private_nh.getParam(found, result);
+  }
+  else
+  {
+    ROS_FATAL("[Safety Controller] Parameter [%s] not found, shutting down", key.c_str());
+    ros::shutdown();
+  }
 }
 }  // namespace safety
 }  // namespace f1tenth_racecar

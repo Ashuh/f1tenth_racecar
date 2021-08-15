@@ -1,9 +1,13 @@
 <launch>
-    <param name="drive_mode_topic" value="drive_mode" />
-    <param name="manual_drive_topic" value="drive/manual" />
-    <param name="auto_drive_topic" value="drive/auto" />
-    <param name="selected_drive_topic" value="drive/selected" />
+    <arg name="drive_mode_topic" value="drive_mode" />
+    <arg name="joy_drive_topic" value="drive/joy" />
+    <arg name="auto_drive_topic" value="drive/auto" />
+    <arg name="selected_drive_topic" value="drive/selected" />
 
     <node name="drive_mode_selector" pkg="drive_mode_selector" type="drive_mode_selector_node" output="screen">
+        <param name="drive_mode_topic" value="$(arg drive_mode_topic)" />
+        <param name="joy_drive_topic" value="$(arg joy_drive_topic)" />
+        <param name="auto_drive_topic" value="$(arg auto_drive_topic)" />
+        <param name="selected_drive_topic" value="$(arg selected_drive_topic)" />
     </node>
 </launch>

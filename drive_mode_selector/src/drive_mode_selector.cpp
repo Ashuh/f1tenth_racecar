@@ -13,17 +13,17 @@ DriveModeSelector::DriveModeSelector()
   ros::NodeHandle private_nh("~");
 
   std::string drive_mode_topic;
-  std::string manual_drive_topic;
+  std::string joy_drive_topic;
   std::string auto_drive_topic;
   std::string selected_drive_topic;
 
-  ROS_ASSERT(private_nh.getParam("drive_mode_topic", drive_mode_topic));
-  ROS_ASSERT(private_nh.getParam("manual_drive_topic", manual_drive_topic));
-  ROS_ASSERT(private_nh.getParam("auto_drive_topic", auto_drive_topic));
-  ROS_ASSERT(private_nh.getParam("selected_drive_topic", selected_drive_topic));
+  getParam("drive_mode_topic", drive_mode_topic);
+  getParam("joy_drive_topic", joy_drive_topic);
+  getParam("auto_drive_topic", auto_drive_topic);
+  getParam("selected_drive_topic", selected_drive_topic);
 
   drive_mode_sub_ = nh_.subscribe(drive_mode_topic, 1, &DriveModeSelector::driveModeCallback, this);
-  manual_drive_sub_ = nh_.subscribe(manual_drive_topic, 1, &DriveModeSelector::manualDriveCallback, this);
+  joy_drive_sub_ = nh_.subscribe(joy_drive_topic, 1, &DriveModeSelector::joyDriveCallback, this);
   auto_drive_sub_ = nh_.subscribe(auto_drive_topic, 1, &DriveModeSelector::autoDriveCallback, this);
 
   selected_drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(selected_drive_topic, 1);
@@ -63,7 +63,7 @@ void DriveModeSelector::driveModeCallback(const f1tenth_msgs::DriveMode drive_mo
   }
 }
 
-void DriveModeSelector::manualDriveCallback(const ackermann_msgs::AckermannDriveStamped drive_msg)
+void DriveModeSelector::joyDriveCallback(const ackermann_msgs::AckermannDriveStamped drive_msg)
 {
   if (drive_mode_ == Mode::MANUAL)
   {
@@ -76,6 +76,23 @@ void DriveModeSelector::autoDriveCallback(const ackermann_msgs::AckermannDriveSt
   if (drive_mode_ == Mode::AUTO)
   {
     selected_drive_pub_.publish(drive_msg);
+  }
+}
+
+template <typename T>
+void DriveModeSelector::getParam(const std::string& key, T& result)
+{
+  ros::NodeHandle private_nh("~");
+
+  std::string found;
+  if (private_nh.searchParam(key, found))
+  {
+    private_nh.getParam(found, result);
+  }
+  else
+  {
+    ROS_FATAL("[Drive Mode Selector] Parameter [%s] not found, shutting down", key.c_str());
+    ros::shutdown();
   }
 }
 }  // namespace f1tenth_racecar
