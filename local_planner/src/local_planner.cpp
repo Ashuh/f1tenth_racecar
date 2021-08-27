@@ -12,6 +12,7 @@
 
 #include "costmap_generator/collision_checker.h"
 #include "local_planner/lattice.h"
+#include "local_planner/acceleration_regulator.h"
 #include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/tracking_trajectory_generator.h"
 #include "local_planner/trajectory.h"
@@ -111,7 +112,8 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
   Lattice::Generator::Pattern lattice_pattern(lattice_num_layers, lattice_longitudinal_spacing,
                                               lattice_num_lateral_samples_per_side, lattice_lateral_spacing);
   Lattice::Generator lat_gen(lattice_pattern, lattice_k_length, collision_checker_ptr_);
-  RTG::VelocityConstraints ref_vel_constraints(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc, ref_max_lon_dec);
+  AccelerationRegulator::Constraints ref_vel_constraints(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc,
+                                                         ref_max_lon_dec);
 
   ref_traj_gen_ptr_ = std::make_unique<RTG>(lat_gen, ref_vel_constraints, viz_ptr_);
 
@@ -196,8 +198,8 @@ void LocalPlanner::configCallback(local_planner::LocalPlannerConfig& config, uin
                                               config.ref_num_lateral_samples_per_side, config.ref_lateral_spacing);
   ref_traj_gen_ptr_->setLatticePattern(lat_gen_pattern);
 
-  RTG::VelocityConstraints ref_vel_constraints(config.ref_speed_limit, config.ref_max_lat_acc, config.ref_max_lon_acc,
-                                               config.ref_max_lon_dec);
+  AccelerationRegulator::Constraints ref_vel_constraints(config.ref_speed_limit, config.ref_max_lat_acc,
+                                                         config.ref_max_lon_acc, config.ref_max_lon_dec);
   ref_traj_gen_ptr_->setVelocityConstraints(ref_vel_constraints);
 
   TTG::SamplingPattern track_sampling_pattern(config.track_num_paths, config.track_lateral_spacing,

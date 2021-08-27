@@ -135,6 +135,7 @@ add_library(${PROJECT_NAME}
   src/path.cpp
   src/trajectory.cpp
   src/velocity_profile_generator.cpp
+  src/acceleration_regulator.cpp
   src/cubic_velocity_time_profile.cpp
   src/trajectory_evaluator.cpp
 )

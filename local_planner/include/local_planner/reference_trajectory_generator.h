@@ -12,23 +12,13 @@
 #include "local_planner/lattice.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
+#include "local_planner/acceleration_regulator.h"
 
 class ReferenceTrajectoryGenerator
 {
 public:
-  struct VelocityConstraints
-  {
-    double max_speed_;
-    double max_lat_acc_;
-    double max_lon_acc_;
-    double max_lon_dec_;
-
-    VelocityConstraints(const double max_speed, const double max_lat_acc, const double max_lon_acc,
-                        const double max_lon_dec);
-  };
-
   ReferenceTrajectoryGenerator(const Lattice::Generator& lattice_generator,
-                               const VelocityConstraints& velocity_constraints,
+                               const AccelerationRegulator::Constraints& velocity_constraints,
                                const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
   Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
@@ -41,10 +31,10 @@ public:
 
   void setLengthWeight(const double weight);
 
-  void setVelocityConstraints(const VelocityConstraints& constraints);
+  void setVelocityConstraints(const AccelerationRegulator::Constraints& constraints);
 
 private:
-  VelocityConstraints velocity_constraints_;
+  AccelerationRegulator acc_capper_;
 
   Lattice::Generator lat_gen_;
 
@@ -59,10 +49,6 @@ private:
   Path pointsToPath(std::vector<geometry_msgs::Point> points);
 
   std::vector<double> generateVelocityProfile(const Path& path);
-
-  bool isValidProfile(const Path& path, const std::vector<double>& velocity_profile);
-
-  std::vector<std::pair<int, int>> identifyRegions(const std::vector<double>& velocity_profile);
 
   /**
    * @brief Calculates the acceleration required to accelerate from an initial velocity to a final velocity over a
@@ -83,7 +69,7 @@ private:
    * @param s Distance.
    * @return The final velocity.
    */
-  double getFinalVelocity(const double v_i, const double a, const double s);
+  // double getFinalVelocity(const double v_i, const double a, const double s);
 
   double distance(const geometry_msgs::Point& a, const geometry_msgs::Point& b);
 

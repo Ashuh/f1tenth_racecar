@@ -10,27 +10,13 @@
 #include "local_planner/lattice.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
+#include "local_planner/acceleration_regulator.h"
 #include "local_planner/reference_trajectory_generator.h"
 
-ReferenceTrajectoryGenerator::VelocityConstraints::VelocityConstraints(const double max_speed, const double max_lat_acc,
-                                                                       const double max_lon_acc,
-                                                                       const double max_lon_dec)
-{
-  if (max_speed <= 0.0 || max_lat_acc <= 0.0 || max_lon_acc <= 0.0 || max_lon_dec <= 0.0)
-  {
-    throw std::invalid_argument("Invalid velocity constraints specified");
-  }
-
-  max_speed_ = max_speed;
-  max_lat_acc_ = max_lat_acc;
-  max_lon_acc_ = max_lon_acc;
-  max_lon_dec_ = max_lon_dec;
-}
-
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
-    const Lattice::Generator& lattice_generator, const VelocityConstraints& velocity_constraints,
+    const Lattice::Generator& lattice_generator, const AccelerationRegulator::Constraints& velocity_constraints,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : lat_gen_(lattice_generator), velocity_constraints_(velocity_constraints)
+  : lat_gen_(lattice_generator), acc_capper_(velocity_constraints)
 {
   viz_ptr_ = viz_ptr;
 }
@@ -38,7 +24,7 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
   Path reference_path = generateReferencePath(current_pose);
-  std::vector<double> velocity_profile = generateVelocityProfile(reference_path);
+  std::vector<double> velocity_profile = acc_capper_.generateVelocityProfile(reference_path);
   Trajectory reference_trajectory(reference_path, velocity_profile);
   visualizeReferenceTrajectory(reference_trajectory);
 
@@ -175,120 +161,6 @@ Path ReferenceTrajectoryGenerator::pointsToPath(std::vector<geometry_msgs::Point
   return Path("map", distance_vec, x_vec, y_vec, yaw_vec, curvature_vec);
 }
 
-std::vector<double> ReferenceTrajectoryGenerator::generateVelocityProfile(const Path& path)
-{
-  std::vector<double> velocity_profile;
-
-  for (int i = 0; i < path.size(); ++i)
-  {
-    double curvature_speed_limit = velocity_constraints_.max_lat_acc_ / path.curvature(i);
-    velocity_profile.push_back(std::min(velocity_constraints_.max_speed_, curvature_speed_limit));
-  }
-
-  do
-  {
-    std::vector<std::pair<int, int>> regions = identifyRegions(velocity_profile);
-
-    for (const auto& region : regions)
-    {
-      if (velocity_profile.at(region.first) > velocity_profile.at(region.second))
-      {
-        // Decelerating region
-
-        for (int i = region.second; i > region.first; --i)
-        {
-          double wp_distance = path.distance(i) - path.distance(i - 1);
-
-          if (-getLonAcc(velocity_profile.at(i - 1), velocity_profile.at(i), wp_distance) >
-              velocity_constraints_.max_lon_dec_)
-          {
-            velocity_profile.at(i - 1) =
-                getFinalVelocity(velocity_profile.at(i), velocity_constraints_.max_lon_dec_, wp_distance);
-          }
-        }
-      }
-      else
-      {
-        // Accelerating region
-
-        for (int i = region.first; i < region.second; ++i)
-        {
-          double wp_distance = path.distance(i + 1) - path.distance(i);
-
-          double acc = getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance);
-
-          if (getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance) >
-              velocity_constraints_.max_lon_acc_)
-          {
-            velocity_profile.at(i + 1) =
-                getFinalVelocity(velocity_profile.at(i), velocity_constraints_.max_lon_acc_, wp_distance);
-          }
-        }
-      }
-    }
-  } while (!isValidProfile(path, velocity_profile));
-
-  return velocity_profile;
-}
-
-std::vector<std::pair<int, int>>
-ReferenceTrajectoryGenerator::identifyRegions(const std::vector<double>& velocity_profile)
-{
-  std::vector<int> region_boundaries;
-
-  region_boundaries.push_back(0);
-
-  for (int i = 1; i < velocity_profile.size() - 1; ++i)
-  {
-    if (velocity_profile.at(i - 1) > velocity_profile.at(i) && velocity_profile.at(i + 1) >= velocity_profile.at(i))
-    {
-      region_boundaries.push_back(i);
-    }
-    else if (velocity_profile.at(i - 1) < velocity_profile.at(i) &&
-             velocity_profile.at(i + 1) <= velocity_profile.at(i))
-    {
-      region_boundaries.push_back(i);
-    }
-  }
-
-  region_boundaries.push_back(velocity_profile.size() - 1);
-
-  std::vector<std::pair<int, int>> regions;
-
-  for (int i = 0; i < region_boundaries.size() - 1; i++)
-  {
-    regions.push_back({ region_boundaries.at(i), region_boundaries.at(i + 1) });
-  }
-
-  return regions;
-}
-
-bool ReferenceTrajectoryGenerator::isValidProfile(const Path& path, const std::vector<double>& velocity_profile)
-{
-  for (int i = 0; i < path.size() - 1; ++i)
-  {
-    double lon_acc =
-        getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), path.distance(i + 1) - path.distance(i));
-
-    if (lon_acc > velocity_constraints_.max_lon_acc_ * 1.01 || -lon_acc > velocity_constraints_.max_lon_dec_ * 1.01)
-    {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-double ReferenceTrajectoryGenerator::getLonAcc(const double v_i, const double v_f, const double s)
-{
-  return (pow(v_f, 2) - pow(v_i, 2)) / (2 * s);
-}
-
-double ReferenceTrajectoryGenerator::getFinalVelocity(const double v_i, const double a, const double s)
-{
-  return sqrt(pow(v_i, 2) + (2 * a * s));
-}
-
 double ReferenceTrajectoryGenerator::distance(const geometry_msgs::Point& a, const geometry_msgs::Point& b)
 {
   double d_x = a.x - b.x;
@@ -334,9 +206,9 @@ void ReferenceTrajectoryGenerator::setLatticePattern(const Lattice::Generator::P
   lat_gen_.setPattern(pattern);
 }
 
-void ReferenceTrajectoryGenerator::setVelocityConstraints(const VelocityConstraints& constraints)
+void ReferenceTrajectoryGenerator::setVelocityConstraints(const AccelerationRegulator::Constraints& constraints)
 {
-  velocity_constraints_ = constraints;
+  acc_capper_.setConstraints(constraints);
 }
 
 void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)
