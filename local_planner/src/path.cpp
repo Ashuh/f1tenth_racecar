@@ -1,4 +1,5 @@
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <geometry_msgs/Point.h>
@@ -23,6 +24,17 @@ Path::Path(const std::string& frame_id, const std::vector<double>& distance, con
   yaw_ = yaw;
   curvature_ = curvature;
   size_ = distance.size();
+}
+
+Path Path::trim(const size_t begin, const size_t end) const
+{
+  std::vector<double> dist = trimVector(distance_, begin, end);
+  std::vector<double> x = trimVector(x_, begin, end);
+  std::vector<double> y = trimVector(y_, begin, end);
+  std::vector<double> yaw = trimVector(yaw_, begin, end);
+  std::vector<double> curvature = trimVector(curvature_, begin, end);
+
+  return Path(frame_id_, dist, x, y, yaw, curvature);
 }
 
 std::string Path::getFrameId() const
@@ -58,6 +70,31 @@ double Path::yaw(size_t n) const
 double Path::curvature(size_t n) const
 {
   return curvature_.at(n);
+}
+
+Path::IteratorPair Path::distanceIt() const
+{
+  return IteratorPair(distance_.begin(), distance_.end());
+}
+
+Path::IteratorPair Path::xIt() const
+{
+  return IteratorPair(x_.begin(), x_.end());
+}
+
+Path::IteratorPair Path::yIt() const
+{
+  return IteratorPair(y_.begin(), y_.end());
+}
+
+Path::IteratorPair Path::yawIt() const
+{
+  return IteratorPair(yaw_.begin(), yaw_.end());
+}
+
+Path::IteratorPair Path::curavatureIt() const
+{
+  return IteratorPair(curvature_.begin(), curvature_.end());
 }
 
 geometry_msgs::Point Path::point(size_t n) const
@@ -115,4 +152,9 @@ visualization_msgs::Marker Path::generatePathMarker(const int marker_id, const s
   }
 
   return path_marker;
+}
+
+std::vector<double> Path::trimVector(const std::vector<double>& vec, const size_t begin, const size_t end)
+{
+  return std::vector<double>(vec.begin() + begin, vec.begin() + end + 1);
 }

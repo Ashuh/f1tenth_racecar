@@ -15,9 +15,19 @@ Trajectory::Trajectory(const Path& path, const std::vector<double>& velocity) : 
   velocity_ = velocity;
 }
 
+Trajectory Trajectory::trim(const size_t begin, const size_t end) const
+{
+  return Trajectory(Path::trim(begin, end), trimVector(velocity_, begin, end));
+}
+
 double Trajectory::velocity(size_t n) const
 {
   return velocity_.at(n);
+}
+
+Trajectory::IteratorPair Trajectory::velocityIt() const
+{
+  return IteratorPair(velocity_.begin(), velocity_.end());
 }
 
 visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_id, const std::string& ns,

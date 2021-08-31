@@ -18,7 +18,11 @@ public:
 
   Trajectory(const Path& path, const std::vector<double>& velocity);
 
+  Trajectory trim(const size_t begin, const size_t end) const;
+
   double velocity(size_t n) const;
+
+  IteratorPair velocityIt() const;
 
   visualization_msgs::MarkerArray generateVelocityMarkers(int marker_id, const std::string& ns, const double scale,
                                                           const double z_offset, const double r, const double g,

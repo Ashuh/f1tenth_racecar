@@ -2,6 +2,7 @@
 #define LOCAL_PLANNER_PATH_H
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <geometry_msgs/Point.h>
@@ -22,6 +23,8 @@ protected:
 
   size_t size_;
 
+  static std::vector<double> trimVector(const std::vector<double>& vec, const size_t begin, const size_t end);
+
 public:
   Path();
 
@@ -29,6 +32,8 @@ public:
        const std::vector<double>& y, const std::vector<double>& yaw, const std::vector<double>& curvature);
 
   // explicit Path(const Path& path);
+
+  Path trim(const size_t begin, const size_t end) const;
 
   std::string getFrameId() const;
 
@@ -49,6 +54,18 @@ public:
   geometry_msgs::Pose pose(size_t n) const;
 
   geometry_msgs::PoseStamped poseStamped(size_t n) const;
+
+  typedef std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator> IteratorPair;
+
+  IteratorPair distanceIt() const;
+
+  IteratorPair xIt() const;
+
+  IteratorPair yIt() const;
+
+  IteratorPair yawIt() const;
+
+  IteratorPair curavatureIt() const;
 
   virtual visualization_msgs::Marker generatePathMarker(const int marker_id, const std::string& ns, const double scale,
                                                         const double r, const double g, const double b,
