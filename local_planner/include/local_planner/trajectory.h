@@ -13,12 +13,16 @@ class Trajectory : public Path
 private:
   std::vector<double> velocity_;
 
+  static double getArrivalTime(const double s, const double v_i, const double v_f);
+
 public:
   Trajectory();
 
   Trajectory(const Path& path, const std::vector<double>& velocity);
 
   Trajectory trim(const size_t begin, const size_t end) const;
+
+  size_t getWpIdAtTime(const double target_time) const;
 
   double velocity(size_t n) const;
 

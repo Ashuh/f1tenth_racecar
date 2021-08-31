@@ -20,6 +20,20 @@ Trajectory Trajectory::trim(const size_t begin, const size_t end) const
   return Trajectory(Path::trim(begin, end), trimVector(velocity_, begin, end));
 }
 
+size_t Trajectory::getWpIdAtTime(const double target_time) const
+{
+  double cur_time = 0.0;
+  int wp_id = 1;
+
+  while (wp_id < size_ && cur_time < target_time)
+  {
+    cur_time += getArrivalTime(distance(wp_id) - distance(wp_id - 1), velocity(wp_id - 1), velocity(wp_id));
+    ++wp_id;
+  }
+
+  return wp_id - 1;
+}
+
 double Trajectory::velocity(size_t n) const
 {
   return velocity_.at(n);
@@ -65,4 +79,9 @@ visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_i
   }
 
   return velocity_markers;
+}
+
+double Trajectory::getArrivalTime(const double s, const double v_i, const double v_f)
+{
+  return 2 * s / (v_i + v_f);
 }
