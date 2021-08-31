@@ -11,6 +11,7 @@
 #include "costmap_generator/collision_checker.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
+#include "local_planner/cubic_velocity_time_profile.h"
 #include "local_planner/cubic_spiral.h"
 #include "local_planner/tracking_trajectory_generator.h"
 
@@ -46,6 +47,7 @@ TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
 }
 
 Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Trajectory& reference_trajectory,
+                                                                   const double initial_velocity,
                                                                    const double initial_curvature)
 {
   if (reference_trajectory.size() == 0)
@@ -53,15 +55,18 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
     throw std::runtime_error("Reference trajectory is empty");
   }
 
-  int reference_goal_id = getReferenceGoalId(reference_trajectory);
-  geometry_msgs::Pose reference_goal = reference_trajectory.pose(reference_goal_id);
+  Trajectory ref_traj_trimmed =
+      reference_trajectory.trim(0, reference_trajectory.getWpIdAtTime(sampling_pattern_.look_ahead_time_));
+
+  geometry_msgs::Pose reference_goal = ref_traj_trimmed.pose(ref_traj_trimmed.size() - 1);
 
   // transform reference_goal to local frame
   geometry_msgs::TransformStamped transform =
       tf_buffer_.lookupTransform("base_link", reference_trajectory.getFrameId(), ros::Time(0));
   tf2::doTransform(reference_goal, reference_goal, transform);
 
-  std::vector<Path> candidate_paths = generateCandidatePaths(reference_goal, initial_curvature);
+  std::vector<Path> candidate_paths =
+      generateCandidatePaths(reference_goal, ref_traj_trimmed.size(), initial_curvature);
   std::vector<Path> safe_paths;
   std::vector<Path> unsafe_paths;
 
@@ -76,7 +81,8 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
 
   for (auto& path : safe_paths)
   {
-    std::vector<double> velocity_profile = generateVelocityProfile(path);
+    std::vector<double> velocity_profile =
+        generateVelocityProfile(path, initial_velocity, ref_traj_trimmed.velocity(ref_traj_trimmed.size() - 1));
     Trajectory trajectory(path, velocity_profile);
     trajectories.push_back(trajectory);
   }
@@ -101,7 +107,7 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
 }
 
 std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geometry_msgs::Pose& reference_goal,
-                                                                      const double initial_curvature)
+                                                                      const int num_wp, const double initial_curvature)
 {
   std::vector<Path> paths;
 
@@ -110,26 +116,12 @@ std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geom
     double goal_offset = (i - sampling_pattern_.num_paths_ / 2) * sampling_pattern_.lateral_spacing_;
 
     geometry_msgs::Pose2D goal = offsetGoal(reference_goal, goal_offset);
-    Path path = cubic_spiral_opt_.optimizeCubicSpiral(initial_curvature, 0.0, goal.x, goal.y, goal.theta).toPath(10);
+    Path path =
+        cubic_spiral_opt_.optimizeCubicSpiral(initial_curvature, 0.0, goal.x, goal.y, goal.theta).toPath(num_wp);
     paths.push_back(path);
   }
 
   return paths;
-}
-
-int TrackingTrajectoryGenerator::getReferenceGoalId(const Trajectory& reference_trajectory)
-{
-  double time = 0.0;
-  int goal_id = 1;
-
-  while (goal_id < reference_trajectory.size() && time < sampling_pattern_.look_ahead_time_)
-  {
-    time += getArrivalTime(reference_trajectory.distance(goal_id) - reference_trajectory.distance(goal_id - 1),
-                           reference_trajectory.velocity(goal_id - 1), reference_trajectory.velocity(goal_id));
-    ++goal_id;
-  }
-
-  return goal_id - 1;
 }
 
 geometry_msgs::Pose2D TrackingTrajectoryGenerator::poseToPose2D(const geometry_msgs::Pose& pose)
@@ -187,21 +179,18 @@ bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
   return false;
 }
 
-double TrackingTrajectoryGenerator::getArrivalTime(const double s, const double v_i, const double v_f)
+std::vector<double> TrackingTrajectoryGenerator::generateVelocityProfile(const Path& path,
+                                                                         const double initial_velocity,
+                                                                         const double final_velocity)
 {
-  return 2 * s / (v_i + v_f);
-}
+  const CubicVelocityTimeProfile vt_profile(initial_velocity, final_velocity, path.distance(path.size() - 1));
 
-std::vector<double> TrackingTrajectoryGenerator::generateVelocityProfile(const Path& path)
-{
-  // placeholder
+  auto dist_it = path.distanceIt();
+  std::vector<double> velocity_profile(path.size());
 
-  std::vector<double> velocity_profile;
-
-  for (int i = 0; i < path.size(); ++i)
-  {
-    velocity_profile.push_back(1);
-  }
+  std::transform(dist_it.first, dist_it.second, velocity_profile.begin(), [&vt_profile](double dist) {
+    return vt_profile.getVelocityAtTime(vt_profile.getTimeAtDisplacement(dist));
+  });
 
   return velocity_profile;
 }

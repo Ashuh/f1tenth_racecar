@@ -144,8 +144,8 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
 
     ros::Time track_begin = ros::Time::now();
     double current_curvature = tan(current_steering_angle_) / wheelbase_;
-    Trajectory tracking_trajectory =
-        track_traj_gen_ptr_->generateTrackingTrajectory(reference_trajectory, current_curvature);
+    Trajectory tracking_trajectory = track_traj_gen_ptr_->generateTrackingTrajectory(
+        reference_trajectory, latest_odom_.twist.twist.linear.x, current_curvature);
     double track_time = (ros::Time::now() - track_begin).toSec();
 
     ROS_INFO("[Local Planner] Time: [Total] %.3fs [Ref] %.3fs [Track] %.3fs", ref_time + track_time, ref_time,

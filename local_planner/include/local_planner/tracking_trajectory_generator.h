@@ -30,7 +30,8 @@ public:
                               const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
-  Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_curvature);
+  Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_velocity,
+                                        const double initial_curvature);
 
   void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
@@ -49,19 +50,17 @@ private:
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
-  std::vector<Path> generateCandidatePaths(const geometry_msgs::Pose& reference_goal, const double initial_curvature);
-
-  int getReferenceGoalId(const Trajectory& reference_trajectory);
+  std::vector<Path> generateCandidatePaths(const geometry_msgs::Pose& reference_goal, const int num_wp,
+                                           const double initial_curvature);
 
   geometry_msgs::Pose2D poseToPose2D(const geometry_msgs::Pose& pose);
-
-  double getArrivalTime(const double s, const double v_i, const double v_f);
 
   geometry_msgs::Pose2D offsetGoal(const geometry_msgs::Pose& reference_goal, const double lateral_offset);
 
   bool checkCollision(const Path& trajectory);
 
-  std::vector<double> generateVelocityProfile(const Path& path);
+  std::vector<double> generateVelocityProfile(const Path& path, const double initial_velocity,
+                                              const double final_velocity);
 
   double evaluateTrajectory(const Trajectory& reference_trajectory, const Trajectory& trajectory,
                             const geometry_msgs::Pose& goal);
