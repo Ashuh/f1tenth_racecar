@@ -67,13 +67,10 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
 
   std::vector<Path> candidate_paths =
       generateCandidatePaths(reference_goal, ref_traj_trimmed.size(), initial_curvature);
-  std::vector<Path> safe_paths;
-  std::vector<Path> unsafe_paths;
-
-  for (auto& path : candidate_paths)
-  {
-    (checkCollision(path) ? unsafe_paths : safe_paths).push_back(path);
-  }
+  auto partition = std::partition(candidate_paths.begin(), candidate_paths.end(),
+                                  [this](const Path& p) { return checkCollision(p); });
+  std::vector<Path> unsafe_paths(candidate_paths.begin(), partition);
+  std::vector<Path> safe_paths(partition, candidate_paths.end());
 
   visualizePaths(safe_paths, unsafe_paths);
 
