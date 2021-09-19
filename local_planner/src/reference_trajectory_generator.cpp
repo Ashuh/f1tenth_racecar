@@ -7,11 +7,12 @@
 #include <nav_msgs/Path.h>
 #include <unsupported/Eigen/Splines>
 
+#include "local_planner/acceleration_regulator.h"
 #include "local_planner/lattice.h"
 #include "local_planner/path.h"
-#include "local_planner/trajectory.h"
-#include "local_planner/acceleration_regulator.h"
 #include "local_planner/reference_trajectory_generator.h"
+#include "local_planner/trajectory.h"
+#include "local_planner/transformer.h"
 
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
     const Lattice::Generator& lattice_generator, const AccelerationRegulator::Constraints& velocity_constraints,
@@ -52,7 +53,8 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   visualizeSSSP(pointsToPath(best_sssp));
   Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
 
-  return reference_path;
+  //  Transform reference path to local frame
+  return Transformer::transform(reference_path, "base_link");
 }
 
 std::vector<geometry_msgs::Point>

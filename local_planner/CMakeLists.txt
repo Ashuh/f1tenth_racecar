@@ -128,15 +128,15 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
+  src/acceleration_regulator.cpp
+  src/cubic_spiral.cpp
+  src/cubic_velocity_time_profile.cpp
   src/lattice.cpp
+  src/path.cpp
   src/reference_trajectory_generator.cpp
   src/tracking_trajectory_generator.cpp
-  src/cubic_spiral.cpp
-  src/path.cpp
   src/trajectory.cpp
-  src/velocity_profile_generator.cpp
-  src/acceleration_regulator.cpp
-  src/cubic_velocity_time_profile.cpp
+  src/transformer.cpp
   src/trajectory_evaluator.cpp
 )
 

@@ -9,10 +9,10 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include "local_planner/acceleration_regulator.h"
 #include "local_planner/lattice.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
-#include "local_planner/acceleration_regulator.h"
 
 class ReferenceTrajectoryGenerator
 {

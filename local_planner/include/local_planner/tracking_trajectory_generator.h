@@ -42,9 +42,6 @@ private:
 
   grid_map::GridMap costmap_;
 
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
-
   CubicSpiral::OptimizerIFOPT cubic_spiral_opt_;
 
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;

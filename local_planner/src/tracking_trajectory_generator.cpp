@@ -9,11 +9,13 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
-#include "local_planner/path.h"
-#include "local_planner/trajectory.h"
-#include "local_planner/cubic_velocity_time_profile.h"
 #include "local_planner/cubic_spiral.h"
+#include "local_planner/cubic_velocity_time_profile.h"
+#include "local_planner/path.h"
 #include "local_planner/tracking_trajectory_generator.h"
+#include "local_planner/trajectory.h"
+#include "local_planner/trajectory_evaluator.h"
+#include "local_planner/transformer.h"
 
 TrackingTrajectoryGenerator::SamplingPattern::SamplingPattern(const int num_paths, const double lateral_spacing,
                                                               const double look_ahead_time)
@@ -32,7 +34,7 @@ TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
     const SamplingPattern& sampling_pattern, const double max_curvature,
     const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : tf_listener_(tf_buffer_), sampling_pattern_(sampling_pattern), cubic_spiral_opt_(max_curvature)
+  : sampling_pattern_(sampling_pattern), cubic_spiral_opt_(max_curvature)
 {
   viz_ptr_ = viz_ptr;
 
@@ -59,11 +61,6 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
       reference_trajectory.trim(0, reference_trajectory.getWpIdAtTime(sampling_pattern_.look_ahead_time_));
 
   geometry_msgs::Pose reference_goal = ref_traj_trimmed.pose(ref_traj_trimmed.size() - 1);
-
-  // transform reference_goal to local frame
-  geometry_msgs::TransformStamped transform =
-      tf_buffer_.lookupTransform("base_link", reference_trajectory.getFrameId(), ros::Time(0));
-  tf2::doTransform(reference_goal, reference_goal, transform);
 
   std::vector<Path> candidate_paths =
       generateCandidatePaths(reference_goal, ref_traj_trimmed.size(), initial_curvature);

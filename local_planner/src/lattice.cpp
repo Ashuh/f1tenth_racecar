@@ -14,6 +14,7 @@
 
 #include "costmap_generator/collision_checker.h"
 #include "local_planner/lattice.h"
+#include "local_planner/transformer.h"
 
 /* -------------------------------------------------------------------------- */
 /*                              Lattice Position                              */
@@ -249,27 +250,12 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   std::vector<std::vector<Vertex>> layers;
 
   // Generate source vertex
-  geometry_msgs::Pose nearest_wp_pose = global_path_.poses.at(ref_waypoint_ids.at((0))).pose;
-  geometry_msgs::Pose origin_pose;
-  origin_pose.orientation.w = 1;
-
-  tf2::Transform nearest_wp_tf;
-  tf2::Transform origin_tf;
-
-  tf2::fromMsg(nearest_wp_pose, nearest_wp_tf);
-  tf2::fromMsg(origin_pose, origin_tf);
-
-  geometry_msgs::TransformStamped transform;
-  transform.transform = tf2::toMsg(nearest_wp_tf.inverseTimes(origin_tf));
 
   geometry_msgs::Point source_point;
   source_point.x = source_x;
   source_point.y = source_y;
-
-  tf2::doTransform(source_point, source_point, transform);
-  int offset_pos = source_point.y / pattern_.lateral_spacing_;
-
-  Vertex source_vertex(Position(0, offset_pos), source_x, source_y);
+  source_point = Transformer::transform(global_path_.poses.at(ref_waypoint_ids.at((0))).pose, source_point);
+  Vertex source_vertex(Position(0, source_point.y / pattern_.lateral_spacing_), source_x, source_y);
   std::vector<Vertex> source_layer;
   source_layer.push_back(source_vertex);
   layers.push_back(source_layer);
