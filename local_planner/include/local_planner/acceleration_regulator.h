@@ -25,16 +25,16 @@ public:
 
   explicit AccelerationRegulator(const Constraints& constraints);
 
-  std::vector<double> generateVelocityProfile(const Path& path);
+  std::vector<double> generateVelocityProfile(const Path& path) const;
 
   void setConstraints(const Constraints& constraints);
 
 private:
   Constraints constraints_;
 
-  bool isValidProfile(const Path& path, const std::vector<double>& velocity_profile);
+  bool isValidProfile(const Path& path, const std::vector<double>& velocity_profile) const;
 
-  std::vector<std::pair<int, int>> identifyRegions(const std::vector<double>& velocity_profile);
+  std::vector<std::pair<int, int>> identifyRegions(const std::vector<double>& velocity_profile) const;
 
   /**
    * @brief Calculates the acceleration required to accelerate from an initial velocity to a final velocity over a
@@ -45,7 +45,7 @@ private:
    * @param s Distance.
    * @return The required acceleration.
    */
-  double getLonAcc(const double v_i, const double v_f, const double s);
+  static double getLonAcc(const double v_i, const double v_f, const double s);
 
   /**
    * @brief Calculates the final velocity given the initial velocity, acceleration, and distance travelled.
@@ -55,7 +55,7 @@ private:
    * @param s Distance.
    * @return The final velocity.
    */
-  double getFinalVelocity(const double v_i, const double a, const double s);
+  static double getFinalVelocity(const double v_i, const double a, const double s);
 };
 
 #endif  // LOCAL_PLANNER_ACCELERATION_REGULATOR_H

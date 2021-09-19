@@ -21,7 +21,7 @@ AccelerationRegulator::AccelerationRegulator(const Constraints& constraints) : c
 {
 }
 
-std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& path)
+std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& path) const
 {
   std::vector<double> velocity_profile;
 
@@ -80,7 +80,8 @@ void AccelerationRegulator::setConstraints(const Constraints& constraints)
   constraints_ = constraints;
 }
 
-std::vector<std::pair<int, int>> AccelerationRegulator::identifyRegions(const std::vector<double>& velocity_profile)
+std::vector<std::pair<int, int>>
+AccelerationRegulator::identifyRegions(const std::vector<double>& velocity_profile) const
 {
   std::vector<int> region_boundaries;
 
@@ -111,7 +112,7 @@ std::vector<std::pair<int, int>> AccelerationRegulator::identifyRegions(const st
   return regions;
 }
 
-bool AccelerationRegulator::isValidProfile(const Path& path, const std::vector<double>& velocity_profile)
+bool AccelerationRegulator::isValidProfile(const Path& path, const std::vector<double>& velocity_profile) const
 {
   for (int i = 0; i < path.size() - 1; ++i)
   {

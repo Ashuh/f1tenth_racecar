@@ -59,9 +59,6 @@ private:
 
   bool checkCollision(const Path& trajectory);
 
-  std::vector<double> generateVelocityProfile(const Path& path, const double initial_velocity,
-                                              const double final_velocity);
-
   double evaluateTrajectory(const Trajectory& reference_trajectory, const Trajectory& trajectory,
                             const geometry_msgs::Pose& goal);
 

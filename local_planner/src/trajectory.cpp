@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -10,28 +11,54 @@ Trajectory::Trajectory()
 {
 }
 
-Trajectory::Trajectory(const Path& path, const std::vector<double>& velocity) : Path(path)
+Trajectory::Trajectory(const Path& path, const CubicVelocityTimeProfile& profile) : Path(path)
+{
+  velocity_ = std::vector<double>(size_);
+  time_ = std::vector<double>(size_);
+
+  std::transform(distance_.begin(), distance_.end(), time_.begin(),
+                 [&profile](double s) { return profile.getTimeAtDisplacement(s); });
+
+  std::transform(time_.begin(), time_.end(), velocity_.begin(),
+                 [&profile](double t) { return profile.getVelocityAtTime(t); });
+}
+
+Trajectory::Trajectory(const Path& path, const AccelerationRegulator& regulator) : Path(path)
+{
+  velocity_ = regulator.generateVelocityProfile(path);
+
+  time_.push_back(0.0);
+
+  for (int i = 1; i < size_; ++i)
+  {
+    double dt = estimateTravelTime(distance_.at(i) - distance_.at(i - 1), velocity_.at(i - 1), velocity_.at(i));
+    time_.push_back(time_.at(i - 1) + dt);
+  }
+}
+
+Trajectory::Trajectory(const Path& path, const std::vector<double>& velocity, const std::vector<double>& time)
+  : Path(path)
 {
   velocity_ = velocity;
+  time_ = time;
 }
 
 Trajectory Trajectory::trim(const size_t begin, const size_t end) const
 {
-  return Trajectory(Path::trim(begin, end), trimVector(velocity_, begin, end));
+  return Trajectory(Path::trim(begin, end), trimVector(velocity_, begin, end), trimVector(time_, begin, end));
 }
 
 size_t Trajectory::getWpIdAtTime(const double target_time) const
 {
-  double cur_time = 0.0;
-  int wp_id = 1;
-
-  while (wp_id < size_ && cur_time < target_time)
+  for (int i = 0; i < size_; ++i)
   {
-    cur_time += getArrivalTime(distance(wp_id) - distance(wp_id - 1), velocity(wp_id - 1), velocity(wp_id));
-    ++wp_id;
+    if (time_.at(i) > target_time)
+    {
+      return i;
+    }
   }
 
-  return wp_id - 1;
+  return size_ - 1;
 }
 
 double Trajectory::velocity(size_t n) const
@@ -39,9 +66,9 @@ double Trajectory::velocity(size_t n) const
   return velocity_.at(n);
 }
 
-Trajectory::IteratorPair Trajectory::velocityIt() const
+double Trajectory::time(size_t n) const
 {
-  return IteratorPair(velocity_.begin(), velocity_.end());
+  return time_.at(n);
 }
 
 visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_id, const std::string& ns,
@@ -81,7 +108,7 @@ visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_i
   return velocity_markers;
 }
 
-double Trajectory::getArrivalTime(const double s, const double v_i, const double v_f)
+double Trajectory::estimateTravelTime(const double s, const double v_i, const double v_f)
 {
   return 2 * s / (v_i + v_f);
 }

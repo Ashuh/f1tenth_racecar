@@ -78,9 +78,10 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
 
   for (auto& path : safe_paths)
   {
-    std::vector<double> velocity_profile =
-        generateVelocityProfile(path, initial_velocity, ref_traj_trimmed.velocity(ref_traj_trimmed.size() - 1));
-    Trajectory trajectory(path, velocity_profile);
+    CubicVelocityTimeProfile profile(initial_velocity, ref_traj_trimmed.velocity(ref_traj_trimmed.size() - 1),
+                                     path.distance(path.size() - 1));
+    Trajectory trajectory(path, profile);
+
     trajectories.push_back(trajectory);
   }
 
@@ -174,22 +175,6 @@ bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
   }
 
   return false;
-}
-
-std::vector<double> TrackingTrajectoryGenerator::generateVelocityProfile(const Path& path,
-                                                                         const double initial_velocity,
-                                                                         const double final_velocity)
-{
-  const CubicVelocityTimeProfile vt_profile(initial_velocity, final_velocity, path.distance(path.size() - 1));
-
-  auto dist_it = path.distanceIt();
-  std::vector<double> velocity_profile(path.size());
-
-  std::transform(dist_it.first, dist_it.second, velocity_profile.begin(), [&vt_profile](double dist) {
-    return vt_profile.getVelocityAtTime(vt_profile.getTimeAtDisplacement(dist));
-  });
-
-  return velocity_profile;
 }
 
 double TrackingTrajectoryGenerator::evaluateTrajectory(const Trajectory& reference_trajectory,

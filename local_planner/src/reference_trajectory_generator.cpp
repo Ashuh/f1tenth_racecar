@@ -24,8 +24,7 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
   Path reference_path = generateReferencePath(current_pose);
-  std::vector<double> velocity_profile = acc_capper_.generateVelocityProfile(reference_path);
-  Trajectory reference_trajectory(reference_path, velocity_profile);
+  Trajectory reference_trajectory(reference_path, acc_capper_);
   visualizeReferenceTrajectory(reference_trajectory);
 
   return reference_trajectory;
