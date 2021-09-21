@@ -1,3 +1,4 @@
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -669,7 +670,7 @@ CubicSpiral CubicSpiral::OptimizerNLOPT::optimizeCubicSpiral(const double initia
 
   nlopt::opt opt(nlopt::algorithm::LD_MMA, 3);
   opt.set_lower_bounds({ -max_curvature_, -max_curvature_, min_dist });
-  opt.set_upper_bounds({ max_curvature_, max_curvature_, HUGE_VAL });
+  opt.set_upper_bounds({ max_curvature_, max_curvature_, std::numeric_limits<double>::infinity() });
   opt.set_min_objective(objective, &constraints);
   opt.set_ftol_rel(1E-20);
   opt.set_maxtime(0.01);
