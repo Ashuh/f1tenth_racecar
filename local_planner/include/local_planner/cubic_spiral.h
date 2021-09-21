@@ -181,6 +181,29 @@ public:
       SimpsonsRuleHelpers& helpers_;
     };
   };
+
+  class OptimizerNLOPT : public AbstractOptimizer
+  {
+  public:
+    explicit OptimizerNLOPT(double max_curvature);
+
+    CubicSpiral optimizeCubicSpiral(const double initial_curvature, const double goal_curvature, const double goal_x,
+                                    const double goal_y, const double goal_heading) const override;
+
+    struct Constraints
+    {
+      double curvature_i_;
+      double curvature_f_;
+      double x_f_;
+      double y_f_;
+      double yaw_f_;
+
+      Constraints(const double curvature_i, const double curvature_f, const double x_f, const double y_f, const double yaw_f);
+    };
+
+  private:
+    static double objective(const std::vector<double>& x, std::vector<double>& grad, void* f_data);
+  };
 };
 
 #endif  // LOCAL_PLANNER_CUBIC_SPIRAL_H

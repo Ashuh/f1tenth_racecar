@@ -42,7 +42,8 @@ private:
 
   grid_map::GridMap costmap_;
 
-  CubicSpiral::OptimizerIFOPT cubic_spiral_opt_;
+  // CubicSpiral::OptimizerIFOPT cubic_spiral_opt_;
+  CubicSpiral::OptimizerNLOPT cubic_spiral_opt_;
 
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;

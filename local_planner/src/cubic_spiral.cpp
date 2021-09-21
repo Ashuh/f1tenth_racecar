@@ -4,6 +4,7 @@
 #include <ifopt/ipopt_solver.h>
 #include <ifopt/variable_set.h>
 #include <ifopt/cost_term.h>
+#include <nlopt.hpp>
 
 #include "local_planner/cubic_spiral.h"
 
@@ -649,4 +650,75 @@ void CubicSpiral::OptimizerIFOPT::CubicSpiralCostTerm::FillJacobianBlock(std::st
     jac.coeffRef(0, 1) = grad(1);
     jac.coeffRef(0, 2) = grad(2);
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                               OptimizerNLOPT                               */
+/* -------------------------------------------------------------------------- */
+
+CubicSpiral::OptimizerNLOPT::OptimizerNLOPT(const double max_curvature) : CubicSpiral::AbstractOptimizer(max_curvature)
+{
+}
+
+CubicSpiral CubicSpiral::OptimizerNLOPT::optimizeCubicSpiral(const double initial_curvature,
+                                                             const double goal_curvature, const double goal_x,
+                                                             const double goal_y, const double goal_heading) const
+{
+  double min_dist = sqrt(pow(goal_x, 2) + pow(goal_y, 2));
+  Constraints constraints(initial_curvature, goal_curvature, goal_x, goal_y, goal_heading);
+
+  nlopt::opt opt(nlopt::algorithm::LD_MMA, 3);
+  opt.set_lower_bounds({ -max_curvature_, -max_curvature_, min_dist });
+  opt.set_upper_bounds({ max_curvature_, max_curvature_, HUGE_VAL });
+  opt.set_min_objective(objective, &constraints);
+  opt.set_ftol_rel(1E-20);
+  opt.set_maxtime(0.01);
+
+  double cost;
+  std::vector<double> vars = { 0.0, 0.0, min_dist };
+  nlopt::result result = opt.optimize(vars, cost);
+
+  if (result < 0)
+  {
+    throw std::runtime_error("NLOPT error code " + std::to_string(result));
+  }
+
+  Eigen::Matrix<double, 5, 1> params;
+  params << initial_curvature, vars.at(0), vars.at(1), goal_curvature, vars.at(2);
+
+  return CubicSpiral(paramsToCoeffs(params), params(4));
+}
+
+double CubicSpiral::OptimizerNLOPT::objective(const std::vector<double>& x, std::vector<double>& grad, void* f_data)
+{
+  Constraints* constraints = static_cast<Constraints*>(f_data);
+
+  Eigen::Matrix<double, 5, 1> p;
+  p << constraints->curvature_i_, x.at(0), x.at(1), constraints->curvature_f_, x.at(2);
+  SimpsonsRuleHelpers h(p);
+
+  Eigen::Vector3d grad_vec = (K_BE_ * bendingEnergyCostGrad(p)) + (K_X_ * xCostGrad(p(4), h, constraints->x_f_)) +
+                             (K_Y_ * yCostGrad(p(4), h, constraints->y_f_)) +
+                             (K_HDG_ * yawCostGrad(p(4), h, constraints->yaw_f_));
+
+  grad = { grad_vec(0), grad_vec(1), grad_vec(2) };
+
+  double c = (K_BE_ * bendingEnergyCost(p)) + (K_X_ * xCost(p(4), h, constraints->x_f_)) +
+             (K_Y_ * yCost(p(4), h, constraints->y_f_)) + (K_HDG_ * yawCost(h.yaw8_, constraints->yaw_f_));
+
+  return c;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                 Constraints                                */
+/* -------------------------------------------------------------------------- */
+
+CubicSpiral::OptimizerNLOPT::Constraints::Constraints(const double curvature_i, const double curvature_f,
+                                                      const double x_f, const double y_f, const double yaw_f)
+{
+  curvature_i_ = curvature_i;
+  curvature_f_ = curvature_f;
+  x_f_ = x_f;
+  y_f_ = y_f;
+  yaw_f_ = yaw_f;
 }

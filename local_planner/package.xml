@@ -55,6 +55,8 @@
   <exec_depend>roscpp</exec_depend>
   <exec_depend>dynamic_reconfigure</exec_depend>
 
+  <depend>eigen</depend>
+  <depend>libnlopt-dev</depend>
   <depend>ifopt</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
@@ -64,6 +66,8 @@
   <depend>costmap_generator</depend>
   <depend>grid_map_core</depend>
   <depend>grid_map_ros</depend>
+
+  <test_depend>gtest</test_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
