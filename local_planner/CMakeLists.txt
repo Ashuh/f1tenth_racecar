@@ -138,7 +138,6 @@ add_library(${PROJECT_NAME}
   src/cubic_velocity_time_profile.cpp
   src/lattice.cpp
   src/path.cpp
-  src/polynomial_solver.cpp
   src/reference_trajectory_generator.cpp
   src/tracking_trajectory_generator.cpp
   src/trajectory.cpp
