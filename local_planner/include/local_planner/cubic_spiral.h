@@ -198,7 +198,8 @@ public:
       double y_f_;
       double yaw_f_;
 
-      Constraints(const double curvature_i, const double curvature_f, const double x_f, const double y_f, const double yaw_f);
+      Constraints(const double curvature_i, const double curvature_f, const double x_f, const double y_f,
+                  const double yaw_f);
     };
 
   private:
