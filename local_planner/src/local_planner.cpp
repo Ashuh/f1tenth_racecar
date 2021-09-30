@@ -63,13 +63,12 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
   /* ----------------------- Tracking Trajectory Params ----------------------- */
 
   int track_num_paths;
-  double wheelbase;
   double max_steering_angle;
   double track_path_lateral_spacing;
   double track_look_ahead_time;
 
   private_nh.param("track_num_paths", track_num_paths, 9);
-  private_nh.param("wheelbase", wheelbase, 0.3);
+  private_nh.param("wheelbase", wheelbase_, 0.3);
   private_nh.param("max_steering_angle", max_steering_angle, 0.4);
   private_nh.param("track_path_lateral_spacing", track_path_lateral_spacing, 0.05);
   private_nh.param("track_look_ahead_time", track_look_ahead_time, 0.5);
@@ -120,7 +119,7 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
   /* ---------------------- Tracking Trajectory Generator --------------------- */
 
   TTG::SamplingPattern tt_pattern(track_num_paths, track_path_lateral_spacing, track_look_ahead_time);
-  double max_curvature = tan(max_steering_angle) / wheelbase;
+  double max_curvature = tan(max_steering_angle) / wheelbase_;
 
   track_traj_gen_ptr_ = std::make_unique<TTG>(tt_pattern, max_curvature, collision_checker_ptr_, viz_ptr_);
 
