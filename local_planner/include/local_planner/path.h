@@ -55,7 +55,7 @@ public:
 
   geometry_msgs::PoseStamped poseStamped(size_t n) const;
 
-  typedef std::pair<std::vector<double>::const_iterator, std::vector<double>::const_iterator> IteratorPair;
+  Path transform(const std::string target_frame) const;
 
   IteratorPair distanceIt() const;
 

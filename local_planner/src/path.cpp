@@ -9,6 +9,7 @@
 #include <visualization_msgs/Marker.h>
 
 #include "local_planner/path.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
 Path::Path()
 {
@@ -126,6 +127,24 @@ geometry_msgs::PoseStamped Path::poseStamped(size_t n) const
   pose_stamped.header.frame_id = frame_id_;
 
   return pose_stamped;
+}
+
+Path Path::transform(const std::string target_frame) const
+{
+  std::vector<double> x;
+  std::vector<double> y;
+  std::vector<double> yaw;
+
+  for (int i = 0; i < size_; ++i)
+  {
+    geometry_msgs::PoseStamped pose_transformed =
+        TF2Wrapper::doTransform<geometry_msgs::PoseStamped>(poseStamped(i), target_frame);
+    x.push_back(pose_transformed.pose.position.x);
+    y.push_back(pose_transformed.pose.position.y);
+    yaw.push_back(TF2Wrapper::yawFromQuat(pose_transformed.pose.orientation));
+  }
+
+  return Path(target_frame, distance_, x, y, yaw, curvature_);
 }
 
 visualization_msgs::Marker Path::generatePathMarker(const int marker_id, const std::string& ns, const double scale,

@@ -12,7 +12,6 @@
 #include "local_planner/path.h"
 #include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/trajectory.h"
-#include "local_planner/transformer.h"
 
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
     const Lattice::Generator& lattice_generator, const AccelerationRegulator::Constraints& velocity_constraints,
@@ -51,10 +50,8 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   // Select the best SSSP
   std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
   visualizeSSSP(pointsToPath(best_sssp));
-  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
-
-  //  Transform reference path to local frame
-  return Transformer::transform(reference_path, "base_link");
+  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp)).transform("base_link");
+  return reference_path;
 }
 
 std::vector<geometry_msgs::Point>

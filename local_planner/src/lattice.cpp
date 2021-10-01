@@ -14,7 +14,7 @@
 
 #include "costmap_generator/collision_checker.h"
 #include "local_planner/lattice.h"
-#include "local_planner/transformer.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
 /* -------------------------------------------------------------------------- */
 /*                              Lattice Position                              */
@@ -254,7 +254,8 @@ std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(con
   geometry_msgs::Point source_point;
   source_point.x = source_x;
   source_point.y = source_y;
-  source_point = Transformer::transform(global_path_.poses.at(ref_waypoint_ids.at((0))).pose, source_point);
+  source_point =
+      TF2Wrapper::doTransform<geometry_msgs::Point>(source_point, global_path_.poses.at(ref_waypoint_ids.at((0))).pose);
   Vertex source_vertex(Position(0, source_point.y / pattern_.lateral_spacing_), source_x, source_y);
   std::vector<Vertex> source_layer;
   source_layer.push_back(source_vertex);
@@ -458,8 +459,9 @@ std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos)
 
   if (predecessors_[goal_id] == goal_id)
   {
+    //! BUG
     std::cout << "No path exists" << std::endl;
-    return std::vector<geometry_msgs::Point>{};
+    return std::vector<geometry_msgs::Point>();
   }
 
   std::vector<geometry_msgs::Point> path;

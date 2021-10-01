@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(local_planner)
+project(f1tenth_utils)
 
 add_compile_options(-std=c++14)
 
@@ -8,21 +8,13 @@ add_compile_options(-std=c++14)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  ifopt
-  dynamic_reconfigure
   geometry_msgs
-  nav_msgs
-  visualization_msgs
   tf2
   tf2_geometry_msgs
-  costmap_generator
-  grid_map_core
-  grid_map_ros
-  f1tenth_utils
 )
 
 ## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS system)
+# find_package(Boost REQUIRED COMPONENTS system)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -96,9 +88,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-generate_dynamic_reconfigure_options(
-  cfg/LocalPlanner.cfg
-)
+# generate_dynamic_reconfigure_options()
 
 ###################################
 ## catkin specific configuration ##
@@ -111,15 +101,10 @@ generate_dynamic_reconfigure_options(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES local_planner
+  LIBRARIES f1tenth_utils
   CATKIN_DEPENDS roscpp
 #  DEPENDS system_lib
 )
-
-### FOR PROFILING (need to set after catkin_package)
-# add_compile_options(-pg)
-# set(catkin_LIBRARIES ${catkin_LIBRARIES} -pg)
-###
 
 ###########
 ## Build ##
@@ -133,32 +118,18 @@ include_directories(
 )
 
 ## Declare a C++ library
-add_library(${PROJECT_NAME}
-  src/acceleration_regulator.cpp
-  src/cubic_spiral.cpp
-  src/cubic_velocity_time_profile.cpp
-  src/lattice.cpp
-  src/path.cpp
-  src/reference_trajectory_generator.cpp
-  src/tracking_trajectory_generator.cpp
-  src/trajectory.cpp
-  # src/transformer.cpp
-  src/trajectory_evaluator.cpp
-)
+add_library(${PROJECT_NAME} src/tf2_wrapper.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} nlopt)
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME}_node 
-  src/local_planner_node.cpp
-  src/local_planner.cpp
-)
+# add_executable(${PROJECT_NAME}_node)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -168,10 +139,10 @@ add_executable(${PROJECT_NAME}_node
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME})
+# target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 #############
 ## Install ##
@@ -189,9 +160,9 @@ target_link_libraries(${PROJECT_NAME}_node ${catkin_LIBRARIES} ${PROJECT_NAME})
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS ${PROJECT_NAME}_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+# install(TARGETS ${PROJECT_NAME}_node
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+# )
 
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
@@ -220,10 +191,6 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #############
 
 # Add gtest based cpp test target and link libraries
-catkin_add_gtest(${PROJECT_NAME}-test test/local_planner_tests.cpp)
-if(TARGET ${PROJECT_NAME}-test)
-  target_link_libraries(${PROJECT_NAME}-test ${catkin_LIBRARIES} ${PROJECT_NAME})
-endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
