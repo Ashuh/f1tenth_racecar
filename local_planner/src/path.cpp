@@ -73,31 +73,6 @@ double Path::curvature(size_t n) const
   return curvature_.at(n);
 }
 
-Path::IteratorPair Path::distanceIt() const
-{
-  return IteratorPair(distance_.begin(), distance_.end());
-}
-
-Path::IteratorPair Path::xIt() const
-{
-  return IteratorPair(x_.begin(), x_.end());
-}
-
-Path::IteratorPair Path::yIt() const
-{
-  return IteratorPair(y_.begin(), y_.end());
-}
-
-Path::IteratorPair Path::yawIt() const
-{
-  return IteratorPair(yaw_.begin(), yaw_.end());
-}
-
-Path::IteratorPair Path::curavatureIt() const
-{
-  return IteratorPair(curvature_.begin(), curvature_.end());
-}
-
 geometry_msgs::Point Path::point(size_t n) const
 {
   geometry_msgs::Point point;

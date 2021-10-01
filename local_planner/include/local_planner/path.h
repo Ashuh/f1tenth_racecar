@@ -57,16 +57,6 @@ public:
 
   Path transform(const std::string target_frame) const;
 
-  IteratorPair distanceIt() const;
-
-  IteratorPair xIt() const;
-
-  IteratorPair yIt() const;
-
-  IteratorPair yawIt() const;
-
-  IteratorPair curavatureIt() const;
-
   virtual visualization_msgs::Marker generatePathMarker(const int marker_id, const std::string& ns, const double scale,
                                                         const double r, const double g, const double b,
                                                         const double a = 1.0) const;
