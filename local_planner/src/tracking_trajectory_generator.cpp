@@ -4,7 +4,6 @@
 
 #include <geometry_msgs/Pose2D.h>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <visualization_msgs/MarkerArray.h>
 
@@ -15,7 +14,6 @@
 #include "local_planner/tracking_trajectory_generator.h"
 #include "local_planner/trajectory.h"
 #include "local_planner/trajectory_evaluator.h"
-#include "local_planner/transformer.h"
 
 TrackingTrajectoryGenerator::SamplingPattern::SamplingPattern(const int num_paths, const double lateral_spacing,
                                                               const double look_ahead_time)
