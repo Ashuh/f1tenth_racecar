@@ -36,8 +36,6 @@ public:
 
   double time(size_t n) const;
 
-  IteratorPair velocityIt() const;
-
   visualization_msgs::MarkerArray generateVelocityMarkers(int marker_id, const std::string& ns, const double scale,
                                                           const double z_offset, const double r, const double g,
                                                           const double b, const double a = 1.0) const;
