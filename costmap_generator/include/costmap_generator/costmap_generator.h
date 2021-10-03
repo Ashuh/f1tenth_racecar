@@ -7,7 +7,6 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <sensor_msgs/LaserScan.h>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <tf2_ros/transform_listener.h>
 
 class CostmapGenerator
 {
@@ -21,9 +20,6 @@ private:
 
   grid_map::GridMap global_map_;
   grid_map::GridMap local_map_;
-
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
 
 public:
   CostmapGenerator();

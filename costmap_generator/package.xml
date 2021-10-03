@@ -60,6 +60,7 @@
   <depend>grid_map_core</depend>
   <depend>grid_map_ros</depend>
   <depend>costmap_2d</depend>
+  <depend>f1tenth_utils</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

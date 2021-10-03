@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   grid_map_core
   grid_map_ros
+  f1tenth_utils
 )
 
 ## System dependencies are found with CMake's conventions

@@ -9,7 +9,6 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/costmap_layer.h"
@@ -21,9 +20,6 @@ private:
   double circle_radius_;                // radius of the circles
 
   grid_map::GridMap inflated_costmap_;
-
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
 
   mutable std::mutex mutex_;
 
@@ -42,10 +38,6 @@ private:
 
   std::vector<geometry_msgs::PoseStamped> lineToPoses(const geometry_msgs::PointStamped& source,
                                                       const geometry_msgs::PointStamped& target) const;
-
-  geometry_msgs::PointStamped transformToCostmapFrame(const geometry_msgs::PointStamped& point_stamped) const;
-
-  geometry_msgs::PoseStamped transformToCostmapFrame(const geometry_msgs::PoseStamped& pose_stamped) const;
 
 public:
   CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius);

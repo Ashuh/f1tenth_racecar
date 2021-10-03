@@ -2,18 +2,20 @@
 #include <string>
 
 #include <ros/ros.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <grid_map_cv/GridMapCvProcessing.hpp>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_msgs/GridMap.h>
-#include <tf2_ros/transform_listener.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 #include "costmap_generator/costmap_generator.h"
 #include "costmap_generator/costmap_layer.h"
 #include "costmap_generator/costmap_value.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
-CostmapGenerator::CostmapGenerator() : tf_listener_(tf_buffer_)
+CostmapGenerator::CostmapGenerator()
 {
   ros::NodeHandle private_nh("~");
 
@@ -48,11 +50,21 @@ void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
   local_map_[CostmapLayer::INFLATION].setConstant(static_cast<int>(CostmapValue::FREE));
 
   generateStaticLayer();
-  // inflateOccupiedCells();
 
-  grid_map_msgs::GridMap local_map_msg;
-  grid_map::GridMapRosConverter::toMessage(local_map_, local_map_msg);
-  cost_map_pub_.publish(local_map_msg);
+  try
+  {
+    // Transform map from vehicle frame to static map frame
+    Eigen::Isometry3d tf = tf2::transformToEigen(TF2Wrapper::lookupTransform("map", local_map_.getFrameId()));
+    grid_map::GridMap local_map_transformed =
+        grid_map::GridMapCvProcessing().getTransformedMap(std::move(local_map_), tf, CostmapLayer::STATIC, "map");
+    grid_map_msgs::GridMap local_map_msg;
+    grid_map::GridMapRosConverter::toMessage(local_map_transformed, local_map_msg);
+    cost_map_pub_.publish(local_map_msg);
+  }
+  catch (const tf2::TransformException& ex)
+  {
+    ROS_ERROR("%s", ex.what());
+  }
 }
 
 void CostmapGenerator::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg)
@@ -84,36 +96,33 @@ void CostmapGenerator::mapCallback(const nav_msgs::OccupancyGridConstPtr& occ_gr
 void CostmapGenerator::generateStaticLayer()
 {
   local_map_[CostmapLayer::STATIC].setConstant(static_cast<int>(CostmapValue::FREE));
+  grid_map::Matrix& data = local_map_[CostmapLayer::STATIC];
 
   geometry_msgs::TransformStamped transform;
 
   try
   {
-    transform = tf_buffer_.lookupTransform(global_map_.getFrameId(), local_map_.getFrameId(), ros::Time(0));
+    for (grid_map::GridMapIterator iterator(local_map_); !iterator.isPastEnd(); ++iterator)
+    {
+      const grid_map::Index index(*iterator);
+
+      grid_map::Position local_pos;
+      local_map_.getPosition(*iterator, local_pos);
+
+      geometry_msgs::Point point;
+      point.x = local_pos.x();
+      point.y = local_pos.y();
+      point = TF2Wrapper::doTransform<geometry_msgs::Point>(point, global_map_.getFrameId(), local_map_.getFrameId());
+      grid_map::Position global_pos(point.x, point.y);
+
+      data(index(0), index(1)) = (global_map_.isInside(global_pos)) ?
+                                     global_map_.atPosition(CostmapLayer::STATIC, global_pos) :
+                                     static_cast<int>(CostmapValue::FREE);
+    }
   }
-  catch (const std::exception& ex)
+  catch (const tf2::TransformException& ex)
   {
     ROS_ERROR("%s", ex.what());
-  }
-
-  grid_map::Matrix& data = local_map_[CostmapLayer::STATIC];
-
-  for (grid_map::GridMapIterator iterator(local_map_); !iterator.isPastEnd(); ++iterator)
-  {
-    const grid_map::Index index(*iterator);
-
-    grid_map::Position local_pos;
-    local_map_.getPosition(*iterator, local_pos);
-
-    geometry_msgs::Point point;
-    point.x = local_pos.x();
-    point.y = local_pos.y();
-    tf2::doTransform(point, point, transform);
-    grid_map::Position global_pos(point.x, point.y);
-
-    data(index(0), index(1)) = (global_map_.isInside(global_pos)) ?
-                                   global_map_.atPosition(CostmapLayer::STATIC, global_pos) :
-                                   static_cast<int>(CostmapValue::FREE);
   }
 }
 
