@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   ifopt
   dynamic_reconfigure
+  f1tenth_msgs
   geometry_msgs
   nav_msgs
   visualization_msgs

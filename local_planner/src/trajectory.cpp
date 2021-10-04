@@ -4,6 +4,7 @@
 
 #include <visualization_msgs/MarkerArray.h>
 
+#include "f1tenth_msgs/Trajectory.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
 
@@ -76,6 +77,26 @@ Trajectory& Trajectory::transform(const std::string target_frame)
   Path::transform(target_frame);
 
   return *this;
+}
+
+f1tenth_msgs::Trajectory Trajectory::toMsg() const
+{
+  f1tenth_msgs::Trajectory traj_msg;
+  traj_msg.header.frame_id = frame_id_;
+
+  for (int i = 0; i < size_; ++i)
+  {
+    f1tenth_msgs::Waypoint wp;
+    wp.header.frame_id = frame_id_;
+    wp.x = x(i);
+    wp.y = y(i);
+    wp.yaw = yaw(i);
+    wp.velocity = velocity(i);
+
+    traj_msg.waypoints.push_back(wp);
+  }
+
+  return traj_msg;
 }
 
 visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_id, const std::string& ns,

@@ -6,6 +6,7 @@
 
 #include <visualization_msgs/MarkerArray.h>
 
+#include "f1tenth_msgs/Trajectory.h"
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/cubic_velocity_time_profile.h"
 #include "local_planner/path.h"
@@ -37,6 +38,8 @@ public:
   double time(size_t n) const;
 
   Trajectory& transform(const std::string target_frame) override;
+
+  f1tenth_msgs::Trajectory toMsg() const;
 
   visualization_msgs::MarkerArray generateVelocityMarkers(int marker_id, const std::string& ns, const double scale,
                                                           const double z_offset, const double r, const double g,
