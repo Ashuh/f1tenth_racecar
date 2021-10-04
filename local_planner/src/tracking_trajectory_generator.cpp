@@ -4,10 +4,10 @@
 
 #include <geometry_msgs/Pose2D.h>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 #include "local_planner/cubic_spiral.h"
 #include "local_planner/cubic_velocity_time_profile.h"
 #include "local_planner/path.h"
@@ -121,15 +121,10 @@ std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geom
 
 geometry_msgs::Pose2D TrackingTrajectoryGenerator::poseToPose2D(const geometry_msgs::Pose& pose)
 {
-  tf2::Quaternion quat_tf;
-  tf2::fromMsg(pose.orientation, quat_tf);
-  double dummy, yaw;
-  tf2::Matrix3x3(quat_tf).getEulerYPR(yaw, dummy, dummy);
-
   geometry_msgs::Pose2D pose_2d;
   pose_2d.x = pose.position.x;
   pose_2d.y = pose.position.y;
-  pose_2d.theta = yaw;
+  pose_2d.theta = TF2Wrapper::yawFromQuat(pose.orientation);
 
   return pose_2d;
 }
@@ -137,10 +132,7 @@ geometry_msgs::Pose2D TrackingTrajectoryGenerator::poseToPose2D(const geometry_m
 geometry_msgs::Pose2D TrackingTrajectoryGenerator::offsetGoal(const geometry_msgs::Pose& reference_goal,
                                                               const double lateral_offset)
 {
-  tf2::Quaternion quat_tf;
-  tf2::fromMsg(reference_goal.orientation, quat_tf);
-  double dummy, reference_yaw;
-  tf2::Matrix3x3(quat_tf).getEulerYPR(reference_yaw, dummy, dummy);
+  double reference_yaw = TF2Wrapper::yawFromQuat(reference_goal.orientation);
 
   double x_offset = lateral_offset * cos(reference_yaw + M_PI_2);
   double y_offset = lateral_offset * sin(reference_yaw + M_PI_2);

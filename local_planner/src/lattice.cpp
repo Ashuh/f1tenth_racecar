@@ -9,12 +9,11 @@
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <nav_msgs/Path.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
-#include "local_planner/lattice.h"
 #include "f1tenth_utils/tf2_wrapper.h"
+#include "local_planner/lattice.h"
 
 /* -------------------------------------------------------------------------- */
 /*                              Lattice Position                              */
@@ -83,7 +82,7 @@ Lattice::Edge::Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared
 
 Lattice::Generator::Generator(const Pattern& pattern, const double k_length,
                               const std::shared_ptr<CollisionChecker>& collision_checker_ptr)
-  : tf_listener_(tf_buffer_), pattern_(pattern)
+  : pattern_(pattern)
 {
   setLengthWeight(k_length);
 
@@ -97,7 +96,7 @@ Lattice::Generator::Generator(const Pattern& pattern, const double k_length,
   }
 }
 
-Lattice::Generator::Generator(const Generator& generator) : tf_listener_(tf_buffer_), pattern_(generator.pattern_)
+Lattice::Generator::Generator(const Generator& generator) : pattern_(generator.pattern_)
 {
   k_length_ = generator.k_length_;
   collision_checker_ptr_ = generator.collision_checker_ptr_;

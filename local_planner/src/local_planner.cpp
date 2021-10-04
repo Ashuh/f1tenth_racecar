@@ -6,8 +6,6 @@
 #include <dynamic_reconfigure/server.h>
 #include <grid_map_msgs/GridMap.h>
 #include <nav_msgs/Path.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
@@ -21,7 +19,7 @@
 #include "local_planner/local_planner.h"
 #include "local_planner/LocalPlannerConfig.h"
 
-LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
+LocalPlanner::LocalPlanner()
 {
   ros::NodeHandle private_nh("~");
 

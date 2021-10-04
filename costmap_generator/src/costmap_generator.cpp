@@ -6,8 +6,8 @@
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <grid_map_cv/GridMapCvProcessing.hpp>
-#include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_msgs/GridMap.h>
+#include <grid_map_ros/grid_map_ros.hpp>
 #include <tf2_eigen/tf2_eigen.h>
 
 #include "costmap_generator/costmap_generator.h"

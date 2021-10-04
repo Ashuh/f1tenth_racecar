@@ -5,11 +5,10 @@
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <visualization_msgs/Marker.h>
 
-#include "local_planner/path.h"
 #include "f1tenth_utils/tf2_wrapper.h"
+#include "local_planner/path.h"
 
 Path::Path()
 {

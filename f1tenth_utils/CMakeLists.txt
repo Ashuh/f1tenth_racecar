@@ -9,8 +9,8 @@ add_compile_options(-std=c++14)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   geometry_msgs
-  tf2
   tf2_geometry_msgs
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -102,7 +102,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES f1tenth_utils
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp geometry_msgs tf2_geometry_msgs tf2_ros
 #  DEPENDS system_lib
 )
 

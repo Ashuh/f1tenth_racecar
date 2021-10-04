@@ -6,7 +6,6 @@
 
 #include <geometry_msgs/Pose2D.h>
 #include <grid_map_msgs/GridMap.h>
-#include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"

@@ -4,8 +4,8 @@
 
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <grid_map_msgs/GridMap.h>
 #include <grid_map_cv/GridMapCvConverter.hpp>
+#include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <nav_msgs/OccupancyGrid.h>
 #include <opencv2/imgproc.hpp>

@@ -10,8 +10,6 @@
 #include <grid_map_msgs/GridMap.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/transform_listener.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
@@ -37,9 +35,6 @@ private:
   ros::Publisher trajectory_pub_;
   ros::Publisher viz_pub_;
   ros::Publisher inflated_costmap_pub_;
-
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
 
   dynamic_reconfigure::Server<local_planner::LocalPlannerConfig> server_;
   dynamic_reconfigure::Server<local_planner::LocalPlannerConfig>::CallbackType f_;

@@ -8,19 +8,17 @@ project(costmap_generator)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  geometry_msgs
-  grid_map_core
-  grid_map_ros
   f1tenth_utils
+  geometry_msgs
+  grid_map_cv
+  grid_map_msgs
+  grid_map_ros
+  roscpp
+  tf2_eigen
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(OpenCV REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -110,8 +108,8 @@ find_package(OpenCV REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES costmap_generator
-  CATKIN_DEPENDS roscpp
-  DEPENDS OpenCV
+  CATKIN_DEPENDS f1tenth_utils geometry_msgs grid_map_cv grid_map_msgs grid_map_ros roscpp tf2_eigen
+  DEPENDS
 )
 
 ###########

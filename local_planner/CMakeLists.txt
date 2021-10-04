@@ -7,19 +7,16 @@ add_compile_options(-std=c++14)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  ifopt
+  costmap_generator
   dynamic_reconfigure
   f1tenth_msgs
-  geometry_msgs
-  nav_msgs
-  visualization_msgs
-  tf2
-  tf2_geometry_msgs
-  costmap_generator
-  grid_map_core
-  grid_map_ros
   f1tenth_utils
+  geometry_msgs
+  grid_map_msgs
+  ifopt
+  nav_msgs
+  roscpp
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -143,7 +140,6 @@ add_library(${PROJECT_NAME}
   src/reference_trajectory_generator.cpp
   src/tracking_trajectory_generator.cpp
   src/trajectory.cpp
-  # src/transformer.cpp
   src/trajectory_evaluator.cpp
 )
 
