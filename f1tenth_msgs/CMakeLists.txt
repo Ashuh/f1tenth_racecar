@@ -8,6 +8,7 @@ project(f1tenth_msgs)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  std_msgs
   geometry_msgs
   message_generation
 )
@@ -53,6 +54,8 @@ add_message_files(
   Obstacle.msg
   ObstacleArray.msg
   DriveMode.msg
+  Trajectory.msg
+  Waypoint.msg
 )
 
 ## Generate services in the 'srv' folder
