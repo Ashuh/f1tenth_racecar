@@ -9,6 +9,7 @@
 #include "drive_controller/pure_pursuit.h"
 #include "drive_controller/drive_controller.h"
 #include "f1tenth_msgs/Trajectory.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
 namespace f1tenth_racecar
 {

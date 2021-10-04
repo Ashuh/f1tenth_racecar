@@ -4,8 +4,6 @@
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/transform_listener.h>
 
 #include "f1tenth_msgs/Trajectory.h"
 
@@ -16,9 +14,6 @@ namespace control
 class PurePursuit
 {
 private:
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
-
   geometry_msgs::PointStamped look_ahead_point_;
   double look_ahead_point_dist_;
   geometry_msgs::PointStamped arc_center_;
@@ -28,8 +23,6 @@ private:
   double gain_;
 
   static double getDist(const geometry_msgs::Point point_1, const geometry_msgs::Point point_2);
-
-  bool isWaypointAhead(const nav_msgs::Odometry odom, const f1tenth_msgs::Waypoint waypoint);
 
   geometry_msgs::PointStamped findLookAheadPoint(const nav_msgs::Odometry odom,
                                                  const f1tenth_msgs::Trajectory trajectory);

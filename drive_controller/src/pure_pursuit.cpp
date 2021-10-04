@@ -2,17 +2,16 @@
 
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "drive_controller/pure_pursuit.h"
 #include "f1tenth_msgs/Trajectory.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
 namespace f1tenth_racecar
 {
 namespace control
 {
-PurePursuit::PurePursuit(double look_ahead_dist, double gain)
-  : tf_listener_(tf_buffer_), look_ahead_dist_(look_ahead_dist), gain_(gain)
+PurePursuit::PurePursuit(double look_ahead_dist, double gain) : look_ahead_dist_(look_ahead_dist), gain_(gain)
 {
 }
 
@@ -22,19 +21,6 @@ double PurePursuit::getDist(const geometry_msgs::Point point_1, const geometry_m
   double d_y = point_1.y - point_2.y;
 
   return sqrt(pow(d_x, 2) + pow(d_y, 2));
-}
-
-bool PurePursuit::isWaypointAhead(const nav_msgs::Odometry odom, const f1tenth_msgs::Waypoint waypoint)
-{
-  geometry_msgs::TransformStamped transform =
-      tf_buffer_.lookupTransform(odom.child_frame_id, waypoint.header.frame_id, ros::Time(0));
-  geometry_msgs::Point point_transformed;
-  geometry_msgs::Point point;
-  point.x = waypoint.x;
-  point.y = waypoint.y;
-  tf2::doTransform(point, point_transformed, transform);
-
-  return point_transformed.x > 0;
 }
 
 geometry_msgs::PointStamped PurePursuit::findLookAheadPoint(nav_msgs::Odometry odom,
@@ -52,7 +38,9 @@ geometry_msgs::PointStamped PurePursuit::findLookAheadPoint(nav_msgs::Odometry o
     point.y = waypoint.y;
     double dist = getDist(point, odom.pose.pose.position);
 
-    if (dist < look_ahead_dist_ && dist > look_ahead_point_dist_ && isWaypointAhead(odom, waypoint))
+    bool isWaypointAhead = TF2Wrapper::doTransform(point, odom.child_frame_id, waypoint.header.frame_id).x > 0;
+
+    if (dist < look_ahead_dist_ && dist > look_ahead_point_dist_ && isWaypointAhead)
     {
       look_ahead_point_dist_ = dist;
       look_ahead_point.point.x = waypoint.x;
@@ -80,11 +68,8 @@ double PurePursuit::calculateSteeringAngle(const nav_msgs::Odometry odom, const 
   }
 
   look_ahead_point_ = findLookAheadPoint(odom, trajectory);
-
-  geometry_msgs::TransformStamped transform =
-      tf_buffer_.lookupTransform(odom.child_frame_id, look_ahead_point_.header.frame_id, ros::Time(0));
-  geometry_msgs::PointStamped look_ahead_point_transformed;
-  tf2::doTransform(look_ahead_point_, look_ahead_point_transformed, transform);
+  geometry_msgs::PointStamped look_ahead_point_transformed =
+      TF2Wrapper::doTransform(look_ahead_point_, odom.child_frame_id);
 
   arc_radius_ = pow(look_ahead_point_dist_, 2) / (2 * abs(look_ahead_point_transformed.point.y));
   double d = arc_radius_ - abs(look_ahead_point_transformed.point.y);
