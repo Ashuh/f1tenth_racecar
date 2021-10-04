@@ -1,21 +1,15 @@
 <launch>
     <arg name="grid_size_x" value="10" />
-    <arg name="grid_size_y" value="5" />
-    <arg name="grid_resolution" value="0.1" />
-    <arg name="hard_inflation_radius" value="0.5" />
-    <arg name="soft_inflation_radius" value="1" />
-
+    <arg name="grid_size_y" value="10" />
+    <arg name="grid_resolution" value="0.05" />
     <arg name="map_topic" value="map" />
     <arg name="scan_topic" value="scan" />
     <arg name="costmap_topic" value="costmap" />
-
 
     <node name="costmap_generator" pkg="costmap_generator" type="costmap_generator_node" output="screen">
         <param name="grid_size_x" value="$(arg grid_size_x)" />
         <param name="grid_size_y" value="$(arg grid_size_y)" />
         <param name="grid_resolution" value="$(arg grid_resolution)" />
-        <param name="hard_inflation_radius" value="$(arg hard_inflation_radius)" />
-        <param name="soft_inflation_radius" value="$(arg soft_inflation_radius)" />
 
         <param name="map_topic" value="$(arg map_topic)" />
         <param name="scan_topic" value="$(arg scan_topic)" />
