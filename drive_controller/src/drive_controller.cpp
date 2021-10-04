@@ -26,13 +26,13 @@ DriveController::DriveController()
   std::string drive_topic;
   std::string viz_topic;
 
-  ROS_ASSERT(private_nh.getParam("look_ahead_dist", look_ahead_dist));
-  ROS_ASSERT(private_nh.getParam("gain", gain));
+  private_nh.getParam("look_ahead_dist", look_ahead_dist);
+  private_nh.getParam("gain", gain);
 
-  ROS_ASSERT(private_nh.getParam("path_topic", path_topic));
-  ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
-  ROS_ASSERT(private_nh.getParam("auto_drive_topic", drive_topic));
-  ROS_ASSERT(private_nh.getParam("viz_topic", viz_topic));
+  private_nh.getParam("path_topic", path_topic);
+  private_nh.getParam("odom_topic", odom_topic);
+  private_nh.getParam("auto_drive_topic", drive_topic);
+  private_nh.getParam("viz_topic", viz_topic);
 
   path_sub_ = nh_.subscribe(path_topic, 1, &DriveController::pathCallback, this);
   odom_sub_ = nh_.subscribe(odom_topic, 1, &DriveController::odomCallback, this);
