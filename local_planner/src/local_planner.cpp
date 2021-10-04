@@ -103,7 +103,7 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
   costmap_sub_ = nh_.subscribe(costmap_topic, 1, &LocalPlanner::costmapCallback, this);
   timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
 
-  local_path_pub_ = nh_.advertise<nav_msgs::Path>(local_path_topic, 1);
+  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>(local_path_topic, 1);  // !!!!
   viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
   inflated_costmap_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>(inflated_costmap_topic, 1);
 
@@ -159,8 +159,7 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
 
     /* --------------------------- Publish Trajectory --------------------------- */
 
-    nav_msgs::Path msg = trajectoryToPathMsg(tracking_trajectory);  // use standard path msg for now
-    local_path_pub_.publish(msg);
+    trajectory_pub_.publish(tracking_trajectory.transform("map").toMsg());
   }
   catch (const std::exception& ex)
   {
@@ -213,35 +212,4 @@ void LocalPlanner::configCallback(local_planner::LocalPlannerConfig& config, uin
   track_traj_gen_ptr_->setSamplingPattern(track_sampling_pattern);
 
   trajectory_evaulator_ptr_->setWeights(config.track_k_spatial, config.track_k_temporal);
-}
-
-nav_msgs::Path LocalPlanner::trajectoryToPathMsg(const Trajectory& trajectory)
-{
-  geometry_msgs::TransformStamped transform;
-
-  try
-  {
-    transform = tf_buffer_.lookupTransform("map", trajectory.getFrameId(), ros::Time(0));
-  }
-  catch (tf2::TransformException& ex)
-  {
-    ROS_ERROR("%s", ex.what());
-  }
-
-  geometry_msgs::PoseStamped reference_goal_transformed;
-  nav_msgs::Path path_msg;
-
-  path_msg.header.frame_id = "map";
-
-  for (int i = 0; i < trajectory.size(); ++i)
-  {
-    geometry_msgs::PoseStamped pose;
-    pose.header.frame_id = trajectory.getFrameId();
-    pose.pose = trajectory.pose(i);
-    tf2::doTransform(pose, pose, transform);
-
-    path_msg.poses.push_back(pose);
-  }
-
-  return path_msg;
 }

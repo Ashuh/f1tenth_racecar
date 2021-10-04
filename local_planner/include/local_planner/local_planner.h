@@ -34,7 +34,7 @@ private:
   ros::Subscriber drive_sub_;
   ros::Subscriber costmap_sub_;
 
-  ros::Publisher local_path_pub_;
+  ros::Publisher trajectory_pub_;
   ros::Publisher viz_pub_;
   ros::Publisher inflated_costmap_pub_;
 
@@ -70,8 +70,6 @@ private:
   void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
   void configCallback(local_planner::LocalPlannerConfig& config, uint32_t level);
-
-  nav_msgs::Path trajectoryToPathMsg(const Trajectory& trajectory);
 
 public:
   LocalPlanner();
