@@ -1,34 +1,28 @@
 #ifndef LOCAL_PLANNER_TRAJECTORY_EVALUATOR_H
 #define LOCAL_PLANNER_TRAJECTORY_EVALUATOR_H
 
-#include <string>
-
-#include <geometry_msgs/Point.h>
-#include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
-#include <tf2_ros/transform_listener.h>
+#include <geometry_msgs/Pose.h>
 
 #include "local_planner/trajectory.h"
 
 class TrajectoryEvaluator
 {
 private:
-  static constexpr unsigned int K_OFFSET_ = 1;
+  double k_spatial_;
+  double k_temporal_;
 
-  tf2_ros::Buffer tf_buffer_;
-  tf2_ros::TransformListener tf_listener_;
-  grid_map::GridMap costmap_;
+  Trajectory reference_trajectory_;
 
-  bool checkCollision(const grid_map::Position& pos);
-
-  grid_map::Position getWaypointPositionInMap(const double x, const double y, const std::string& wp_frame_id);
+  double evaluateWaypoint(const geometry_msgs::Pose& ref_pose, const geometry_msgs::Pose pose) const;
 
 public:
-  TrajectoryEvaluator();
+  TrajectoryEvaluator(const double k_spatial, const double k_temporal);
 
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+  double evaluate(const Trajectory& trajectory) const;
 
-  double evaluateTrajectory(const Trajectory& trajectory, const double offset);
+  void setReferenceTrajectory(const Trajectory& trajectory);
+
+  void setWeights(const double k_spatial, const double k_temporal);
 };
 
 #endif  // LOCAL_PLANNER_TRAJECTORY_EVALUATOR_H

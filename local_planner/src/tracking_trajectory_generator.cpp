@@ -31,9 +31,11 @@ TrackingTrajectoryGenerator::SamplingPattern::SamplingPattern(const int num_path
 TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
     const SamplingPattern& sampling_pattern, const double max_curvature,
     const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
+    const std::shared_ptr<TrajectoryEvaluator>& trajectory_evaluator_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
   : sampling_pattern_(sampling_pattern), cubic_spiral_opt_(max_curvature)
 {
+  trajectory_evaluator_ptr_ = trajectory_evaluator_ptr;
   viz_ptr_ = viz_ptr;
 
   if (collision_checker_ptr != nullptr)
@@ -75,16 +77,16 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
   {
     CubicVelocityTimeProfile profile(initial_velocity, ref_traj_trimmed.velocity(ref_traj_trimmed.size() - 1),
                                      path.distance(path.size() - 1));
-    Trajectory trajectory(path, profile);
 
-    trajectories.push_back(trajectory);
+    trajectories.push_back(Trajectory(path, profile));
   }
 
+  trajectory_evaluator_ptr_->setReferenceTrajectory(ref_traj_trimmed);
   std::vector<double> costs;
 
   for (auto& trajectory : trajectories)
   {
-    double cost = evaluateTrajectory(reference_trajectory, trajectory, reference_goal);
+    double cost = trajectory_evaluator_ptr_->evaluate(trajectory);
     costs.push_back(cost);
   }
 

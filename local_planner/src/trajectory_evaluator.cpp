@@ -1,66 +1,53 @@
-#include <limits>
-#include <string>
-
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2_ros/transform_listener.h>
-
-#include "costmap_generator/costmap_layer.h"
-#include "costmap_generator/costmap_value.h"
 #include "local_planner/trajectory.h"
 #include "local_planner/trajectory_evaluator.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
-TrajectoryEvaluator::TrajectoryEvaluator() : tf_listener_(tf_buffer_)
+TrajectoryEvaluator::TrajectoryEvaluator(const double k_spatial, const double k_temporal)
 {
+  k_spatial_ = k_spatial;
+  k_temporal_ = k_temporal;
 }
 
-void TrajectoryEvaluator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
+double TrajectoryEvaluator::evaluate(const Trajectory& trajectory) const
 {
-  grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_);
-}
+  if (reference_trajectory_.size() == 0)
+  {
+    throw std::runtime_error("Reference trajectory has not been set");
+  }
 
-double TrajectoryEvaluator::evaluateTrajectory(const Trajectory& trajectory, const double offset)
-{
+  if (trajectory.getFrameId() != reference_trajectory_.getFrameId())
+  {
+    throw std::invalid_argument("Trajectory frame does not match reference trajectory frame");
+  }
+
+  double spatial_cost = 0.0;
+  double temporal_cost = 0.0;
+
   for (int i = 0; i < trajectory.size(); ++i)
   {
-    grid_map::Position pos = getWaypointPositionInMap(trajectory.x(i), trajectory.y(i), trajectory.getFrameId());
-
-    if (checkCollision(pos))
-    {
-      return std::numeric_limits<double>::max();
-    }
+    geometry_msgs::Pose relative_pose =
+        TF2Wrapper::doTransform<geometry_msgs::Pose>(trajectory.pose(i), reference_trajectory_.pose(i));
+    spatial_cost += std::abs(relative_pose.position.y);
+    temporal_cost += std::abs(trajectory.time(i) - reference_trajectory_.time(i));
   }
 
-  return K_OFFSET_ * abs(offset);
+  return k_spatial_ * spatial_cost + k_temporal_ * temporal_cost;
+}
+void TrajectoryEvaluator::setReferenceTrajectory(const Trajectory& trajectory)
+{
+  reference_trajectory_ = trajectory;
 }
 
-bool TrajectoryEvaluator::checkCollision(const grid_map::Position& pos)
+void TrajectoryEvaluator::setWeights(const double k_spatial, const double k_temporal)
 {
-  if (!costmap_.exists(CostmapLayer::INFLATION))
-  {
-    throw std::runtime_error(CostmapLayer::INFLATION + " layer is not available in costmap");
-  }
-
-  if (!costmap_.isInside(pos))
-  {
-    return true;
-  }
-
-  return costmap_.atPosition(CostmapLayer::INFLATION, pos) == static_cast<int>(CostmapValue::OCCUPIED);
+  k_spatial_ = k_spatial;
+  k_temporal_ = k_temporal;
 }
 
-grid_map::Position TrajectoryEvaluator::getWaypointPositionInMap(const double x, const double y,
-                                                                 const std::string& wp_frame_id)
+double TrajectoryEvaluator::evaluateWaypoint(const geometry_msgs::Pose& ref_pose, const geometry_msgs::Pose pose) const
 {
-  geometry_msgs::TransformStamped tf = tf_buffer_.lookupTransform(costmap_.getFrameId(), wp_frame_id, ros::Time(0));
+  double cost;
 
-  geometry_msgs::Point point;
-  point.x = x;
-  point.y = y;
-  tf2::doTransform(point, point, tf);
-
-  return grid_map::Position(point.x, point.y);
+  geometry_msgs::Pose relative_pose = TF2Wrapper::doTransform<geometry_msgs::Pose>(pose, ref_pose);
+  double lateral_offset = relative_pose.position.y;
 }

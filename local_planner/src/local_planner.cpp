@@ -11,11 +11,13 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
+#include "f1tenth_msgs/Trajectory.h"
 #include "local_planner/lattice.h"
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/tracking_trajectory_generator.h"
 #include "local_planner/trajectory.h"
+#include "local_planner/trajectory_evaluator.h"
 #include "local_planner/local_planner.h"
 #include "local_planner/LocalPlannerConfig.h"
 
@@ -66,12 +68,16 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
   double max_steering_angle;
   double track_path_lateral_spacing;
   double track_look_ahead_time;
+  double track_k_spatial;
+  double track_k_temporal;
 
   private_nh.param("track_num_paths", track_num_paths, 9);
   private_nh.param("wheelbase", wheelbase_, 0.3);
   private_nh.param("max_steering_angle", max_steering_angle, 0.4);
   private_nh.param("track_path_lateral_spacing", track_path_lateral_spacing, 0.05);
   private_nh.param("track_look_ahead_time", track_look_ahead_time, 0.5);
+  private_nh.param("track_k_spatial", track_k_spatial, 1.0);
+  private_nh.param("track_k_temporal", track_k_temporal, 1.0);
 
   /* --------------------------------- Topics --------------------------------- */
 
@@ -105,6 +111,7 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
   collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets, circle_radius);
+  trajectory_evaulator_ptr_ = std::make_shared<TrajectoryEvaluator>(track_k_spatial, track_k_temporal);
 
   /* --------------------- Reference Trajectory Generator --------------------- */
 
@@ -120,8 +127,8 @@ LocalPlanner::LocalPlanner() : tf_listener_(tf_buffer_)
 
   TTG::SamplingPattern tt_pattern(track_num_paths, track_path_lateral_spacing, track_look_ahead_time);
   double max_curvature = tan(max_steering_angle) / wheelbase_;
-
-  track_traj_gen_ptr_ = std::make_unique<TTG>(tt_pattern, max_curvature, collision_checker_ptr_, viz_ptr_);
+  track_traj_gen_ptr_ =
+      std::make_unique<TTG>(tt_pattern, max_curvature, collision_checker_ptr_, trajectory_evaulator_ptr_, viz_ptr_);
 
   /* --------------------------- Dynamic Reconfigure -------------------------- */
 
@@ -204,6 +211,8 @@ void LocalPlanner::configCallback(local_planner::LocalPlannerConfig& config, uin
   TTG::SamplingPattern track_sampling_pattern(config.track_num_paths, config.track_lateral_spacing,
                                               config.track_look_ahead_time);
   track_traj_gen_ptr_->setSamplingPattern(track_sampling_pattern);
+
+  trajectory_evaulator_ptr_->setWeights(config.track_k_spatial, config.track_k_temporal);
 }
 
 nav_msgs::Path LocalPlanner::trajectoryToPathMsg(const Trajectory& trajectory)

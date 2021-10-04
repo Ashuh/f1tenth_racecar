@@ -46,6 +46,7 @@ private:
 
   std::unique_ptr<ReferenceTrajectoryGenerator> ref_traj_gen_ptr_;
   std::unique_ptr<TrackingTrajectoryGenerator> track_traj_gen_ptr_;
+  std::shared_ptr<TrajectoryEvaluator> trajectory_evaulator_ptr_;
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
