@@ -55,7 +55,7 @@ public:
 
   geometry_msgs::PoseStamped poseStamped(size_t n) const;
 
-  Path transform(const std::string target_frame) const;
+  virtual Path& transform(const std::string target_frame);
 
   virtual visualization_msgs::Marker generatePathMarker(const int marker_id, const std::string& ns, const double scale,
                                                         const double r, const double g, const double b,

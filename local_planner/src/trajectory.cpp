@@ -71,6 +71,13 @@ double Trajectory::time(size_t n) const
   return time_.at(n);
 }
 
+Trajectory& Trajectory::transform(const std::string target_frame)
+{
+  Path::transform(target_frame);
+
+  return *this;
+}
+
 visualization_msgs::MarkerArray Trajectory::generateVelocityMarkers(int marker_id, const std::string& ns,
                                                                     const double scale, const double z_offset,
                                                                     const double r, const double g, const double b,
