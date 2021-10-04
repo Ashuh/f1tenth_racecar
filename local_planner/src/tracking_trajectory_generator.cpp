@@ -186,7 +186,6 @@ double TrackingTrajectoryGenerator::evaluateTrajectory(const Trajectory& referen
 
 void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
-  grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_);
   collision_checker_ptr_->setCostmap(costmap_msg);
 }
 
