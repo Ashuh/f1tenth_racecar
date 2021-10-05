@@ -57,9 +57,6 @@ private:
 
   bool checkCollision(const Path& trajectory);
 
-  double evaluateTrajectory(const Trajectory& reference_trajectory, const Trajectory& trajectory,
-                            const geometry_msgs::Pose& goal);
-
   void visualizePaths(const std::vector<Path>& safe_paths, const std::vector<Path>& unsafe_paths);
 };
 

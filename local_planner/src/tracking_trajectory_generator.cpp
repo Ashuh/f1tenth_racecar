@@ -166,16 +166,6 @@ bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
   return false;
 }
 
-double TrackingTrajectoryGenerator::evaluateTrajectory(const Trajectory& reference_trajectory,
-                                                       const Trajectory& trajectory, const geometry_msgs::Pose& goal)
-{
-  // placeholder
-  double d_x = trajectory.x(trajectory.size() - 1) - goal.position.x;
-  double d_y = trajectory.y(trajectory.size() - 1) - goal.position.y;
-
-  return pow(d_x, 2) + pow(d_y, 2);
-}
-
 void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
   collision_checker_ptr_->setCostmap(costmap_msg);
