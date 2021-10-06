@@ -13,8 +13,6 @@ private:
 
   Trajectory reference_trajectory_;
 
-  double evaluateWaypoint(const geometry_msgs::Pose& ref_pose, const geometry_msgs::Pose pose) const;
-
 public:
   TrajectoryEvaluator(const double k_spatial, const double k_temporal);
 

@@ -96,12 +96,11 @@ void CostmapGenerator::mapCallback(const nav_msgs::OccupancyGridConstPtr& occ_gr
 void CostmapGenerator::generateStaticLayer()
 {
   local_map_[CostmapLayer::STATIC].setConstant(static_cast<int>(CostmapValue::FREE));
-  grid_map::Matrix& data = local_map_[CostmapLayer::STATIC];
-
-  geometry_msgs::TransformStamped transform;
 
   try
   {
+    grid_map::Matrix& data = local_map_[CostmapLayer::STATIC];
+
     for (grid_map::GridMapIterator iterator(local_map_); !iterator.isPastEnd(); ++iterator)
     {
       const grid_map::Index index(*iterator);

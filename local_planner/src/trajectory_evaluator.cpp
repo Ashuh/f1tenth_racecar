@@ -43,11 +43,3 @@ void TrajectoryEvaluator::setWeights(const double k_spatial, const double k_temp
   k_spatial_ = k_spatial;
   k_temporal_ = k_temporal;
 }
-
-double TrajectoryEvaluator::evaluateWaypoint(const geometry_msgs::Pose& ref_pose, const geometry_msgs::Pose pose) const
-{
-  double cost;
-
-  geometry_msgs::Pose relative_pose = TF2Wrapper::doTransform<geometry_msgs::Pose>(pose, ref_pose);
-  double lateral_offset = relative_pose.position.y;
-}
