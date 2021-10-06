@@ -94,20 +94,20 @@ double CubicVelocityTimeProfile::getTimeAtDisplacement(const double s) const
   std::vector<double> real_roots;
   solver.realRoots(real_roots, std::numeric_limits<double>::epsilon());
 
-  for (auto& t : real_roots)
+  auto it =
+      std::find_if(real_roots.begin(), real_roots.end(), [this](double t) { return t >= 0.0 && t <= t_f_ * 1.001; });
+
+  if (it == real_roots.end())
   {
-    if (t >= 0 && t <= t_f_ * 1.001)
-    {
-      return t;
-    }
+    std::ostringstream o;
+    o << "Unable to solve [" << coeff(0) << " " << coeff(1) << " t " << coeff(2) << " t^2 " << coeff(3) << " t^3 "
+      << coeff(4) << " t^4]"
+      << " for time at displacement " << s;
+
+    throw std::runtime_error(o.str());
   }
 
-  std::ostringstream o;
-  o << "Unable to solve [" << coeff(0) << " " << coeff(1) << " t " << coeff(2) << " t^2 " << coeff(3) << " t^3 "
-    << coeff(4) << " t^4]"
-    << " for time at displacement " << s;
-
-  throw std::runtime_error(o.str());
+  return *it;
 }
 
 Eigen::VectorXd CubicVelocityTimeProfile::stripZeroCoefficients(const Eigen::Matrix<double, 5, 1>& coeff) const
