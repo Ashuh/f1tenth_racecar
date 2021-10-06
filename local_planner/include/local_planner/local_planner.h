@@ -54,6 +54,14 @@ private:
   double look_ahead_time_;
   double min_look_ahead_dist_;
 
+  void initCallbacks(const ros::NodeHandle& private_nh);
+
+  void initShared(const ros::NodeHandle& private_nh);
+
+  void initRTG(const ros::NodeHandle& private_nh);
+
+  void initTTG(const ros::NodeHandle& private_nh);
+
   void timerCallback(const ros::TimerEvent& timer_event);
 
   void globalPathCallback(const nav_msgs::Path::ConstPtr& path_msg);

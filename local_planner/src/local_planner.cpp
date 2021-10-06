@@ -22,22 +22,60 @@
 LocalPlanner::LocalPlanner()
 {
   ros::NodeHandle private_nh("~");
+  initCallbacks(private_nh);
+  initShared(private_nh);
+  initRTG(private_nh);
+  initTTG(private_nh);
 
-  /* ------------------------ Collision Checking Params ----------------------- */
+  /* --------------------------- Dynamic Reconfigure -------------------------- */
 
+  f_ = boost::bind(&LocalPlanner::configCallback, this, _1, _2);
+  server_.setCallback(f_);
+}
+
+void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
+{
+  std::string costmap_topic;
+  std::string global_path_topic;
+  std::string local_path_topic;
+  std::string odom_topic;
+  std::string inflated_costmap_topic;
+  std::string viz_topic;
+  std::string drive_topic;
+
+  private_nh.param("costmap_topic", costmap_topic, std::string("costmap"));
+  private_nh.param("global_path_topic", global_path_topic, std::string("path/global"));
+  private_nh.param("local_path_topic", local_path_topic, std::string("path/local"));
+  private_nh.param("odom_topic", odom_topic, std::string("odom"));
+  private_nh.param("drive_topic", drive_topic, std::string("drive"));
+  private_nh.param("inflated_costmap_topic", inflated_costmap_topic, std::string("inflated_costmap"));
+  private_nh.param("viz_topic", viz_topic, std::string("viz/local_planner"));
+
+  global_path_sub_ = nh_.subscribe(global_path_topic, 1, &LocalPlanner::globalPathCallback, this);
+  odom_sub_ = nh_.subscribe(odom_topic, 1, &LocalPlanner::odomCallback, this);
+  drive_sub_ = nh_.subscribe(drive_topic, 1, &LocalPlanner::driveCallback, this);
+  costmap_sub_ = nh_.subscribe(costmap_topic, 1, &LocalPlanner::costmapCallback, this);
+  timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
+
+  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>(local_path_topic, 1);
+  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
+  inflated_costmap_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>(inflated_costmap_topic, 1);
+}
+
+void LocalPlanner::initShared(const ros::NodeHandle& private_nh)
+{
   std::vector<double> circle_offsets;
   double circle_radius;
 
   private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
   private_nh.param("circle_radius", circle_radius, 0.2);
 
-  for (auto& o : circle_offsets)
-  {
-    ROS_INFO_STREAM(o);
-  }
+  collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets, circle_radius);
+  viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
+}
 
-  /* ----------------------- Refernce Trajectory Params ----------------------- */
-
+void LocalPlanner::initRTG(const ros::NodeHandle& private_nh)
+{
   int lattice_num_layers;
   int lattice_num_lateral_samples_per_side;
   double lattice_longitudinal_spacing;
@@ -60,8 +98,17 @@ LocalPlanner::LocalPlanner()
   private_nh.param("ref_max_lon_acc", ref_max_lon_acc, 1.0);
   private_nh.param("ref_max_lon_dec", ref_max_lon_dec, 1.0);
 
-  /* ----------------------- Tracking Trajectory Params ----------------------- */
+  Lattice::Generator::Pattern lattice_pattern(lattice_num_layers, lattice_longitudinal_spacing,
+                                              lattice_num_lateral_samples_per_side, lattice_lateral_spacing);
+  Lattice::Generator lat_gen(lattice_pattern, lattice_k_length, collision_checker_ptr_);
+  AccelerationRegulator::Constraints ref_vel_constraints(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc,
+                                                         ref_max_lon_dec);
 
+  ref_traj_gen_ptr_ = std::make_unique<RTG>(lat_gen, ref_vel_constraints, viz_ptr_);
+}
+
+void LocalPlanner::initTTG(const ros::NodeHandle& private_nh)
+{
   int track_num_paths;
   double max_steering_angle;
   double track_path_lateral_spacing;
@@ -77,61 +124,11 @@ LocalPlanner::LocalPlanner()
   private_nh.param("track_k_spatial", track_k_spatial, 1.0);
   private_nh.param("track_k_temporal", track_k_temporal, 1.0);
 
-  /* --------------------------------- Topics --------------------------------- */
-
-  std::string costmap_topic;
-  std::string global_path_topic;
-  std::string local_path_topic;
-  std::string odom_topic;
-  std::string inflated_costmap_topic;
-  std::string viz_topic;
-
-  private_nh.param("costmap_topic", costmap_topic, std::string("costmap"));
-  private_nh.param("global_path_topic", global_path_topic, std::string("path/global"));
-  private_nh.param("local_path_topic", local_path_topic, std::string("path/local"));
-  private_nh.param("odom_topic", odom_topic, std::string("odom"));
-  private_nh.param("inflated_costmap_topic", inflated_costmap_topic, std::string("inflated_costmap"));
-  private_nh.param("viz_topic", viz_topic, std::string("viz/local_planner"));
-
-  /* ------------------------ Subscribers & Publishers ------------------------ */
-
-  global_path_sub_ = nh_.subscribe(global_path_topic, 1, &LocalPlanner::globalPathCallback, this);
-  odom_sub_ = nh_.subscribe(odom_topic, 1, &LocalPlanner::odomCallback, this);
-  drive_sub_ = nh_.subscribe("drive", 1, &LocalPlanner::driveCallback, this);
-  costmap_sub_ = nh_.subscribe(costmap_topic, 1, &LocalPlanner::costmapCallback, this);
-  timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
-
-  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>(local_path_topic, 1);  // !!!!
-  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
-  inflated_costmap_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>(inflated_costmap_topic, 1);
-
-  /* ---------------------------- Shared Resources ---------------------------- */
-
-  viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
-  collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets, circle_radius);
   trajectory_evaulator_ptr_ = std::make_shared<TrajectoryEvaluator>(track_k_spatial, track_k_temporal);
-
-  /* --------------------- Reference Trajectory Generator --------------------- */
-
-  Lattice::Generator::Pattern lattice_pattern(lattice_num_layers, lattice_longitudinal_spacing,
-                                              lattice_num_lateral_samples_per_side, lattice_lateral_spacing);
-  Lattice::Generator lat_gen(lattice_pattern, lattice_k_length, collision_checker_ptr_);
-  AccelerationRegulator::Constraints ref_vel_constraints(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc,
-                                                         ref_max_lon_dec);
-
-  ref_traj_gen_ptr_ = std::make_unique<RTG>(lat_gen, ref_vel_constraints, viz_ptr_);
-
-  /* ---------------------- Tracking Trajectory Generator --------------------- */
-
   TTG::SamplingPattern tt_pattern(track_num_paths, track_path_lateral_spacing, track_look_ahead_time);
   double max_curvature = tan(max_steering_angle) / wheelbase_;
   track_traj_gen_ptr_ =
       std::make_unique<TTG>(tt_pattern, max_curvature, collision_checker_ptr_, trajectory_evaulator_ptr_, viz_ptr_);
-
-  /* --------------------------- Dynamic Reconfigure -------------------------- */
-
-  f_ = boost::bind(&LocalPlanner::configCallback, this, _1, _2);
-  server_.setCallback(f_);
 }
 
 void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
