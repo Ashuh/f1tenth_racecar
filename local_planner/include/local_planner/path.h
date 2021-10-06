@@ -9,6 +9,7 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 class Path
 {
@@ -57,9 +58,14 @@ public:
 
   virtual Path& transform(const std::string target_frame);
 
-  virtual visualization_msgs::Marker generatePathMarker(const int marker_id, const std::string& ns, const double scale,
-                                                        const double r, const double g, const double b,
-                                                        const double a = 1.0) const;
+  visualization_msgs::Marker generateLineMarker(const int marker_id, const std::string& ns, const double scale,
+                                                const double z_offset, const double r, const double g, const double b,
+                                                const double a = 1.0) const;
+
+  visualization_msgs::MarkerArray generateArrowMarkers(const int marker_id, const std::string& ns,
+                                                       const double diameter, const double length,
+                                                       const double z_offset, const double r, const double g,
+                                                       const double b, const double a = 1.0) const;
 };
 
 #endif  // LOCAL_PLANNER_PATH_H

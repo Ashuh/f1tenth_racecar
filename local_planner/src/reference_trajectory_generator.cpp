@@ -228,23 +228,27 @@ void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)
 
 void ReferenceTrajectoryGenerator::visualizeSSSP(const Path& path)
 {
-  if (viz_ptr_ != nullptr)
+  if (viz_ptr_ == nullptr)
   {
-    visualization_msgs::Marker path_marker = path.generatePathMarker(0, "sssp", 0.02, 0, 0, 1);
-    viz_ptr_->markers.push_back(path_marker);
+    return;
   }
+
+  visualization_msgs::Marker path_marker = path.generateLineMarker(0, "sssp", 0.02, 0.0, 0.0, 0.0, 1.0);
+  viz_ptr_->markers.push_back(path_marker);
 }
 
 void ReferenceTrajectoryGenerator::visualizeReferenceTrajectory(const Trajectory& trajectory)
 {
-  if (viz_ptr_ != nullptr)
+  if (viz_ptr_ == nullptr)
   {
-    visualization_msgs::Marker path_marker = trajectory.generatePathMarker(0, "reference_trajectory", 0.02, 0, 0, 0);
-    visualization_msgs::MarkerArray velocity_markers =
-        trajectory.generateVelocityMarkers(0, "reference_trajectory_velocity_profile", 0.08, 0.1, 0, 0, 0);
-
-    viz_ptr_->markers.push_back(path_marker);
-    viz_ptr_->markers.insert(viz_ptr_->markers.begin(), velocity_markers.markers.begin(),
-                             velocity_markers.markers.end());
+    return;
   }
+
+  visualization_msgs::Marker path_marker =
+      trajectory.generateLineMarker(0, "reference_trajectory/path", 0.02, 0.0, 0.0, 0.0, 0.0);
+  visualization_msgs::MarkerArray velocity_markers =
+      trajectory.generateVelocityMarkers(0, "reference_trajectory/velocity", 0.05, 0.1, 0.0, 0.0, 0.0);
+
+  viz_ptr_->markers.push_back(path_marker);
+  viz_ptr_->markers.insert(viz_ptr_->markers.begin(), velocity_markers.markers.begin(), velocity_markers.markers.end());
 }

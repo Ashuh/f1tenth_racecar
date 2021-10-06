@@ -94,11 +94,11 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
   {
     throw std::runtime_error("No safe paths found");
   }
-  else
-  {
-    int best_traj_id = std::min_element(costs.begin(), costs.end()) - costs.begin();
-    return trajectories.at(best_traj_id);
-  }
+
+  int best_traj_id = std::min_element(costs.begin(), costs.end()) - costs.begin();
+  Trajectory final_trajectory = trajectories.at(best_traj_id);
+  visualizeFinalTrajectory(final_trajectory);
+  return final_trajectory;
 }
 
 std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geometry_msgs::Pose& reference_goal,
@@ -179,17 +179,36 @@ void TrackingTrajectoryGenerator::setSamplingPattern(const SamplingPattern& patt
 void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_paths,
                                                  const std::vector<Path>& unsafe_paths)
 {
-  visualization_msgs::MarkerArray path_markers;
-
-  for (int i = 0; i < safe_paths.size(); ++i)
+  if (viz_ptr_ == nullptr)
   {
-    path_markers.markers.push_back(safe_paths.at(i).generatePathMarker(i, "safe_paths", 0.02, 0, 1, 0));
+    return;
   }
 
-  for (int i = 0; i < unsafe_paths.size(); ++i)
+  int id = 0;
+
+  for (const auto& path : safe_paths)
   {
-    path_markers.markers.push_back(unsafe_paths.at(i).generatePathMarker(i, "unsafe_paths", 0.02, 1, 0, 0));
+    viz_ptr_->markers.push_back(path.generateLineMarker(id++, "safe_paths", 0.02, 0.0, 0.0, 1.0, 0.0, 0.8));
   }
 
-  viz_ptr_->markers.insert(viz_ptr_->markers.end(), path_markers.markers.begin(), path_markers.markers.end());
+  for (const auto& path : unsafe_paths)
+  {
+    viz_ptr_->markers.push_back(path.generateLineMarker(id++, "unsafe_paths", 0.02, 0.0, 1.0, 0.0, 0.0, 0.8));
+  }
+}
+
+void TrackingTrajectoryGenerator::visualizeFinalTrajectory(const Trajectory& trajectory)
+{
+  if (viz_ptr_ == nullptr)
+  {
+    return;
+  }
+
+  visualization_msgs::MarkerArray velocity_markers =
+      trajectory.generateVelocityMarkers(0, "final_trajectory/velocity", 0.05, 0.2, 0.0, 1.0, 0.0);
+  visualization_msgs::MarkerArray arrow_markers =
+      trajectory.generateArrowMarkers(0, "final_trajectory/path", 0.03, 0.2, 0.05, 0.0, 1.0, 0.0);
+
+  viz_ptr_->markers.insert(viz_ptr_->markers.end(), velocity_markers.markers.begin(), velocity_markers.markers.end());
+  viz_ptr_->markers.insert(viz_ptr_->markers.end(), arrow_markers.markers.begin(), arrow_markers.markers.end());
 }

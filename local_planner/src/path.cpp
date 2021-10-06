@@ -6,6 +6,7 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "f1tenth_utils/tf2_wrapper.h"
 #include "local_planner/path.h"
@@ -120,9 +121,9 @@ Path& Path::transform(const std::string target_frame)
   return *this;
 }
 
-visualization_msgs::Marker Path::generatePathMarker(const int marker_id, const std::string& ns, const double scale,
-                                                    const double r, const double g, const double b,
-                                                    const double a) const
+visualization_msgs::Marker Path::generateLineMarker(const int marker_id, const std::string& ns, const double scale,
+                                                    const double z_offset, const double r, const double g,
+                                                    const double b, const double a) const
 {
   visualization_msgs::Marker path_marker;
   path_marker.action = visualization_msgs::Marker::ADD;
@@ -140,10 +141,44 @@ visualization_msgs::Marker Path::generatePathMarker(const int marker_id, const s
 
   for (int i = 0; i < size_; ++i)
   {
-    path_marker.points.push_back(point(i));
+    geometry_msgs::Point p = point(i);
+    p.z += z_offset;
+    path_marker.points.push_back(p);
   }
 
   return path_marker;
+}
+
+visualization_msgs::MarkerArray Path::generateArrowMarkers(const int marker_id, const std::string& ns,
+                                                           const double diameter, const double length,
+                                                           const double z_offset, const double r, const double g,
+                                                           const double b, const double a) const
+{
+  visualization_msgs::MarkerArray arrow_markers;
+
+  for (int i = 0; i < size_; ++i)
+  {
+    visualization_msgs::Marker marker;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.type = visualization_msgs::Marker::ARROW;
+    marker.ns = ns;
+    marker.id = marker_id + i;
+    marker.lifetime = ros::Duration(0.1);
+    marker.header.frame_id = frame_id_;
+    marker.pose = pose(i);
+    marker.pose.position.z += z_offset;
+    marker.scale.x = length;
+    marker.scale.y = diameter;
+    marker.scale.z = diameter;
+    marker.color.r = r;
+    marker.color.g = g;
+    marker.color.b = b;
+    marker.color.a = a;
+
+    arrow_markers.markers.push_back(marker);
+  }
+
+  return arrow_markers;
 }
 
 std::vector<double> Path::trimVector(const std::vector<double>& vec, const size_t begin, const size_t end)

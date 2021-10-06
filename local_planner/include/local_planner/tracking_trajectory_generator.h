@@ -58,6 +58,8 @@ private:
   bool checkCollision(const Path& trajectory);
 
   void visualizePaths(const std::vector<Path>& safe_paths, const std::vector<Path>& unsafe_paths);
+
+  void visualizeFinalTrajectory(const Trajectory& trajectory);
 };
 
 #endif  // LOCAL_PLANNER_TRACKING_TRAJECTORY_GENERATOR_H
