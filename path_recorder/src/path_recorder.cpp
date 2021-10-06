@@ -20,17 +20,22 @@ PathRecorder::PathRecorder()
   std::string file_name;
   std::string path_topic;
 
-  ROS_ASSERT(private_nh.getParam("mode", mode));
-  ROS_ASSERT(private_nh.getParam("file_name", file_name) && (file_name.find(".csv") != std::string::npos));
-  ROS_ASSERT(private_nh.getParam("path_topic", path_topic));
-  ROS_ASSERT(private_nh.getParam("interval", interval_));
+  private_nh.param("mode", mode, 1);
+
+  if (!(private_nh.getParam("file_name", file_name)) || file_name.find(".csv") == std::string::npos)
+  {
+    throw std::invalid_argument("Invalid file specified");
+  }
+
+  private_nh.param("path_topic", path_topic, std::string("path"));
+  private_nh.param("interval", interval_, 0.1);
 
   path_pub_ = nh_.advertise<nav_msgs::Path>(path_topic, 1, true);
 
   if (mode == static_cast<int>(Mode::Record))
   {
     std::string odom_topic;
-    ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
+    private_nh.param("odom_topic", odom_topic);
     odom_sub_ = nh_.subscribe(odom_topic, 1, &PathRecorder::odomCallback, this);
     csv_io_.write(file_name);
     ROS_INFO_STREAM("[Path Recorder] Writing to " << csv_io_.filePath());

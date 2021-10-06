@@ -8,12 +8,13 @@ project(drive_controller)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   ackermann_msgs
+  f1tenth_msgs
+  f1tenth_utils
   geometry_msgs
   nav_msgs
+  roscpp
   visualization_msgs
-  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
