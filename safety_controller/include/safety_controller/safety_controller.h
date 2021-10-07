@@ -1,8 +1,9 @@
 #ifndef SAFETY_CONTROLLER_SAFETY_CONTROLLER_H
 #define SAFETY_CONTROLLER_SAFETY_CONTROLLER_H
 
-#include <ros/ros.h>
+#include <string>
 
+#include <ros/ros.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <std_msgs/Float64.h>
 #include <nav_msgs/Odometry.h>
@@ -18,12 +19,15 @@ private:
 
   ros::Subscriber odom_sub_;
   ros::Subscriber time_to_collision_sub_;
-  ros::Subscriber raw_drive_sub_;
+  ros::Subscriber selected_drive_sub_;
 
   ros::Publisher safe_drive_pub_;
 
   double time_to_collision_;
   double current_velocity_;
+
+  template <typename T>
+  void getParam(const std::string& key, T& result);
 
 public:
   SafetyController();
