@@ -138,7 +138,10 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
     /* --------------------- Reference Trajectory Generator --------------------- */
 
     ros::Time ref_begin = ros::Time::now();
-    Trajectory reference_trajectory = ref_traj_gen_ptr_->generateReferenceTrajectory(latest_odom_.pose.pose);
+    geometry_msgs::PoseStamped current_pose;
+    current_pose.header = latest_odom_.header;
+    current_pose.pose = latest_odom_.pose.pose;
+    Trajectory reference_trajectory = ref_traj_gen_ptr_->generateReferenceTrajectory(current_pose);
     double ref_time = (ros::Time::now() - ref_begin).toSec();
 
     /* ---------------------- Tracking Trajectory Generator --------------------- */

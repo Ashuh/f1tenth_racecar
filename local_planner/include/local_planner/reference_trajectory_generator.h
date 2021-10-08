@@ -21,7 +21,7 @@ public:
                                const AccelerationRegulator::Constraints& velocity_constraints,
                                const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
 
-  Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
+  Trajectory generateReferenceTrajectory(const geometry_msgs::PoseStamped& current_pose);
 
   void setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg);
 
@@ -35,12 +35,10 @@ public:
 
 private:
   AccelerationRegulator acc_capper_;
-
   Lattice::Generator lat_gen_;
-
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
-  Path generateReferencePath(const geometry_msgs::Pose& current_pose);
+  Path generateReferencePath(const geometry_msgs::PoseStamped& current_pose);
 
   std::vector<geometry_msgs::Point> getBestSSSP(const std::vector<std::vector<geometry_msgs::Point>>& sssp_candidates);
 

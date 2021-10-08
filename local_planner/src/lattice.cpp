@@ -102,70 +102,48 @@ Lattice::Generator::Generator(const Generator& generator) : pattern_(generator.p
   collision_checker_ptr_ = generator.collision_checker_ptr_;
 }
 
-Lattice Lattice::Generator::generateLattice(const geometry_msgs::Pose& source_pose) const
+Lattice Lattice::Generator::generate(const geometry_msgs::PoseStamped& source_pose) const
 {
-  int nearest_wp_id = getNearestWaypointId(source_pose);
-  std::vector<int> ref_waypoint_ids = getReferenceWaypointIds(nearest_wp_id);
-  std::vector<std::vector<Vertex>> layers =
-      generateLayers(ref_waypoint_ids, source_pose.position.x, source_pose.position.y);
+  // Transform source pose to global path frame
+  geometry_msgs::PoseStamped source_pose_transformed =
+      TF2Wrapper::doTransform(source_pose, global_path_.header.frame_id);
+  std::vector<geometry_msgs::Pose> reference_poses = getReferencePoses(source_pose_transformed.pose);
 
   Graph graph;
-  PositionMap position_map;
+  Vertex source_vertex = generateSourceVertex(source_pose_transformed.pose, reference_poses.at(0));
+  VertexDescriptor source_id = boost::add_vertex(source_vertex, graph);
+  PositionMap position_map = { { source_vertex.position_, source_id } };
+  std::vector<VertexDescriptor> prev_layer_ids{ source_id };
 
-  for (int i = 0; i < layers.size() - 1; ++i)
+  for (int i = 1; i < reference_poses.size(); ++i)
   {
-    std::vector<Vertex> cur_layer = layers.at(i);
-    std::vector<Vertex> next_layer = layers.at(i + 1);
+    std::vector<Position> layer_positions;
+    std::vector<VertexDescriptor> layer_ids;
+    geometry_msgs::Pose reference_pose = reference_poses.at(i);
 
-    for (int j = 0; j < cur_layer.size(); ++j)
+    for (int j = -pattern_.num_lateral_samples_per_side_; j <= pattern_.num_lateral_samples_per_side_; ++j)
     {
-      Vertex source_vertex = cur_layer.at(j);
-      VertexDescriptor source_id;
+      Vertex v = generateVertex(reference_pose, i, j);
+      VertexDescriptor id = boost::add_vertex(v, graph);
+      layer_ids.push_back(id);
+      position_map.insert({ v.position_, id });
 
-      auto src_it = position_map.find(source_vertex.position_);
-
-      if (src_it == position_map.end())
+      for (const auto& prev_id : prev_layer_ids)
       {
-        source_id = boost::add_vertex(source_vertex, graph);
-        position_map.insert({ source_vertex.position_, source_id });
-      }
-      else
-      {
-        source_id = src_it->second;
-      }
+        Vertex u = graph[prev_id];
 
-      for (int k = 0; k < next_layer.size(); k++)
-      {
-        Vertex target_vertex = next_layer.at(k);
-        VertexDescriptor target_id;
-
-        auto tgt_it = position_map.find(target_vertex.position_);
-
-        if (tgt_it == position_map.end())
+        if (!checkCollision(u, v))
         {
-          target_id = boost::add_vertex(graph);
-          position_map.insert({ target_vertex.position_, target_id });
-        }
-        else
-        {
-          target_id = tgt_it->second;
-        }
-
-        graph[source_id] = source_vertex;
-        graph[target_id] = target_vertex;
-
-        if (!checkCollision(source_vertex, target_vertex))
-        {
-          Edge edge = generateEdge(source_vertex, target_vertex);
-          boost::add_edge(source_id, target_id, edge, graph);
+          Edge edge = generateEdge(u, v);
+          boost::add_edge(prev_id, id, edge, graph);
         }
       }
     }
+
+    prev_layer_ids = layer_ids;
   }
 
-  Position source_position = layers.at(0).at(0).position_;
-
-  return Lattice(graph, position_map, source_position, pattern_.num_layers_,
+  return Lattice(graph, position_map, source_vertex.position_, pattern_.num_layers_,
                  2 * pattern_.num_lateral_samples_per_side_ + 1);
 }
 
@@ -194,107 +172,64 @@ int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_
   return nearest_wp_id;
 }
 
-std::vector<int> Lattice::Generator::getReferenceWaypointIds(const int nearest_wp_id) const
+std::vector<geometry_msgs::Pose> Lattice::Generator::getReferencePoses(const geometry_msgs::Pose& source_pose) const
 {
-  std::vector<int> waypoint_ids = { nearest_wp_id };
+  bool is_loop = global_path_.poses.at(global_path_.poses.size() - 1) == global_path_.poses.at(0);
+  int cur_id = getNearestWaypointId(source_pose);
+  geometry_msgs::Pose nearest_pose = global_path_.poses.at(cur_id).pose;
+  std::vector<geometry_msgs::Pose> poses = { nearest_pose };
+
+  geometry_msgs::Point prev_pos = nearest_pose.position;
 
   for (int i = 0; i < pattern_.num_layers_; ++i)
   {
-    waypoint_ids.push_back(getWaypointIdAtDistance(waypoint_ids.at(i), pattern_.longitudinal_spacing_));
-  }
+    double cur_dist = 0.0;
 
-  return waypoint_ids;
-}
-
-int Lattice::Generator::getWaypointIdAtDistance(const int start_id, const double target_dist) const
-{
-  bool is_loop = global_path_.poses.at(global_path_.poses.size() - 1) == global_path_.poses.at(0);
-
-  double prev_x = global_path_.poses.at(start_id).pose.position.x;
-  double prev_y = global_path_.poses.at(start_id).pose.position.y;
-  double cur_dist = 0.0;
-
-  int cur_id = start_id;
-
-  while (cur_dist < target_dist)
-  {
-    if (cur_id == global_path_.poses.size())
+    while (cur_dist < pattern_.longitudinal_spacing_)
     {
-      if (is_loop)
+      if (cur_id == global_path_.poses.size())
       {
-        cur_id = 0;
+        if (is_loop)
+        {
+          cur_id = 0;
+        }
+        else
+        {
+          poses.push_back(global_path_.poses.at(global_path_.poses.size() - 1).pose);
+          return poses;
+        }
       }
-      else
-      {
-        return global_path_.poses.size() - 1;
-      }
+
+      geometry_msgs::Point cur_pos = global_path_.poses.at(cur_id).pose.position;
+      cur_dist += distance(cur_pos.x, cur_pos.y, prev_pos.x, prev_pos.y);
+      prev_pos = cur_pos;
+      ++cur_id;
     }
 
-    double cur_x = global_path_.poses.at(cur_id).pose.position.x;
-    double cur_y = global_path_.poses.at(cur_id).pose.position.y;
-    cur_dist += distance(cur_x, cur_y, prev_x, prev_y);
-
-    prev_x = cur_x;
-    prev_y = cur_y;
-    ++cur_id;
+    poses.push_back(global_path_.poses.at(cur_id - 1).pose);
   }
 
-  return cur_id - 1;
+  return poses;
 }
 
-std::vector<std::vector<Lattice::Vertex>> Lattice::Generator::generateLayers(const std::vector<int>& ref_waypoint_ids,
-                                                                             const double source_x,
-                                                                             const double source_y) const
+Lattice::Vertex Lattice::Generator::generateSourceVertex(const geometry_msgs::Pose source_pose,
+                                                         const geometry_msgs::Pose reference_pose) const
 {
-  std::vector<std::vector<Vertex>> layers;
+  geometry_msgs::Pose relative_pose = TF2Wrapper::doTransform<geometry_msgs::Pose>(source_pose, reference_pose);
 
-  // Generate source vertex
-
-  geometry_msgs::Point source_point;
-  source_point.x = source_x;
-  source_point.y = source_y;
-  source_point =
-      TF2Wrapper::doTransform<geometry_msgs::Point>(source_point, global_path_.poses.at(ref_waypoint_ids.at((0))).pose);
-  Vertex source_vertex(Position(0, source_point.y / pattern_.lateral_spacing_), source_x, source_y);
-  std::vector<Vertex> source_layer;
-  source_layer.push_back(source_vertex);
-  layers.push_back(source_layer);
-
-  // Generate regular layers of vertices
-  for (int i = 1; i < ref_waypoint_ids.size(); ++i)
-  {
-    std::vector<Vertex> layer;
-
-    for (int j = -pattern_.num_lateral_samples_per_side_; j <= pattern_.num_lateral_samples_per_side_; ++j)
-    {
-      Vertex vertex = generateVertexAtLayer(ref_waypoint_ids, i, j);
-      layer.push_back(vertex);
-    }
-
-    layers.push_back(layer);
-  }
-
-  return layers;
+  return Vertex(Position(0, relative_pose.position.y / pattern_.lateral_spacing_), source_pose.position.x,
+                source_pose.position.y);
 }
 
-Lattice::Vertex Lattice::Generator::generateVertexAtLayer(const std::vector<int>& layer_waypoint_ids, const int layer,
-                                                          const int lateral_pos) const
+Lattice::Vertex Lattice::Generator::generateVertex(const geometry_msgs::Pose& reference_pose, const int layer,
+                                                   const int lateral_pos) const
 {
-  tf2::Quaternion quat_tf;
-  tf2::fromMsg(global_path_.poses.at(layer_waypoint_ids.at(layer)).pose.orientation, quat_tf);
-  double dummy;
-  double yaw;
-  tf2::Matrix3x3(quat_tf).getEulerYPR(yaw, dummy, dummy);
-
-  double ref_x = global_path_.poses.at(layer_waypoint_ids.at(layer)).pose.position.x;
-  double ref_y = global_path_.poses.at(layer_waypoint_ids.at(layer)).pose.position.y;
-  double ref_yaw = yaw;
-
+  double yaw = TF2Wrapper::yawFromQuat(reference_pose.orientation);
   double lateral_offset = lateral_pos * pattern_.lateral_spacing_;
-  double x_offset = lateral_offset * cos(ref_yaw + M_PI_2);
-  double y_offset = lateral_offset * sin(ref_yaw + M_PI_2);
+  double x = reference_pose.position.x + lateral_offset * cos(yaw + M_PI_2);
+  double y = reference_pose.position.y + lateral_offset * sin(yaw + M_PI_2);
 
-  return Vertex(Position(layer, lateral_pos), ref_x + x_offset, ref_y + y_offset);
+  return Vertex(Position(layer, lateral_pos), x, y);
 }
 
 Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, const Lattice::Vertex& target) const
@@ -313,11 +248,11 @@ bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lat
   geometry_msgs::PointStamped source_point;
   geometry_msgs::PointStamped target_point;
 
-  source_point.header.frame_id = "map";
+  source_point.header.frame_id = global_path_.header.frame_id;
   source_point.point.x = source.x_;
   source_point.point.y = source.y_;
 
-  target_point.header.frame_id = "map";
+  target_point.header.frame_id = global_path_.header.frame_id;
   target_point.point.x = target.x_;
   target_point.point.y = target.y_;
 
@@ -488,7 +423,7 @@ Lattice::VertexDescriptor Lattice::getVertexIdFromPosition(const Position& pos) 
 
   if (it == position_map_.end())
   {
-    throw std::invalid_argument("Goal vertex does not exist in lattice");
+    throw std::invalid_argument("Vertex position does not exist in lattice");
   }
 
   return it->second;

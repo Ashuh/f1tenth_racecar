@@ -93,7 +93,7 @@ public:
 
     Generator(const Generator& generator);
 
-    Lattice generateLattice(const geometry_msgs::Pose& source_pose) const;
+    Lattice generate(const geometry_msgs::PoseStamped& source_pose) const;
 
     void setGlobalPath(const nav_msgs::Path& global_path);
 
@@ -113,15 +113,11 @@ public:
 
     int getNearestWaypointId(const geometry_msgs::Pose& current_pose) const;
 
-    std::vector<int> getReferenceWaypointIds(const int nearest_wp_id) const;
+    std::vector<geometry_msgs::Pose> getReferencePoses(const geometry_msgs::Pose& source_pose) const;
 
-    int getWaypointIdAtDistance(const int start_id, const double target_dist) const;
+    Vertex generateSourceVertex(const geometry_msgs::Pose source_pose, const geometry_msgs::Pose reference_pose) const;
 
-    std::vector<std::vector<Vertex>> generateLayers(const std::vector<int>& ref_waypoint_ids, const double source_x,
-                                                    const double source_y) const;
-
-    Vertex generateVertexAtLayer(const std::vector<int>& layer_waypoint_ids, const int layer,
-                                 const int lateral_pos) const;
+    Vertex generateVertex(const geometry_msgs::Pose& reference_pose, const int layer, const int lateral_pos) const;
 
     Edge generateEdge(const Vertex& source, const Vertex& target) const;
 

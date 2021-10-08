@@ -21,7 +21,7 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
   viz_ptr_ = viz_ptr;
 }
 
-Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
+Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::PoseStamped& current_pose)
 {
   Path reference_path = generateReferencePath(current_pose);
   Trajectory reference_trajectory(reference_path, acc_capper_);
@@ -30,10 +30,10 @@ Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geome
   return reference_trajectory;
 }
 
-Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
+Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::PoseStamped& current_pose)
 {
   // Generate lattice
-  Lattice lattice = lat_gen_.generateLattice(current_pose);
+  Lattice lattice = lat_gen_.generate(current_pose);
   visualizeLattice(lattice);
 
   // Get SSSP for each vertex in final layer
