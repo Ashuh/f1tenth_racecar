@@ -110,8 +110,6 @@ ReferenceTrajectoryGenerator::cubicSplineInterpolate(const std::vector<geometry_
     spline_points.push_back(point);
   }
 
-  std::reverse(spline_points.begin(), spline_points.end());
-
   return spline_points;
 }
 

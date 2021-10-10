@@ -414,6 +414,8 @@ std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos)
   point.y = v.y_;
   path.push_back(point);
 
+  std::reverse(path.begin(), path.end());
+
   return path;
 }
 
