@@ -35,9 +35,7 @@ public:
 
 private:
   AccelerationRegulator acc_capper_;
-
   Lattice::Generator lat_gen_;
-
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
   Path generateReferencePath(const geometry_msgs::Pose& current_pose);

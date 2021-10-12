@@ -33,7 +33,7 @@ Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geome
 Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
   // Generate lattice
-  Lattice lattice = lat_gen_.generateLattice(current_pose);
+  Lattice lattice = lat_gen_.generate(current_pose);
   visualizeLattice(lattice);
 
   // Get SSSP for each vertex in final layer
@@ -50,7 +50,7 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   // Select the best SSSP
   std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
   visualizeSSSP(pointsToPath(best_sssp));
-  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp)).transform("base_link");
+  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
   return reference_path;
 }
 
@@ -81,27 +81,23 @@ ReferenceTrajectoryGenerator::getBestSSSP(const std::vector<std::vector<geometry
 std::vector<geometry_msgs::Point>
 ReferenceTrajectoryGenerator::cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path)
 {
-  Eigen::VectorXd xvals(path.size());
-  Eigen::VectorXd yvals(path.size());
+  Eigen::ArrayXXd points(2, path.size());
 
   for (int i = 0; i < path.size(); i++)
   {
     geometry_msgs::Point point = path.at(i);
-    xvals(i) = point.x;
-    yvals(i) = point.y;
+    points(0, i) = point.x;
+    points(1, i) = point.y;
   }
 
-  Eigen::Spline<double, 2>::ControlPointVectorType ref_path_points(2, path.size());
-  ref_path_points.row(0) = xvals;
-  ref_path_points.row(1) = yvals;
-  const Eigen::Spline<double, 2> spline =
-      Eigen::SplineFitting<Eigen::Spline<double, 2>>::Interpolate(ref_path_points, 3);
-
+  const Eigen::Spline<double, 2> spline = Eigen::SplineFitting<Eigen::Spline<double, 2>>::Interpolate(points, 3);
+  int num_samples = 100;
+  double step = 1.0 / (num_samples - 1);
   std::vector<geometry_msgs::Point> spline_points;
 
-  for (double u = 0; u <= 1; u += 0.025)
+  for (int i = 0; i < num_samples; ++i)
   {
-    Eigen::Spline<double, 2>::PointType p = spline(u);
+    Eigen::Spline<double, 2>::PointType p = spline(i * step);
 
     geometry_msgs::Point point;
     point.x = p(0, 0);
@@ -109,8 +105,6 @@ ReferenceTrajectoryGenerator::cubicSplineInterpolate(const std::vector<geometry_
 
     spline_points.push_back(point);
   }
-
-  std::reverse(spline_points.begin(), spline_points.end());
 
   return spline_points;
 }
