@@ -82,6 +82,7 @@ Trajectory& Trajectory::transform(const std::string target_frame)
 f1tenth_msgs::Trajectory Trajectory::toMsg() const
 {
   f1tenth_msgs::Trajectory traj_msg;
+  traj_msg.header.stamp = ros::Time::now();
   traj_msg.header.frame_id = frame_id_;
 
   for (int i = 0; i < size_; ++i)
