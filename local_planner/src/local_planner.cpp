@@ -10,6 +10,7 @@
 
 #include "costmap_generator/collision_checker.h"
 #include "f1tenth_msgs/Trajectory.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 #include "local_planner/lattice.h"
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/reference_trajectory_generator.h"
@@ -141,7 +142,8 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
     geometry_msgs::PoseStamped current_pose;
     current_pose.header = latest_odom_.header;
     current_pose.pose = latest_odom_.pose.pose;
-    Trajectory reference_trajectory = ref_traj_gen_ptr_->generateReferenceTrajectory(current_pose);
+    TF2Wrapper::doTransform<geometry_msgs::PoseStamped>(current_pose, "map");
+    Trajectory reference_trajectory = ref_traj_gen_ptr_->generateReferenceTrajectory(current_pose.pose);
     double ref_time = (ros::Time::now() - ref_begin).toSec();
 
     /* ---------------------- Tracking Trajectory Generator --------------------- */
@@ -149,7 +151,7 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
     ros::Time track_begin = ros::Time::now();
     double current_curvature = tan(current_steering_angle_) / wheelbase_;
     Trajectory tracking_trajectory = track_traj_gen_ptr_->generateTrackingTrajectory(
-        reference_trajectory, latest_odom_.twist.twist.linear.x, current_curvature);
+        reference_trajectory.transform("base_link"), latest_odom_.twist.twist.linear.x, current_curvature);
     double track_time = (ros::Time::now() - track_begin).toSec();
 
     ROS_INFO("[Local Planner] Time: [Total] %.3fs [Ref] %.3fs [Track] %.3fs", ref_time + track_time, ref_time,

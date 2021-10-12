@@ -102,33 +102,29 @@ Lattice::Generator::Generator(const Generator& generator) : pattern_(generator.p
   collision_checker_ptr_ = generator.collision_checker_ptr_;
 }
 
-Lattice Lattice::Generator::generate(const geometry_msgs::PoseStamped& source_pose) const
+Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) const
 {
-  // Transform source pose to global path frame
-  geometry_msgs::PoseStamped source_pose_transformed =
-      TF2Wrapper::doTransform(source_pose, global_path_.header.frame_id);
-  std::vector<geometry_msgs::Pose> reference_poses = getReferencePoses(source_pose_transformed.pose);
+  std::vector<geometry_msgs::Pose> reference_poses = getReferencePoses(source_pose);
 
   Graph graph;
-  Vertex source_vertex = generateSourceVertex(source_pose_transformed.pose, reference_poses.at(0));
+  Vertex source_vertex = generateSourceVertex(source_pose, reference_poses.at(0));
   VertexDescriptor source_id = boost::add_vertex(source_vertex, graph);
   PositionMap position_map = { { source_vertex.position_, source_id } };
-  std::vector<VertexDescriptor> prev_layer_ids{ source_id };
+  std::vector<std::vector<VertexDescriptor>> layer_ids(pattern_.num_layers_ + 1);
+  layer_ids.at(0) = std::vector<VertexDescriptor>{ source_id };
 
   for (int i = 1; i < reference_poses.size(); ++i)
   {
-    std::vector<Position> layer_positions;
-    std::vector<VertexDescriptor> layer_ids;
     geometry_msgs::Pose reference_pose = reference_poses.at(i);
 
     for (int j = -pattern_.num_lateral_samples_per_side_; j <= pattern_.num_lateral_samples_per_side_; ++j)
     {
       Vertex v = generateVertex(reference_pose, i, j);
       VertexDescriptor id = boost::add_vertex(v, graph);
-      layer_ids.push_back(id);
+      layer_ids.at(i).push_back(id);
       position_map.insert({ v.position_, id });
 
-      for (const auto& prev_id : prev_layer_ids)
+      for (const auto& prev_id : layer_ids.at(i - 1))
       {
         Vertex u = graph[prev_id];
 
@@ -139,8 +135,6 @@ Lattice Lattice::Generator::generate(const geometry_msgs::PoseStamped& source_po
         }
       }
     }
-
-    prev_layer_ids = layer_ids;
   }
 
   return Lattice(graph, position_map, source_vertex.position_, pattern_.num_layers_,
@@ -235,10 +229,9 @@ Lattice::Vertex Lattice::Generator::generateVertex(const geometry_msgs::Pose& re
 Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, const Lattice::Vertex& target) const
 {
   double length = distance(source, target);
-  double lateral_distance =
-      abs(target.position_.lateral_position_ - source.position_.lateral_position_) * pattern_.lateral_spacing_;
-
-  double weight = k_length_ * length + (1 - k_length_) * lateral_distance;
+  double lateral_cost = (abs(source.position_.lateral_position_) + abs(target.position_.lateral_position_)) *
+                        pattern_.lateral_spacing_ / 2;
+  double weight = k_length_ * length + (1 - k_length_) * lateral_cost;
 
   return Edge(std::make_shared<Vertex>(source), std::make_shared<Vertex>(target), weight);
 }

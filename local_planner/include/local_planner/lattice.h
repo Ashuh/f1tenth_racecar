@@ -93,7 +93,7 @@ public:
 
     Generator(const Generator& generator);
 
-    Lattice generate(const geometry_msgs::PoseStamped& source_pose) const;
+    Lattice generate(const geometry_msgs::Pose& source_pose) const;
 
     void setGlobalPath(const nav_msgs::Path& global_path);
 

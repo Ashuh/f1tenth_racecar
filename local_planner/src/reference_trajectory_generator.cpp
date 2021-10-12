@@ -21,7 +21,7 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
   viz_ptr_ = viz_ptr;
 }
 
-Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::PoseStamped& current_pose)
+Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
   Path reference_path = generateReferencePath(current_pose);
   Trajectory reference_trajectory(reference_path, acc_capper_);
@@ -30,7 +30,7 @@ Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geome
   return reference_trajectory;
 }
 
-Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::PoseStamped& current_pose)
+Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
   // Generate lattice
   Lattice lattice = lat_gen_.generate(current_pose);
@@ -50,7 +50,7 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   // Select the best SSSP
   std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
   visualizeSSSP(pointsToPath(best_sssp));
-  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp)).transform("base_link");
+  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
   return reference_path;
 }
 
