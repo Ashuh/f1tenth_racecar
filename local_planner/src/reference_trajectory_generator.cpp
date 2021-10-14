@@ -43,8 +43,14 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   {
     int offset = ((i % 2 == 0) ? 1 : -1) * i / 2;
 
-    std::vector<geometry_msgs::Point> sssp = lattice.getShortestPath(offset);
-    sssp_results.push_back(sssp);
+    try
+    {
+      sssp_results.push_back(lattice.getShortestPath(offset));
+    }
+    catch (const std::runtime_error& ex)
+    {
+      sssp_results.push_back(std::vector<geometry_msgs::Point>());
+    }
   }
 
   // Select the best SSSP

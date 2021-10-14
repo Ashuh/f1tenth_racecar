@@ -372,23 +372,11 @@ std::vector<Lattice::Edge> Lattice::getEdges() const
 std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos) const
 {
   VertexDescriptor source_id = position_map_.find(source_position_)->second;
-  VertexDescriptor goal_id;
-
-  try
-  {
-    goal_id = getVertexIdFromPosition(Position(num_layers_, offset_pos));
-  }
-  catch (const std::invalid_argument& ex)
-  {
-    // Goal position does not exist in lattice
-    return std::vector<geometry_msgs::Point>{};
-  }
+  VertexDescriptor goal_id = getVertexIdFromPosition(Position(num_layers_, offset_pos));
 
   if (predecessors_[goal_id] == goal_id)
   {
-    //! BUG
-    std::cout << "No path exists" << std::endl;
-    return std::vector<geometry_msgs::Point>();
+    throw std::runtime_error(std::string("No path to vertex ") + std::to_string(goal_id));
   }
 
   std::vector<geometry_msgs::Point> path;
