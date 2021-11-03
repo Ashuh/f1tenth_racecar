@@ -16,6 +16,6 @@ double calculateDistance(const double x1, const double y1, const double x2, cons
  * @param point End point of the arc.
  * @return Arc curvature.
  */
-double calculateCurvature(const geometry_msgs::Pose& pose, const geometry_msgs::Point point);
+double calculateCurvature(const geometry_msgs::Pose& pose, const geometry_msgs::Point& point);
 
 #endif  // F1TENTH_UTILS_MATH_H

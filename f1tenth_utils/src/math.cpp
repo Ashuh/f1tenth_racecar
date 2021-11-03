@@ -14,7 +14,7 @@ double calculateDistance(const double x1, const double y1, const double x2, cons
   return sqrt(calculateDistanceSq(x1, y1, x2, y2));
 }
 
-double calculateCurvature(const geometry_msgs::Pose& pose, const geometry_msgs::Point point)
+double calculateCurvature(const geometry_msgs::Pose& pose, const geometry_msgs::Point& point)
 {
   geometry_msgs::Point relative_point = TF2Wrapper::doTransform(point, pose);
   double chord_length_sq = calculateDistanceSq(0, 0, relative_point.x, relative_point.y);
