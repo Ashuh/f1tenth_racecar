@@ -12,6 +12,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
+#include "f1tenth_utils/math.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 #include "local_planner/lattice.h"
 
@@ -25,7 +26,7 @@ Lattice::Position::Position()
   lateral_position_ = 0;
 }
 
-Lattice::Position::Position(int layer, int lateral_position)
+Lattice::Position::Position(int layer, double lateral_position)
 {
   layer_ = layer;
   lateral_position_ = lateral_position;
@@ -53,11 +54,40 @@ Lattice::Vertex::Vertex()
 {
 }
 
-Lattice::Vertex::Vertex(const Lattice::Position& position, const double x, const double y)
+Lattice::Vertex::Vertex(const Lattice::Position& position, const double x, const double y, const double yaw)
 {
   position_ = position;
   x_ = x;
   y_ = y;
+  yaw_ = yaw;
+}
+
+bool Lattice::Vertex::isOnSameSide(const Lattice::Vertex& v) const
+{
+  return position_.lateral_position_ * v.position_.lateral_position_ > 0;
+}
+
+double Lattice::Vertex::distanceTo(const Vertex& v) const
+{
+  return calculateDistance(x_, y_, v.x_, v.y_);
+}
+
+geometry_msgs::Point Lattice::Vertex::getPoint() const
+{
+  geometry_msgs::Point point;
+  point.x = x_;
+  point.y = y_;
+
+  return point;
+}
+
+geometry_msgs::Pose Lattice::Vertex::getPose() const
+{
+  geometry_msgs::Pose pose;
+  pose.position = getPoint();
+  pose.orientation = TF2Wrapper::quatFromYaw(yaw_);
+
+  return pose;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -68,11 +98,10 @@ Lattice::Edge::Edge()
 {
 }
 
-Lattice::Edge::Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared_ptr<Vertex>& target_ptr,
-                    const double weight)
+Lattice::Edge::Edge(const Lattice::Vertex& source, const Lattice::Vertex& target, const double weight)
 {
-  source_ptr_ = source_ptr;
-  target_ptr_ = target_ptr;
+  source_ptr_ = std::make_shared<Vertex>(source);
+  target_ptr_ = std::make_shared<Vertex>(target);
   weight_ = weight;
 }
 
@@ -98,7 +127,7 @@ Lattice::Generator::Generator(const Pattern& pattern, const double k_length,
 
 Lattice::Generator::Generator(const Generator& generator) : pattern_(generator.pattern_)
 {
-  k_length_ = generator.k_length_;
+  k_movement_ = generator.k_movement_;
   collision_checker_ptr_ = generator.collision_checker_ptr_;
 }
 
@@ -128,10 +157,21 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
       {
         Vertex u = graph[prev_id];
 
-        if (!checkCollision(u, v))
+        // temp fixed max curvature
+        if (calculateCurvature(u.getPose(), v.getPose().position) < 1.4 && !checkCollision(u, v))
         {
-          Edge edge = generateEdge(u, v);
-          boost::add_edge(prev_id, id, edge, graph);
+          double avg_lateral_offset =
+              (abs(u.position_.lateral_position_) + abs(v.position_.lateral_position_)) * pattern_.lateral_spacing_ / 2;
+          double lateral_movement = std::abs(v.position_.lateral_position_ - u.position_.lateral_position_);
+          double weight = k_movement_ * pow(lateral_movement, 2) + (1 - k_movement_) * avg_lateral_offset;
+
+          if (!v.isOnSameSide(source_vertex))
+          {
+            weight *= 1.5;  // temp value
+          }
+
+          Edge e(u, v, weight);
+          boost::add_edge(prev_id, id, e, graph);
         }
       }
     }
@@ -153,8 +193,8 @@ int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_
 
   for (int i = 0; i < global_path_.poses.size(); ++i)
   {
-    double dist = distance(current_pose.position.x, current_pose.position.y, global_path_.poses.at(i).pose.position.x,
-                           global_path_.poses.at(i).pose.position.y);
+    double dist = calculateDistance(current_pose.position.x, current_pose.position.y,
+                                    global_path_.poses.at(i).pose.position.x, global_path_.poses.at(i).pose.position.y);
 
     if (dist < nearest_wp_dist)
     {
@@ -195,7 +235,7 @@ std::vector<geometry_msgs::Pose> Lattice::Generator::getReferencePoses(const geo
       }
 
       geometry_msgs::Point cur_pos = global_path_.poses.at(cur_id).pose.position;
-      cur_dist += distance(cur_pos.x, cur_pos.y, prev_pos.x, prev_pos.y);
+      cur_dist += calculateDistance(cur_pos.x, cur_pos.y, prev_pos.x, prev_pos.y);
       prev_pos = cur_pos;
       ++cur_id;
     }
@@ -212,7 +252,7 @@ Lattice::Vertex Lattice::Generator::generateSourceVertex(const geometry_msgs::Po
   geometry_msgs::Pose relative_pose = TF2Wrapper::doTransform<geometry_msgs::Pose>(source_pose, reference_pose);
 
   return Vertex(Position(0, relative_pose.position.y / pattern_.lateral_spacing_), source_pose.position.x,
-                source_pose.position.y);
+                source_pose.position.y, TF2Wrapper::yawFromQuat(source_pose.orientation));
 }
 
 Lattice::Vertex Lattice::Generator::generateVertex(const geometry_msgs::Pose& reference_pose, const int layer,
@@ -223,17 +263,7 @@ Lattice::Vertex Lattice::Generator::generateVertex(const geometry_msgs::Pose& re
   double x = reference_pose.position.x + lateral_offset * cos(yaw + M_PI_2);
   double y = reference_pose.position.y + lateral_offset * sin(yaw + M_PI_2);
 
-  return Vertex(Position(layer, lateral_pos), x, y);
-}
-
-Lattice::Edge Lattice::Generator::generateEdge(const Lattice::Vertex& source, const Lattice::Vertex& target) const
-{
-  double length = distance(source, target);
-  double lateral_cost = (abs(source.position_.lateral_position_) + abs(target.position_.lateral_position_)) *
-                        pattern_.lateral_spacing_ / 2;
-  double weight = k_length_ * length + (1 - k_length_) * lateral_cost;
-
-  return Edge(std::make_shared<Vertex>(source), std::make_shared<Vertex>(target), weight);
+  return Vertex(Position(layer, lateral_pos), x, y, TF2Wrapper::yawFromQuat(reference_pose.orientation));
 }
 
 bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lattice::Vertex& target) const
@@ -252,18 +282,6 @@ bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lat
   return collision_checker_ptr_->checkCollision(source_point, target_point);
 }
 
-double Lattice::Generator::distance(const double x_1, const double y_1, const double x_2, const double y_2) const
-{
-  double d_x = x_1 - x_2;
-  double d_y = y_1 - y_2;
-  return sqrt(pow(d_x, 2) + pow(d_y, 2));
-}
-
-double Lattice::Generator::distance(const Lattice::Vertex& source, const Lattice::Vertex& target) const
-{
-  return distance(source.x_, source.y_, target.x_, target.y_);
-}
-
 void Lattice::Generator::setGlobalPath(const nav_msgs::Path& global_path)
 {
   global_path_ = global_path;
@@ -278,7 +296,7 @@ void Lattice::Generator::setLengthWeight(const double weight)
 {
   if (weight >= 0.0 && weight <= 1.0)
   {
-    k_length_ = weight;
+    k_movement_ = weight;
   }
   else
   {
