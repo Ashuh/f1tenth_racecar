@@ -25,11 +25,11 @@ private:
     };
 
     int layer_;
-    double lateral_position_;
+    int lateral_position_;
 
     Position();
 
-    Position(int layer, double lateral_position);
+    Position(int layer, int lateral_position);
 
     bool operator==(const Position& other) const;
   };
@@ -39,19 +39,10 @@ private:
     Position position_;
     double x_;
     double y_;
-    double yaw_;
 
     Vertex();
 
-    Vertex(const Position& position, const double x, const double y, const double yaw);
-
-    bool isOnSameSide(const Vertex& v) const;
-
-    double distanceTo(const Vertex& v) const;
-
-    geometry_msgs::Point getPoint() const;
-
-    geometry_msgs::Pose getPose() const;
+    Vertex(const Position& position, const double x, const double y);
   };
 
   struct Edge
@@ -63,7 +54,7 @@ private:
 
     Edge();
 
-    Edge(const Lattice::Vertex& source, const Lattice::Vertex& target, const double weight);
+    Edge(const std::shared_ptr<Vertex>& source_ptr, const std::shared_ptr<Vertex>& target_ptr, const double weight);
   };
 
   typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> Graph;
@@ -113,7 +104,8 @@ public:
     void setPattern(const Pattern& pattern);
 
   private:
-    double k_movement_;
+    Pattern pattern_;
+    double k_length_;
 
     nav_msgs::Path global_path_;
 
@@ -126,6 +118,8 @@ public:
     Vertex generateSourceVertex(const geometry_msgs::Pose source_pose, const geometry_msgs::Pose reference_pose) const;
 
     Vertex generateVertex(const geometry_msgs::Pose& reference_pose, const int layer, const int lateral_pos) const;
+
+    Edge generateEdge(const Vertex& source, const Vertex& target) const;
 
     bool checkCollision(const Vertex& source, const Vertex& target) const;
 
