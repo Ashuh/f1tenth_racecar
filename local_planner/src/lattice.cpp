@@ -5,6 +5,7 @@
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/optional.hpp>
 #include <geometry_msgs/Point.h>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
@@ -339,24 +340,21 @@ Lattice::Lattice(const Graph& graph, const PositionMap& position_map, const Posi
   source_position_ = source_position;
   num_layers_ = num_layers;
   num_lateral_samples_ = num_lateral_samples;
-  predecessors_ = computeShortestPathsPredecessors();
 }
 
-std::vector<Lattice::VertexDescriptor> Lattice::computeShortestPathsPredecessors() const
+void Lattice::computeShortestPaths()
 {
   VertexDescriptor source_id = position_map_.find(source_position_)->second;
 
-  std::vector<double> distances(boost::num_vertices(graph_));  // might not need this, leaving here for now
-  std::vector<VertexDescriptor> predecessors(boost::num_vertices(graph_));
+  distances_.reserve(boost::num_vertices(graph_));
+  predecessors_.reserve(boost::num_vertices(graph_));
 
   boost::dijkstra_shortest_paths(
       graph_, source_id,
       boost::weight_map(boost::get(&Edge::weight_, graph_))
-          .distance_map(boost::make_iterator_property_map(distances.begin(), boost::get(boost::vertex_index, graph_)))
+          .distance_map(boost::make_iterator_property_map(distances_.begin(), boost::get(boost::vertex_index, graph_)))
           .predecessor_map(
-              boost::make_iterator_property_map(predecessors.begin(), boost::get(boost::vertex_index, graph_))));
-
-  return predecessors;
+              boost::make_iterator_property_map(predecessors_.begin(), boost::get(boost::vertex_index, graph_))));
 }
 
 std::vector<Lattice::Vertex> Lattice::getVertices() const
@@ -387,14 +385,15 @@ std::vector<Lattice::Edge> Lattice::getEdges() const
   return edges;
 }
 
-std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos) const
+boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> Lattice::getShortestPath(const int layer,
+                                                                                               const int offset) const
 {
   VertexDescriptor source_id = position_map_.find(source_position_)->second;
-  VertexDescriptor goal_id = getVertexIdFromPosition(Position(num_layers_, offset_pos));
+  VertexDescriptor goal_id = getVertexIdFromPosition(Position(layer, offset));
 
   if (predecessors_[goal_id] == goal_id)
   {
-    throw std::runtime_error(std::string("No path to vertex ") + std::to_string(goal_id));
+    return boost::none;
   }
 
   std::vector<geometry_msgs::Point> path;
@@ -415,7 +414,7 @@ std::vector<geometry_msgs::Point> Lattice::getShortestPath(const int offset_pos)
 
   std::reverse(path.begin(), path.end());
 
-  return path;
+  return std::make_pair(path, distances_[goal_id]);
 }
 
 Lattice::VertexDescriptor Lattice::getVertexIdFromPosition(const Position& pos) const

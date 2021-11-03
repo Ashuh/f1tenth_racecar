@@ -1,10 +1,12 @@
 #ifndef LOCAL_PLANNER_LATTICE_H
 #define LOCAL_PLANNER_LATTICE_H
 
+#include <utility>
 #include <string>
 #include <vector>
 
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/optional.hpp>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <grid_map_msgs/GridMap.h>
@@ -78,6 +80,7 @@ private:
   Position source_position_;
   PositionMap position_map_;
   std::vector<VertexDescriptor> predecessors_;
+  std::vector<double> distances_;
 
   Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position, const int num_layers,
           const int num_lateral_samples);
@@ -135,13 +138,14 @@ public:
     double distance(const Vertex& source, const Vertex& target) const;
   };
 
-  std::vector<VertexDescriptor> computeShortestPathsPredecessors() const;
+  void computeShortestPaths();
 
   std::vector<Vertex> getVertices() const;
 
   std::vector<Edge> getEdges() const;
 
-  std::vector<geometry_msgs::Point> getShortestPath(const int offset_pos) const;
+  boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> getShortestPath(const int layer,
+                                                                                        const int offset) const;
 
   std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<Vertex>& path) const;
 
