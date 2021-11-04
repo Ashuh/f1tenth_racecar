@@ -58,14 +58,11 @@ private:
 
   struct Edge
   {
-    std::shared_ptr<Vertex> source_ptr_;
-    std::shared_ptr<Vertex> target_ptr_;
-
     double weight_;
 
     Edge();
 
-    Edge(const Lattice::Vertex& source, const Lattice::Vertex& target, const double weight);
+    explicit Edge(const double weight);
   };
 
   typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> Graph;
@@ -141,8 +138,6 @@ public:
   void computeShortestPaths();
 
   std::vector<Vertex> getVertices() const;
-
-  std::vector<Edge> getEdges() const;
 
   boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> getShortestPath(const int layer,
                                                                                         const int offset) const;

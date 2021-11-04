@@ -99,10 +99,8 @@ Lattice::Edge::Edge()
 {
 }
 
-Lattice::Edge::Edge(const Lattice::Vertex& source, const Lattice::Vertex& target, const double weight)
+Lattice::Edge::Edge(const double weight)
 {
-  source_ptr_ = std::make_shared<Vertex>(source);
-  target_ptr_ = std::make_shared<Vertex>(target);
   weight_ = weight;
 }
 
@@ -171,7 +169,7 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
             weight *= 1.5;  // temp value
           }
 
-          Edge e(u, v, weight);
+          Edge e(weight);
           boost::add_edge(prev_id, id, e, graph);
         }
       }
@@ -371,20 +369,6 @@ std::vector<Lattice::Vertex> Lattice::getVertices() const
   return vertices;
 }
 
-std::vector<Lattice::Edge> Lattice::getEdges() const
-{
-  std::vector<Edge> edges;
-
-  auto es = boost::edges(graph_);
-
-  for (auto eit = es.first; eit != es.second; ++eit)
-  {
-    edges.push_back(graph_[*eit]);
-  }
-
-  return edges;
-}
-
 boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> Lattice::getShortestPath(const int layer,
                                                                                                const int offset) const
 {
@@ -443,8 +427,6 @@ visualization_msgs::Marker Lattice::generateVertexMarker(const int marker_id, co
                                                          const double r, const double g, const double b,
                                                          const double a) const
 {
-  auto vertices = getVertices();
-
   visualization_msgs::Marker vertex_marker;
   vertex_marker.header.frame_id = "map";
   vertex_marker.action = visualization_msgs::Marker::ADD;
@@ -460,12 +442,11 @@ visualization_msgs::Marker Lattice::generateVertexMarker(const int marker_id, co
   vertex_marker.color.b = b;
   vertex_marker.color.a = a;
 
-  for (auto& v : vertices)
+  auto vertices = boost::vertices(graph_);
+
+  for (auto it = vertices.first; it != vertices.second; ++it)
   {
-    geometry_msgs::Point point;
-    point.x = v.x_;
-    point.y = v.y_;
-    vertex_marker.points.push_back(point);
+    vertex_marker.points.push_back(graph_[*it].getPoint());
   }
 
   return vertex_marker;
@@ -488,18 +469,12 @@ visualization_msgs::Marker Lattice::generateEdgeMarker(const int marker_id, cons
   edge_marker.color.b = b;
   edge_marker.color.a = a;
 
-  for (auto& e : getEdges())
+  auto edges = boost::edges(graph_);
+
+  for (auto it = edges.first; it != edges.second; ++it)
   {
-    geometry_msgs::Point source_point;
-    geometry_msgs::Point target_point;
-
-    source_point.x = e.source_ptr_->x_;
-    source_point.y = e.source_ptr_->y_;
-    target_point.x = e.target_ptr_->x_;
-    target_point.y = e.target_ptr_->y_;
-
-    edge_marker.points.push_back(source_point);
-    edge_marker.points.push_back(target_point);
+    edge_marker.points.push_back(graph_[boost::source(*it, graph_)].getPoint());
+    edge_marker.points.push_back(graph_[boost::target(*it, graph_)].getPoint());
   }
 
   return edge_marker;
@@ -510,8 +485,9 @@ visualization_msgs::MarkerArray Lattice::generateWeightMarkers(int marker_id, co
                                                                const double a) const
 {
   visualization_msgs::MarkerArray weight_markers;
+  auto edges = boost::edges(graph_);
 
-  for (auto& e : getEdges())
+  for (auto it = edges.first; it != edges.second; ++it)
   {
     visualization_msgs::Marker text_marker;
 
@@ -528,12 +504,15 @@ visualization_msgs::MarkerArray Lattice::generateWeightMarkers(int marker_id, co
     text_marker.color.a = a;
 
     std::ostringstream oss;
-    oss << std::fixed << std::setprecision(2) << e.weight_;
+    oss << std::fixed << std::setprecision(2) << graph_[*it].weight_;
     text_marker.text = oss.str();
 
+    auto u = graph_[boost::source(*it, graph_)];
+    auto v = graph_[boost::target(*it, graph_)];
+
     geometry_msgs::Point text_point;
-    text_point.x = e.source_ptr_->x_ + (e.target_ptr_->x_ - e.source_ptr_->x_) / 8;
-    text_point.y = e.source_ptr_->y_ + (e.target_ptr_->y_ - e.source_ptr_->y_) / 8;
+    text_point.x = u.x_ + (v.x_ - u.x_) / 8;
+    text_point.y = u.y_ + (v.y_ - u.y_) / 8;
     text_point.z = 0.1;
 
     text_marker.pose.position = text_point;
