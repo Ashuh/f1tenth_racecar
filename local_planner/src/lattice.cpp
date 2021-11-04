@@ -151,9 +151,22 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
         // temp fixed max curvature
         if (calculateCurvature(u.getPose(), v.getPose().position) < 1.4 && !checkCollision(u, v))
         {
-          double avg_lateral_offset = (abs(u.lateral_offset_) + abs(v.lateral_offset_)) / 2;
-          double lateral_movement = std::abs(v.lateral_offset_ - u.lateral_offset_);
-          double weight = k_movement_ * pow(lateral_movement, 2) + (1 - k_movement_) * avg_lateral_offset;
+          double lateral_movement = v.lateral_offset_ - u.lateral_offset_;
+
+          double cumulative_offset;
+
+          if (u.isOnSameSide(v))
+          {
+            cumulative_offset = std::abs(0.5 * (u.lateral_offset_ + v.lateral_offset_));
+          }
+          else
+          {
+            double intercept = -u.lateral_offset_ / (v.lateral_offset_ - u.lateral_offset_);
+            cumulative_offset =
+                0.5 * (intercept * std::abs(u.lateral_offset_) + (1 - intercept) * std::abs(v.lateral_offset_));
+          }
+
+          double weight = k_movement_ * pow(lateral_movement, 2) + (1 - k_movement_) * cumulative_offset;
 
           if (!v.isOnSameSide(source_vertex))
           {
