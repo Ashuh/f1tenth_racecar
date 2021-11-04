@@ -27,7 +27,7 @@ Lattice::Position::Position()
   lateral_position_ = 0;
 }
 
-Lattice::Position::Position(int layer, double lateral_position)
+Lattice::Position::Position(int layer, int lateral_position)
 {
   layer_ = layer;
   lateral_position_ = lateral_position;
@@ -39,15 +39,6 @@ bool Lattice::Position::operator==(const Position& other) const
 }
 
 /* -------------------------------------------------------------------------- */
-/*                            Lattice Position Hash                           */
-/* -------------------------------------------------------------------------- */
-
-size_t Lattice::Position::Hash::operator()(const Lattice::Position& p) const
-{
-  return p.layer_ * p.lateral_position_;
-}
-
-/* -------------------------------------------------------------------------- */
 /*                                   Vertex                                   */
 /* -------------------------------------------------------------------------- */
 
@@ -55,17 +46,17 @@ Lattice::Vertex::Vertex()
 {
 }
 
-Lattice::Vertex::Vertex(const Lattice::Position& position, const double x, const double y, const double yaw)
+Lattice::Vertex::Vertex(const double x, const double y, const double yaw, const double lateral_offset)
 {
-  position_ = position;
   x_ = x;
   y_ = y;
   yaw_ = yaw;
+  lateral_offset_ = lateral_offset;
 }
 
 bool Lattice::Vertex::isOnSameSide(const Lattice::Vertex& v) const
 {
-  return position_.lateral_position_ * v.position_.lateral_position_ > 0;
+  return lateral_offset_ * v.lateral_offset_ > 0;
 }
 
 double Lattice::Vertex::distanceTo(const Vertex& v) const
@@ -133,13 +124,14 @@ Lattice::Generator::Generator(const Generator& generator) : pattern_(generator.p
 Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) const
 {
   std::vector<geometry_msgs::Pose> reference_poses = getReferencePoses(source_pose);
+  PositionMap map(reference_poses.size());
 
   Graph graph;
-  Vertex source_vertex = generateSourceVertex(source_pose, reference_poses.at(0));
+  double source_offset = TF2Wrapper::doTransform<geometry_msgs::Pose>(source_pose, reference_poses.at(0)).position.y;
+  Vertex source_vertex(source_pose.position.x, source_pose.position.y, TF2Wrapper::yawFromQuat(source_pose.orientation),
+                       source_offset);
   VertexDescriptor source_id = boost::add_vertex(source_vertex, graph);
-  PositionMap position_map = { { source_vertex.position_, source_id } };
-  std::vector<std::vector<VertexDescriptor>> layer_ids(pattern_.num_layers_ + 1);
-  layer_ids.at(0) = std::vector<VertexDescriptor>{ source_id };
+  map.at(0).insert({ 0, source_id });
 
   for (int i = 1; i < reference_poses.size(); ++i)
   {
@@ -149,19 +141,18 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
     {
       Vertex v = generateVertex(reference_pose, i, j);
       VertexDescriptor id = boost::add_vertex(v, graph);
-      layer_ids.at(i).push_back(id);
-      position_map.insert({ v.position_, id });
+      map.at(i).insert({ j, id });
 
-      for (const auto& prev_id : layer_ids.at(i - 1))
+      for (const auto& pair : map.at(i - 1))
       {
+        auto prev_id = pair.second;
         Vertex u = graph[prev_id];
 
         // temp fixed max curvature
         if (calculateCurvature(u.getPose(), v.getPose().position) < 1.4 && !checkCollision(u, v))
         {
-          double avg_lateral_offset =
-              (abs(u.position_.lateral_position_) + abs(v.position_.lateral_position_)) * pattern_.lateral_spacing_ / 2;
-          double lateral_movement = std::abs(v.position_.lateral_position_ - u.position_.lateral_position_);
+          double avg_lateral_offset = (abs(u.lateral_offset_) + abs(v.lateral_offset_)) / 2;
+          double lateral_movement = std::abs(v.lateral_offset_ - u.lateral_offset_);
           double weight = k_movement_ * pow(lateral_movement, 2) + (1 - k_movement_) * avg_lateral_offset;
 
           if (!v.isOnSameSide(source_vertex))
@@ -176,8 +167,7 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
     }
   }
 
-  return Lattice(graph, position_map, source_vertex.position_, pattern_.num_layers_,
-                 2 * pattern_.num_lateral_samples_per_side_ + 1);
+  return Lattice(graph, map, source_id, pattern_.num_layers_, 2 * pattern_.num_lateral_samples_per_side_ + 1);
 }
 
 int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
@@ -250,19 +240,19 @@ Lattice::Vertex Lattice::Generator::generateSourceVertex(const geometry_msgs::Po
 {
   geometry_msgs::Pose relative_pose = TF2Wrapper::doTransform<geometry_msgs::Pose>(source_pose, reference_pose);
 
-  return Vertex(Position(0, relative_pose.position.y / pattern_.lateral_spacing_), source_pose.position.x,
-                source_pose.position.y, TF2Wrapper::yawFromQuat(source_pose.orientation));
+  return Vertex(source_pose.position.x, source_pose.position.y, TF2Wrapper::yawFromQuat(source_pose.orientation),
+                relative_pose.position.y);
 }
 
 Lattice::Vertex Lattice::Generator::generateVertex(const geometry_msgs::Pose& reference_pose, const int layer,
                                                    const int lateral_pos) const
 {
   double yaw = TF2Wrapper::yawFromQuat(reference_pose.orientation);
-  double lateral_offset = lateral_pos * pattern_.lateral_spacing_;
-  double x = reference_pose.position.x + lateral_offset * cos(yaw + M_PI_2);
-  double y = reference_pose.position.y + lateral_offset * sin(yaw + M_PI_2);
+  double offset = lateral_pos * pattern_.lateral_spacing_;
+  double x = reference_pose.position.x + offset * cos(yaw + M_PI_2);
+  double y = reference_pose.position.y + offset * sin(yaw + M_PI_2);
 
-  return Vertex(Position(layer, lateral_pos), x, y, TF2Wrapper::yawFromQuat(reference_pose.orientation));
+  return Vertex(x, y, TF2Wrapper::yawFromQuat(reference_pose.orientation), offset);
 }
 
 bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lattice::Vertex& target) const
@@ -330,25 +320,23 @@ Lattice::Generator::Pattern::Pattern(const int num_layers, const double longitud
 /*                                   Lattice                                  */
 /* -------------------------------------------------------------------------- */
 
-Lattice::Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position,
+Lattice::Lattice(const Graph& graph, const PositionMap& position_map, const VertexDescriptor source_id,
                  const int num_layers, const int num_lateral_samples)
 {
   graph_ = graph;
   position_map_ = position_map;
-  source_position_ = source_position;
+  source_id_ = source_id;
   num_layers_ = num_layers;
   num_lateral_samples_ = num_lateral_samples;
 }
 
 void Lattice::computeShortestPaths()
 {
-  VertexDescriptor source_id = position_map_.find(source_position_)->second;
-
   distances_.reserve(boost::num_vertices(graph_));
   predecessors_.reserve(boost::num_vertices(graph_));
 
   boost::dijkstra_shortest_paths(
-      graph_, source_id,
+      graph_, source_id_,
       boost::weight_map(boost::get(&Edge::weight_, graph_))
           .distance_map(boost::make_iterator_property_map(distances_.begin(), boost::get(boost::vertex_index, graph_)))
           .predecessor_map(
@@ -372,8 +360,7 @@ std::vector<Lattice::Vertex> Lattice::getVertices() const
 boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> Lattice::getShortestPath(const int layer,
                                                                                                const int offset) const
 {
-  VertexDescriptor source_id = position_map_.find(source_position_)->second;
-  VertexDescriptor goal_id = getVertexIdFromPosition(Position(layer, offset));
+  VertexDescriptor goal_id = getVertexIdFromPosition({ layer, offset });
 
   if (predecessors_[goal_id] == goal_id)
   {
@@ -390,7 +377,7 @@ boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> Lattice::g
     point.y = v.y_;
     path.push_back(point);
   }
-  Vertex v = graph_[source_id];
+  Vertex v = graph_[source_id_];
   geometry_msgs::Point point;
   point.x = v.x_;
   point.y = v.y_;
@@ -403,9 +390,14 @@ boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> Lattice::g
 
 Lattice::VertexDescriptor Lattice::getVertexIdFromPosition(const Position& pos) const
 {
-  auto it = position_map_.find(pos);
+  if (pos.layer_ >= position_map_.size())
+  {
+    throw std::invalid_argument("Vertex position does not exist in lattice");
+  }
 
-  if (it == position_map_.end())
+  auto it = position_map_.at(pos.layer_).find(pos.lateral_position_);
+
+  if (it == position_map_.at(pos.layer_).end())
   {
     throw std::invalid_argument("Vertex position does not exist in lattice");
   }

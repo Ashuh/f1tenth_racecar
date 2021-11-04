@@ -21,31 +21,26 @@ class Lattice
 private:
   struct Position
   {
-    struct Hash
-    {
-      size_t operator()(const Position& p) const;
-    };
-
     int layer_;
-    double lateral_position_;
+    int lateral_position_;
 
     Position();
 
-    Position(int layer, double lateral_position);
+    Position(int layer, int lateral_position);
 
     bool operator==(const Position& other) const;
   };
 
   struct Vertex
   {
-    Position position_;
     double x_;
     double y_;
     double yaw_;
+    double lateral_offset_;
 
     Vertex();
 
-    Vertex(const Position& position, const double x, const double y, const double yaw);
+    Vertex(const double x, const double y, const double yaw, const double lateral_offset);
 
     bool isOnSameSide(const Vertex& v) const;
 
@@ -68,18 +63,18 @@ private:
   typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, Vertex, Edge> Graph;
   typedef Graph::vertex_descriptor VertexDescriptor;
   typedef Graph::edge_descriptor EdgeDescriptor;
-  typedef std::unordered_map<Lattice::Position, Lattice::VertexDescriptor, Lattice::Position::Hash> PositionMap;
+  typedef std::vector<std::unordered_map<int, double>> PositionMap;
 
   int num_layers_;
   int num_lateral_samples_;
 
   Graph graph_;
-  Position source_position_;
   PositionMap position_map_;
+  VertexDescriptor source_id_;
   std::vector<VertexDescriptor> predecessors_;
   std::vector<double> distances_;
 
-  Lattice(const Graph& graph, const PositionMap& position_map, const Position& source_position, const int num_layers,
+  Lattice(const Graph& graph, const PositionMap& position_map, const VertexDescriptor source_id, const int num_layers,
           const int num_lateral_samples);
 
 public:
@@ -129,10 +124,6 @@ public:
     Vertex generateVertex(const geometry_msgs::Pose& reference_pose, const int layer, const int lateral_pos) const;
 
     bool checkCollision(const Vertex& source, const Vertex& target) const;
-
-    double distance(const double x_1, const double y_1, const double x_2, const double y_2) const;
-
-    double distance(const Vertex& source, const Vertex& target) const;
   };
 
   void computeShortestPaths();
