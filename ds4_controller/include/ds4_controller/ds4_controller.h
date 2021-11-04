@@ -46,6 +46,9 @@ private:
 
   void batteryToRGB(float& r, float& g, float& b);
 
+  template <typename T>
+  void getParam(const std::string& key, T& result);
+
 public:
   DS4Controller();
 };

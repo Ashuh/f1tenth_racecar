@@ -1,13 +1,13 @@
 <launch>
     <arg name="odom_topic" value="odom"/>
     <arg name="time_to_collision_topic" value="time_to_collision"/>
-    <arg name="raw_drive_topic" value="drive_raw"/>
-    <arg name="safe_drive_topic" value="drive"/>
+    <arg name="selected_drive_topic" value="drive/selected"/>
+    <arg name="safe_drive_topic" value="drive/safe"/>
 
     <node name="safety_controller" pkg="safety_controller" type="safety_controller_node" output="screen">
         <param name="odom_topic" value="$(arg odom_topic)" />
         <param name="time_to_collision_topic" value="$(arg time_to_collision_topic)" />
-        <param name="raw_drive_topic" value="$(arg raw_drive_topic)" />
+        <param name="selected_drive_topic" value="$(arg selected_drive_topic)" />
         <param name="safe_drive_topic" value="$(arg safe_drive_topic)" />
     </node>
 </launch>

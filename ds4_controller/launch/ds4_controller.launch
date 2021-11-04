@@ -4,7 +4,8 @@
 
   <arg name="status_topic" value="status"/>
   <arg name="feedback_topic" value="set_feedback"/>
-  <arg name="drive_topic" value="drive_raw"/>
+  <arg name="joy_drive_topic" value="drive/joy"/>
+  <arg name="drive_mode_topic" value="drive_mode"/>
 
   <arg name="timeout" value="0.5"/>
 
@@ -21,7 +22,8 @@
   <node name="ds4_controller" pkg="ds4_controller" type="ds4_controller_node" output="screen">
     <param name="status_topic" value="$(arg status_topic)" />
     <param name="feedback_topic" value="$(arg feedback_topic)" />
-    <param name="drive_topic" value="$(arg drive_topic)" />
+    <param name="joy_drive_topic" value="$(arg joy_drive_topic)" />
+    <param name="drive_mode_topic" value="$(arg drive_mode_topic)" />
 
     <param name="timeout" value="$(arg timeout)" />
 

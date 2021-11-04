@@ -2,18 +2,18 @@
     <arg name="look_ahead_dist" value="1" />
     <arg name="gain" value="0.25" />
 
-    <arg name="path_topic" value="path" />
+    <arg name="trajectory_topic" value="path/local" />
     <arg name="odom_topic" value="odom" />
-    <arg name="drive_topic" value="drive/selected" />
+    <arg name="auto_drive_topic" value="drive" />
     <arg name="viz_topic" value="drive_controller_viz" />
 
     <node name="drive_controller" pkg="drive_controller" type="drive_controller_node" output="screen">
         <param name="look_ahead_dist" value="$(arg look_ahead_dist)" />
         <param name="gain" value="$(arg gain)" />
 
-        <param name="path_topic" value="$(arg path_topic)" />
+        <param name="trajectory_topic" value="$(arg trajectory_topic)" />
         <param name="odom_topic" value="$(arg odom_topic)" />
-        <param name="drive_topic" value="$(arg drive_topic)" />
+        <param name="auto_drive_topic" value="$(arg auto_drive_topic)" />
         <param name="viz_topic" value="$(arg viz_topic)" />
     </node>
 </launch>

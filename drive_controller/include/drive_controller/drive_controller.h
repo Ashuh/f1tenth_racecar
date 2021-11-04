@@ -3,9 +3,9 @@
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
 
 #include "drive_controller/pure_pursuit.h"
+#include "f1tenth_msgs/Trajectory.h"
 
 namespace f1tenth_racecar
 {
@@ -18,14 +18,14 @@ private:
 
   ros::Timer timer_;
 
-  ros::Subscriber path_sub_;
+  ros::Subscriber trajectory_sub_;
   ros::Subscriber odom_sub_;
 
   ros::Publisher drive_pub_;
   ros::Publisher viz_pub_;
 
   nav_msgs::Odometry odom_msg_;
-  nav_msgs::Path path_;
+  f1tenth_msgs::Trajectory trajectrory_;
 
   std::unique_ptr<PurePursuit> pure_pursuit_;
 
@@ -33,7 +33,7 @@ private:
 
   void odomCallback(const nav_msgs::Odometry odom_msg);
 
-  void pathCallback(const nav_msgs::Path path_msg);
+  void trajectoryCallback(const f1tenth_msgs::Trajectory traj_msg);
 
   visualization_msgs::Marker buildLookAheadDistMarker(const double look_ahead_dist);
 

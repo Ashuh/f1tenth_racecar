@@ -4,11 +4,12 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
 
 #include "drive_controller/pure_pursuit.h"
 #include "drive_controller/drive_controller.h"
+#include "f1tenth_msgs/Trajectory.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
 namespace f1tenth_racecar
 {
@@ -21,20 +22,20 @@ DriveController::DriveController()
   double look_ahead_dist;
   double gain;
 
-  std::string path_topic;
+  std::string trajectory_topic;
   std::string odom_topic;
   std::string drive_topic;
   std::string viz_topic;
 
-  ROS_ASSERT(private_nh.getParam("look_ahead_dist", look_ahead_dist));
-  ROS_ASSERT(private_nh.getParam("gain", gain));
+  private_nh.getParam("look_ahead_dist", look_ahead_dist);
+  private_nh.getParam("gain", gain);
 
-  ROS_ASSERT(private_nh.getParam("path_topic", path_topic));
-  ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
-  ROS_ASSERT(private_nh.getParam("auto_drive_topic", drive_topic));
-  ROS_ASSERT(private_nh.getParam("viz_topic", viz_topic));
+  private_nh.getParam("trajectory_topic", trajectory_topic);
+  private_nh.getParam("odom_topic", odom_topic);
+  private_nh.getParam("auto_drive_topic", drive_topic);
+  private_nh.getParam("viz_topic", viz_topic);
 
-  path_sub_ = nh_.subscribe(path_topic, 1, &DriveController::pathCallback, this);
+  trajectory_sub_ = nh_.subscribe(trajectory_topic, 1, &DriveController::trajectoryCallback, this);
   odom_sub_ = nh_.subscribe(odom_topic, 1, &DriveController::odomCallback, this);
 
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
@@ -47,13 +48,12 @@ DriveController::DriveController()
 
 void DriveController::timerCallback(const ros::TimerEvent& timer_event)
 {
-  ackermann_msgs::AckermannDriveStamped drive_msg;
-
   try
   {
-    drive_msg.drive.steering_angle = pure_pursuit_->calculateSteeringAngle(odom_msg_, path_);
+    ackermann_msgs::AckermannDriveStamped drive_msg = pure_pursuit_->computeDrive(odom_msg_, trajectrory_);
     ROS_INFO_STREAM("[Drive Controller] Steering Angle: " << drive_msg.drive.steering_angle * 180.0 / M_PI
                                                           << " degrees");
+    drive_pub_.publish(drive_msg);
 
     geometry_msgs::PointStamped look_ahead_point;
     geometry_msgs::PointStamped arc_center;
@@ -78,10 +78,6 @@ void DriveController::timerCallback(const ros::TimerEvent& timer_event)
     ROS_ERROR("[Drive Controller] %s", ex.what());
     return;
   }
-
-  drive_msg.drive.speed = 2.0;
-
-  drive_pub_.publish(drive_msg);
 }
 
 void DriveController::odomCallback(const nav_msgs::Odometry odom_msg)
@@ -89,9 +85,9 @@ void DriveController::odomCallback(const nav_msgs::Odometry odom_msg)
   odom_msg_ = odom_msg;
 }
 
-void DriveController::pathCallback(const nav_msgs::Path path_msg)
+void DriveController::trajectoryCallback(const f1tenth_msgs::Trajectory traj_msg)
 {
-  path_ = path_msg;
+  trajectrory_ = traj_msg;
 }
 
 void DriveController::publishVisualization(const double search_radius,

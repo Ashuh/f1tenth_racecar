@@ -1,19 +1,47 @@
 #include <limits>
 
+#include <ackermann_msgs/AckermannDriveStamped.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include "drive_controller/pure_pursuit.h"
+#include "f1tenth_msgs/Trajectory.h"
+#include "f1tenth_utils/tf2_wrapper.h"
 
 namespace f1tenth_racecar
 {
 namespace control
 {
-PurePursuit::PurePursuit(double look_ahead_dist, double gain)
-  : tf_listener_(tf_buffer_), look_ahead_dist_(look_ahead_dist), gain_(gain)
+PurePursuit::PurePursuit(double look_ahead_dist, double gain) : look_ahead_dist_(look_ahead_dist), gain_(gain)
 {
+}
+
+ackermann_msgs::AckermannDriveStamped PurePursuit::computeDrive(nav_msgs::Odometry odom,
+                                                                const f1tenth_msgs::Trajectory trajectory)
+{
+  if (trajectory.waypoints.empty())
+  {
+    throw std::invalid_argument("Trajectory is empty");
+  }
+
+  int id = findLookAheadWaypointId(odom, trajectory);
+  f1tenth_msgs::Waypoint look_ahead_wp = trajectory.waypoints.at(id);
+
+  look_ahead_point_.header.frame_id = trajectory.header.frame_id;
+  look_ahead_point_.point.x = look_ahead_wp.x;
+  look_ahead_point_.point.y = look_ahead_wp.y;
+
+  // Transform look ahead point to local frame
+  geometry_msgs::PointStamped look_ahead_point_transformed =
+      TF2Wrapper::doTransform(look_ahead_point_, odom.child_frame_id);
+
+  ackermann_msgs::AckermannDriveStamped drive_msg;
+  drive_msg.header.stamp = ros::Time::now();
+  drive_msg.header.frame_id = odom.child_frame_id;
+  drive_msg.drive.steering_angle = calculateSteeringAngle(look_ahead_point_transformed);
+  drive_msg.drive.speed = look_ahead_wp.velocity;
+
+  return drive_msg;
 }
 
 double PurePursuit::getDist(const geometry_msgs::Point point_1, const geometry_msgs::Point point_2)
@@ -24,30 +52,26 @@ double PurePursuit::getDist(const geometry_msgs::Point point_1, const geometry_m
   return sqrt(pow(d_x, 2) + pow(d_y, 2));
 }
 
-bool PurePursuit::isPoseAhead(const nav_msgs::Odometry odom, const geometry_msgs::PoseStamped pose)
-{
-  geometry_msgs::TransformStamped transform =
-      tf_buffer_.lookupTransform(odom.child_frame_id, pose.header.frame_id, ros::Time(0));
-  geometry_msgs::Point point_transformed;
-  tf2::doTransform(pose.pose.position, point_transformed, transform);
-
-  return point_transformed.x > 0;
-}
-
-geometry_msgs::PointStamped PurePursuit::findLookAheadPoint(nav_msgs::Odometry odom, const nav_msgs::Path path)
+int PurePursuit::findLookAheadWaypointId(nav_msgs::Odometry odom, const f1tenth_msgs::Trajectory trajectory)
 {
   look_ahead_point_dist_ = -std::numeric_limits<double>::max();
-  geometry_msgs::PointStamped look_ahead_point;
 
-  for (int i = 0; i < path.poses.size(); ++i)
+  int id = 0;
+
+  for (int i = 0; i < trajectory.waypoints.size(); ++i)
   {
-    double dist = getDist(path.poses.at(i).pose.position, odom.pose.pose.position);
+    f1tenth_msgs::Waypoint waypoint = trajectory.waypoints.at(i);
+    geometry_msgs::Point point;
+    point.x = waypoint.x;
+    point.y = waypoint.y;
+    double dist = getDist(point, odom.pose.pose.position);
 
-    if (dist < look_ahead_dist_ && dist > look_ahead_point_dist_ && isPoseAhead(odom, path.poses.at(i)))
+    bool isWaypointAhead = TF2Wrapper::doTransform(point, odom.child_frame_id, waypoint.header.frame_id).x > 0;
+
+    if (dist < look_ahead_dist_ && dist > look_ahead_point_dist_ && isWaypointAhead)
     {
       look_ahead_point_dist_ = dist;
-      look_ahead_point.header.frame_id = path.header.frame_id;
-      look_ahead_point.point = path.poses.at(i).pose.position;
+      id = i;
     }
   }
 
@@ -56,36 +80,19 @@ geometry_msgs::PointStamped PurePursuit::findLookAheadPoint(nav_msgs::Odometry o
     throw std::runtime_error("No valid look ahead point found in path");
   }
 
-  return look_ahead_point;
+  return id;
 }
 
-double PurePursuit::calculateSteeringAngle(const nav_msgs::Odometry odom, const nav_msgs::Path path)
+double PurePursuit::calculateSteeringAngle(const geometry_msgs::PointStamped look_ahead_point)
+
 {
-  if (path.poses.empty())
-  {
-    throw std::invalid_argument("Path is empty");
-  }
-  if (odom.header.frame_id != path.header.frame_id)
-  {
-    throw std::invalid_argument("Vehicle pose and path are in different frames");
-  }
-
-  look_ahead_point_ = findLookAheadPoint(odom, path);
-
-  geometry_msgs::TransformStamped transform =
-      tf_buffer_.lookupTransform(odom.child_frame_id, look_ahead_point_.header.frame_id, ros::Time(0));
-  geometry_msgs::PointStamped look_ahead_point_transformed;
-  tf2::doTransform(look_ahead_point_, look_ahead_point_transformed, transform);
-
-  arc_radius_ = pow(look_ahead_point_dist_, 2) / (2 * abs(look_ahead_point_transformed.point.y));
-  double d = arc_radius_ - abs(look_ahead_point_transformed.point.y);
-
-  arc_center_.header.frame_id = odom.child_frame_id;
+  arc_radius_ = pow(look_ahead_point_dist_, 2) / (2 * abs(look_ahead_point.point.y));
+  double d = arc_radius_ - abs(look_ahead_point.point.y);
+  arc_center_.header.frame_id = look_ahead_point.header.frame_id;
   arc_center_.point.x = 0.0;
-  arc_center_.point.y = (look_ahead_point_transformed.point.y > 0) ? look_ahead_point_transformed.point.y + d :
-                                                                     look_ahead_point_transformed.point.y - d;
+  arc_center_.point.y = (look_ahead_point.point.y > 0) ? look_ahead_point.point.y + d : look_ahead_point.point.y - d;
 
-  return ((look_ahead_point_transformed.point.y > 0) ? 1 : -1) * gain_ / arc_radius_;
+  return ((look_ahead_point.point.y > 0) ? 1 : -1) * gain_ / arc_radius_;
 }
 
 void PurePursuit::getIntermediateResults(geometry_msgs::PointStamped& look_ahead_point, double& look_ahead_point_dist,
