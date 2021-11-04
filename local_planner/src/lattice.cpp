@@ -56,7 +56,7 @@ Lattice::Vertex::Vertex(const double x, const double y, const double yaw, const 
 
 bool Lattice::Vertex::isOnSameSide(const Lattice::Vertex& v) const
 {
-  return lateral_offset_ * v.lateral_offset_ > 0;
+  return lateral_offset_ * v.lateral_offset_ >= 0;
 }
 
 double Lattice::Vertex::distanceTo(const Vertex& v) const
