@@ -35,47 +35,52 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   // Generate lattice
   Lattice lattice = lat_gen_.generate(current_pose);
   visualizeLattice(lattice);
+  lattice.computeShortestPaths();
 
   // Get SSSP for each vertex in final layer
-  std::vector<std::vector<geometry_msgs::Point>> sssp_results;
+  std::vector<std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>> lattice_sssp_results;
+  int max_offset = (lattice.getNumLateralSamples() - 1) / 2;
 
-  for (int i = 1; i < lattice.getNumLateralSamples() + 1; ++i)
+  for (int i = 1; i <= lattice.getNumLayers(); ++i)
   {
-    int offset = ((i % 2 == 0) ? 1 : -1) * i / 2;
+    std::vector<std::pair<std::vector<geometry_msgs::Point>, double>> layer_sssp_results;
 
-    std::vector<geometry_msgs::Point> sssp = lattice.getShortestPath(offset);
-    sssp_results.push_back(sssp);
+    for (int j = -max_offset; j <= max_offset; ++j)
+    {
+      auto result = lattice.getShortestPath(i, j);
+
+      if (result)
+      {
+        layer_sssp_results.push_back(result.get());
+      }
+    }
+
+    lattice_sssp_results.push_back(layer_sssp_results);
   }
 
-  // Select the best SSSP
-  std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
+  std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(lattice_sssp_results);
+
   visualizeSSSP(pointsToPath(best_sssp));
   Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
   return reference_path;
 }
 
-std::vector<geometry_msgs::Point>
-ReferenceTrajectoryGenerator::getBestSSSP(const std::vector<std::vector<geometry_msgs::Point>>& sssp_candidates)
+std::vector<geometry_msgs::Point> ReferenceTrajectoryGenerator::getBestSSSP(
+    std::vector<std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>>& sssp_results)
 {
-  // placeholder code
-
-  std::vector<geometry_msgs::Point> best_sssp;
-
-  for (auto& sssp : sssp_candidates)
+  for (int i = sssp_results.size() - 1; i >= 0; --i)
   {
-    if (!sssp.empty())
+    if (sssp_results.at(i).empty())
     {
-      best_sssp = sssp;
-      break;
+      continue;
     }
+
+    std::sort(sssp_results.at(i).begin(), sssp_results.at(i).end(),
+              [](const auto& p1, const auto& p2) { return p1.second < p2.second; });
+    return sssp_results.at(i).at(0).first;
   }
 
-  if (best_sssp.empty())
-  {
-    throw std::runtime_error("Failed to find a path to the final layer of the lattice");
-  }
-
-  return best_sssp;
+  throw std::runtime_error("No paths found in lattice");
 }
 
 std::vector<geometry_msgs::Point>
