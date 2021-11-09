@@ -40,7 +40,8 @@ private:
 
   Path generateReferencePath(const geometry_msgs::Pose& current_pose);
 
-  std::vector<geometry_msgs::Point> getBestSSSP(const std::vector<std::vector<geometry_msgs::Point>>& sssp_candidates);
+  std::vector<geometry_msgs::Point>
+  getBestSSSP(std::vector<std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>>& sssp_results);
 
   std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path);
 
