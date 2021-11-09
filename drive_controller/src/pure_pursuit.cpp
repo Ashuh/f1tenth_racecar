@@ -103,5 +103,15 @@ void PurePursuit::getIntermediateResults(geometry_msgs::PointStamped& look_ahead
   arc_center = arc_center_;
   arc_radius = arc_radius_;
 }
+
+void PurePursuit::setGain(const double gain)
+{
+  gain_ = gain;
+}
+
+void PurePursuit::setLookAheadDistance(const double distance)
+{
+  look_ahead_dist_ = distance;
+}
 }  // namespace control
 }  // namespace f1tenth_racecar

@@ -44,6 +44,9 @@ DriveController::DriveController()
   timer_ = nh_.createTimer(ros::Duration(0.1), &DriveController::timerCallback, this);
 
   pure_pursuit_ = std::make_unique<PurePursuit>(look_ahead_dist, gain);
+
+  f_ = boost::bind(&DriveController::configCallback, this, _1, _2);
+  server_.setCallback(f_);
 }
 
 void DriveController::timerCallback(const ros::TimerEvent& timer_event)
@@ -88,6 +91,12 @@ void DriveController::odomCallback(const nav_msgs::Odometry odom_msg)
 void DriveController::trajectoryCallback(const f1tenth_msgs::Trajectory traj_msg)
 {
   trajectrory_ = traj_msg;
+}
+
+void DriveController::configCallback(drive_controller::DriveControllerConfig& config, uint32_t level)
+{
+  pure_pursuit_->setGain(config.gain);
+  pure_pursuit_->setLookAheadDistance(config.look_ahead_distance);
 }
 
 void DriveController::publishVisualization(const double search_radius,

@@ -37,6 +37,10 @@ public:
 
   void getIntermediateResults(geometry_msgs::PointStamped& look_ahead_point, double& look_ahead_point_dist,
                               geometry_msgs::PointStamped& arc_center, double& arc_radius);
+
+  void setGain(const double gain);
+
+  void setLookAheadDistance(const double distance);
 };
 }  // namespace control
 }  // namespace f1tenth_racecar
