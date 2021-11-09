@@ -5,40 +5,36 @@
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "f1tenth_msgs/Trajectory.h"
 
-namespace f1tenth_racecar
-{
-namespace control
-{
 class PurePursuit
 {
 private:
-  geometry_msgs::PointStamped look_ahead_point_;
-  double look_ahead_point_dist_;
-  geometry_msgs::PointStamped arc_center_;
-  double arc_radius_;
-
   double look_ahead_dist_;
   double gain_;
 
-  double calculateSteeringAngle(const geometry_msgs::PointStamped look_ahead_point);
+  std::string robot_frame_id;
 
-  static double getDist(const geometry_msgs::Point point_1, const geometry_msgs::Point point_2);
+  std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
-  int findLookAheadWaypointId(const nav_msgs::Odometry odom, const f1tenth_msgs::Trajectory trajectory);
+  int findLookAheadWaypointId(const nav_msgs::Odometry& odom, const f1tenth_msgs::Trajectory& trajectory);
 
 public:
-  PurePursuit(double look_ahead_dist, double gain);
+  PurePursuit(const double look_ahead_dist, const double gain,
+              const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr);
 
-  ackermann_msgs::AckermannDriveStamped computeDrive(nav_msgs::Odometry odom,
-                                                     const f1tenth_msgs::Trajectory trajectory);
+  ackermann_msgs::AckermannDriveStamped computeDrive(const nav_msgs::Odometry& odom,
+                                                     const f1tenth_msgs::Trajectory& trajectory);
 
-  void getIntermediateResults(geometry_msgs::PointStamped& look_ahead_point, double& look_ahead_point_dist,
-                              geometry_msgs::PointStamped& arc_center, double& arc_radius);
+  void setGain(const double gain);
+
+  void setLookAheadDistance(const double distance);
+
+  void visualizeArc(const double curvature, const std::string& robot_frame_id) const;
+
+  void visualizeLookAheadPoint(const geometry_msgs::PointStamped& point) const;
 };
-}  // namespace control
-}  // namespace f1tenth_racecar
 
 #endif  // DRIVE_CONTROLLER_PURE_PURSUIT_H

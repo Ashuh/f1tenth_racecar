@@ -9,6 +9,7 @@ project(drive_controller)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   ackermann_msgs
+  dynamic_reconfigure
   f1tenth_msgs
   f1tenth_utils
   geometry_msgs
@@ -92,10 +93,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
-#   cfg/DynReconf1.cfg
-#   cfg/DynReconf2.cfg
-# )
+generate_dynamic_reconfigure_options(
+  cfg/DriveController.cfg
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -138,6 +138,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node 
+  src/drive_controller_node.cpp
   src/drive_controller.cpp
   src/pure_pursuit.cpp
 )
