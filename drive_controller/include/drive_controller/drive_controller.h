@@ -4,15 +4,12 @@
 #include <ros/ros.h>
 #include <dynamic_reconfigure/server.h>
 #include <nav_msgs/Odometry.h>
+#include <visualization_msgs/MarkerArray.h>
 
 #include "drive_controller/DriveControllerConfig.h"
 #include "drive_controller/pure_pursuit.h"
 #include "f1tenth_msgs/Trajectory.h"
 
-namespace f1tenth_racecar
-{
-namespace control
-{
 class DriveController
 {
 private:
@@ -30,6 +27,7 @@ private:
   f1tenth_msgs::Trajectory trajectrory_;
 
   std::unique_ptr<PurePursuit> pure_pursuit_;
+  std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
   dynamic_reconfigure::Server<drive_controller::DriveControllerConfig> server_;
   dynamic_reconfigure::Server<drive_controller::DriveControllerConfig>::CallbackType f_;
@@ -50,7 +48,5 @@ private:
 public:
   DriveController();
 };
-}  // namespace control
-}  // namespace f1tenth_racecar
 
 #endif  // DRIVE_CONTROLLER_DRIVE_CONTROLLER_H
