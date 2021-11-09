@@ -133,8 +133,6 @@ public:
   boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> getShortestPath(const int layer,
                                                                                         const int offset) const;
 
-  std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<Vertex>& path) const;
-
   VertexDescriptor getVertexIdFromPosition(const Position& pos) const;
 
   int getNumLayers() const;
