@@ -24,9 +24,7 @@ LocalPlanner::LocalPlanner()
 {
   ros::NodeHandle private_nh("~");
   initCallbacks(private_nh);
-  initShared(private_nh);
-  initRTG(private_nh);
-  initTTG(private_nh);
+  initPlanner(private_nh);
 
   /* --------------------------- Dynamic Reconfigure -------------------------- */
 
@@ -63,23 +61,14 @@ void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
   inflated_costmap_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>(inflated_costmap_topic, 1);
 }
 
-void LocalPlanner::initShared(const ros::NodeHandle& private_nh)
+void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
 {
   std::vector<double> circle_offsets;
   double circle_radius;
 
-  private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
-  private_nh.param("circle_radius", circle_radius, 0.2);
-
-  collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets, circle_radius);
-  viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
-}
-
-void LocalPlanner::initRTG(const ros::NodeHandle& private_nh)
-{
   int lattice_num_layers;
   int lattice_num_lateral_samples_per_side;
-  double lattice_longitudinal_spacing;
+  double lattice_layer_spacing;
   double lattice_lateral_spacing;
   double lattice_k_length;
 
@@ -88,34 +77,25 @@ void LocalPlanner::initRTG(const ros::NodeHandle& private_nh)
   double ref_max_lon_acc;
   double ref_max_lon_dec;
 
-  private_nh.param("lattice_num_layers", lattice_num_layers, 8);
-  private_nh.param("lattice_num_lateral_samples_per_side", lattice_num_lateral_samples_per_side, 8);
-  private_nh.param("lattice_longitudinal_spacing", lattice_longitudinal_spacing, 2.0);
-  private_nh.param("lattice_lateral_spacing", lattice_lateral_spacing, 0.05);
-  private_nh.param("lattice_k_length", lattice_k_length, 0.5);
-
-  private_nh.param("ref_max_speed", ref_max_speed, 5.0);
-  private_nh.param("ref_max_lat_acc", ref_max_lat_acc, 1.0);
-  private_nh.param("ref_max_lon_acc", ref_max_lon_acc, 1.0);
-  private_nh.param("ref_max_lon_dec", ref_max_lon_dec, 1.0);
-
-  Lattice::Generator::Pattern lattice_pattern(lattice_num_layers, lattice_longitudinal_spacing,
-                                              lattice_num_lateral_samples_per_side, lattice_lateral_spacing);
-  Lattice::Generator lat_gen(lattice_pattern, lattice_k_length, collision_checker_ptr_);
-  AccelerationRegulator::Constraints ref_vel_constraints(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc,
-                                                         ref_max_lon_dec);
-
-  ref_traj_gen_ptr_ = std::make_unique<RTG>(lat_gen, ref_vel_constraints, viz_ptr_);
-}
-
-void LocalPlanner::initTTG(const ros::NodeHandle& private_nh)
-{
   int track_num_paths;
   double max_steering_angle;
   double track_path_lateral_spacing;
   double track_look_ahead_time;
   double track_k_spatial;
   double track_k_temporal;
+
+  private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
+  private_nh.param("circle_radius", circle_radius, 0.2);
+
+  private_nh.param("lattice_num_layers", lattice_num_layers, 8);
+  private_nh.param("lattice_num_lateral_samples_per_side", lattice_num_lateral_samples_per_side, 8);
+  private_nh.param("lattice_layer_spacing", lattice_layer_spacing, 2.0);
+  private_nh.param("lattice_lateral_spacing", lattice_lateral_spacing, 0.05);
+  private_nh.param("lattice_k_length", lattice_k_length, 0.5);
+  private_nh.param("ref_max_speed", ref_max_speed, 5.0);
+  private_nh.param("ref_max_lat_acc", ref_max_lat_acc, 1.0);
+  private_nh.param("ref_max_lon_acc", ref_max_lon_acc, 1.0);
+  private_nh.param("ref_max_lon_dec", ref_max_lon_dec, 1.0);
 
   private_nh.param("track_num_paths", track_num_paths, 9);
   private_nh.param("wheelbase", wheelbase_, 0.3);
@@ -125,11 +105,24 @@ void LocalPlanner::initTTG(const ros::NodeHandle& private_nh)
   private_nh.param("track_k_spatial", track_k_spatial, 1.0);
   private_nh.param("track_k_temporal", track_k_temporal, 1.0);
 
-  trajectory_evaulator_ptr_ = std::make_shared<TrajectoryEvaluator>(track_k_spatial, track_k_temporal);
-  TTG::SamplingPattern tt_pattern(track_num_paths, track_path_lateral_spacing, track_look_ahead_time);
   double max_curvature = tan(max_steering_angle) / wheelbase_;
+
+  collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets, circle_radius);
+  viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
+
+  lat_gen_ptr_ = std::make_shared<Lattice::Generator>(lattice_num_layers, lattice_layer_spacing,
+                                                      lattice_num_lateral_samples_per_side, lattice_lateral_spacing,
+                                                      max_curvature, lattice_k_length, collision_checker_ptr_);
+  acc_regulator_ptr_ =
+      std::make_shared<AccelerationRegulator>(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc, ref_max_lon_dec);
+
+  ref_traj_gen_ptr_ = std::make_unique<RTG>(lat_gen_ptr_, acc_regulator_ptr_, viz_ptr_);
+
+  trajectory_evaulator_ptr_ = std::make_shared<TrajectoryEvaluator>(track_k_spatial, track_k_temporal);
+
   track_traj_gen_ptr_ =
-      std::make_unique<TTG>(tt_pattern, max_curvature, collision_checker_ptr_, trajectory_evaulator_ptr_, viz_ptr_);
+      std::make_unique<TTG>(track_num_paths, track_path_lateral_spacing, track_look_ahead_time, max_curvature,
+                            collision_checker_ptr_, trajectory_evaulator_ptr_, viz_ptr_);
 }
 
 void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
@@ -172,7 +165,7 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
 
 void LocalPlanner::globalPathCallback(const nav_msgs::Path::ConstPtr& path_msg)
 {
-  ref_traj_gen_ptr_->setGlobalPath(path_msg);
+  lat_gen_ptr_->setGlobalPath(path_msg);
 }
 
 void LocalPlanner::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
@@ -197,19 +190,20 @@ void LocalPlanner::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costm
 
 void LocalPlanner::configCallback(local_planner::LocalPlannerConfig& config, uint32_t level)
 {
-  ref_traj_gen_ptr_->setLengthWeight(config.ref_k_length);
+  lat_gen_ptr_->setNumLayers(config.ref_num_layers);
+  lat_gen_ptr_->setNumLateralSamplesPerSide(config.ref_num_lateral_samples_per_side);
+  lat_gen_ptr_->setLayerSpacing(config.ref_layer_spacing);
+  lat_gen_ptr_->setLateralSpacing(config.ref_lateral_spacing);
+  lat_gen_ptr_->setMovementWeight(config.ref_k_movement);
 
-  Lattice::Generator::Pattern lat_gen_pattern(config.ref_num_layers, config.ref_longitudinal_spacing,
-                                              config.ref_num_lateral_samples_per_side, config.ref_lateral_spacing);
-  ref_traj_gen_ptr_->setLatticePattern(lat_gen_pattern);
+  acc_regulator_ptr_->setMaxSpeed(config.ref_speed_limit);
+  acc_regulator_ptr_->setMaxLateralAcceleration(config.ref_max_lat_acc);
+  acc_regulator_ptr_->setMaxLongitudinalAcceleration(config.ref_max_lon_acc);
+  acc_regulator_ptr_->setMaxLongitudinalDeceleration(config.ref_max_lon_dec);
 
-  AccelerationRegulator::Constraints ref_vel_constraints(config.ref_speed_limit, config.ref_max_lat_acc,
-                                                         config.ref_max_lon_acc, config.ref_max_lon_dec);
-  ref_traj_gen_ptr_->setVelocityConstraints(ref_vel_constraints);
-
-  TTG::SamplingPattern track_sampling_pattern(config.track_num_paths, config.track_lateral_spacing,
-                                              config.track_look_ahead_time);
-  track_traj_gen_ptr_->setSamplingPattern(track_sampling_pattern);
+  track_traj_gen_ptr_->setNumPaths(config.track_num_paths);
+  track_traj_gen_ptr_->setLateralSpacing(config.track_lateral_spacing);
+  track_traj_gen_ptr_->setLookAheadTime(config.track_look_ahead_time);
 
   trajectory_evaulator_ptr_->setWeights(config.track_k_spatial, config.track_k_temporal);
 }

@@ -99,28 +99,24 @@ Lattice::Edge::Edge(const double weight)
 /*                              Lattice Generator                             */
 /* -------------------------------------------------------------------------- */
 
-Lattice::Generator::Generator(const Pattern& pattern, const double k_length,
+Lattice::Generator::Generator(const int num_layers, const double layer_spacing, const int num_lateral_samples_per_side,
+                              const double lateral_spacing, const double max_curvature, const double k_movement,
                               const std::shared_ptr<CollisionChecker>& collision_checker_ptr)
-  : pattern_(pattern)
 {
-  setLengthWeight(k_length);
+  setNumLayers(num_layers);
+  setNumLateralSamplesPerSide(num_lateral_samples_per_side);
+  setLayerSpacing(layer_spacing);
+  setLateralSpacing(lateral_spacing);
+  setMaxCurvature(max_curvature);
+  setMovementWeight(k_movement);
 
-  if (collision_checker_ptr != nullptr)
+  if (collision_checker_ptr == nullptr)
   {
-    collision_checker_ptr_ = collision_checker_ptr;
+    throw std::invalid_argument("Collision checker cannot be nullptr");
   }
-  else
-  {
-    throw std::invalid_argument("Collision checker pointer is null");
-  }
-}
 
-Lattice::Generator::Generator(const Generator& generator) : pattern_(generator.pattern_)
-{
-  k_movement_ = generator.k_movement_;
-  collision_checker_ptr_ = generator.collision_checker_ptr_;
+  collision_checker_ptr_ = collision_checker_ptr;
 }
-
 Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) const
 {
   std::vector<geometry_msgs::Pose> reference_poses = getReferencePoses(source_pose);
@@ -137,7 +133,7 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
   {
     geometry_msgs::Pose reference_pose = reference_poses.at(i);
 
-    for (int j = -pattern_.num_lateral_samples_per_side_; j <= pattern_.num_lateral_samples_per_side_; ++j)
+    for (int j = -num_lateral_samples_per_side_; j <= num_lateral_samples_per_side_; ++j)
     {
       Vertex v = generateVertex(reference_pose, i, j);
       VertexDescriptor id = boost::add_vertex(v, graph);
@@ -148,8 +144,7 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
         auto prev_id = pair.second;
         Vertex u = graph[prev_id];
 
-        // temp fixed max curvature
-        if (calculateCurvature(u.getPose(), v.getPose().position) < 1.4 && !checkCollision(u, v))
+        if (calculateCurvature(u.getPose(), v.getPose().position) < max_curvature_ && !checkCollision(u, v))
         {
           double lateral_movement = v.lateral_offset_ - u.lateral_offset_;
 
@@ -180,12 +175,12 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
     }
   }
 
-  return Lattice(graph, map, source_id, pattern_.num_layers_, 2 * pattern_.num_lateral_samples_per_side_ + 1);
+  return Lattice(graph, map, source_id, num_layers_, 2 * num_lateral_samples_per_side_ + 1);
 }
 
 int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
 {
-  if (global_path_.poses.empty())
+  if (global_path_->poses.empty())
   {
     throw std::runtime_error("Global path has not been set");
   }
@@ -193,10 +188,11 @@ int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_
   int nearest_wp_id = -1;
   double nearest_wp_dist = std::numeric_limits<double>::max();
 
-  for (int i = 0; i < global_path_.poses.size(); ++i)
+  for (int i = 0; i < global_path_->poses.size(); ++i)
   {
-    double dist = calculateDistance(current_pose.position.x, current_pose.position.y,
-                                    global_path_.poses.at(i).pose.position.x, global_path_.poses.at(i).pose.position.y);
+    double dist =
+        calculateDistance(current_pose.position.x, current_pose.position.y, global_path_->poses.at(i).pose.position.x,
+                          global_path_->poses.at(i).pose.position.y);
 
     if (dist < nearest_wp_dist)
     {
@@ -210,20 +206,20 @@ int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_
 
 std::vector<geometry_msgs::Pose> Lattice::Generator::getReferencePoses(const geometry_msgs::Pose& source_pose) const
 {
-  bool is_loop = global_path_.poses.at(global_path_.poses.size() - 1) == global_path_.poses.at(0);
+  bool is_loop = global_path_->poses.at(global_path_->poses.size() - 1) == global_path_->poses.at(0);
   int cur_id = getNearestWaypointId(source_pose);
-  geometry_msgs::Pose nearest_pose = global_path_.poses.at(cur_id).pose;
+  geometry_msgs::Pose nearest_pose = global_path_->poses.at(cur_id).pose;
   std::vector<geometry_msgs::Pose> poses = { nearest_pose };
 
   geometry_msgs::Point prev_pos = nearest_pose.position;
 
-  for (int i = 0; i < pattern_.num_layers_; ++i)
+  for (int i = 0; i < num_layers_ - 1; ++i)
   {
     double cur_dist = 0.0;
 
-    while (cur_dist < pattern_.longitudinal_spacing_)
+    while (cur_dist < layer_spacing_)
     {
-      if (cur_id == global_path_.poses.size())
+      if (cur_id == global_path_->poses.size())
       {
         if (is_loop)
         {
@@ -231,18 +227,18 @@ std::vector<geometry_msgs::Pose> Lattice::Generator::getReferencePoses(const geo
         }
         else
         {
-          poses.push_back(global_path_.poses.at(global_path_.poses.size() - 1).pose);
+          poses.push_back(global_path_->poses.at(global_path_->poses.size() - 1).pose);
           return poses;
         }
       }
 
-      geometry_msgs::Point cur_pos = global_path_.poses.at(cur_id).pose.position;
+      geometry_msgs::Point cur_pos = global_path_->poses.at(cur_id).pose.position;
       cur_dist += calculateDistance(cur_pos.x, cur_pos.y, prev_pos.x, prev_pos.y);
       prev_pos = cur_pos;
       ++cur_id;
     }
 
-    poses.push_back(global_path_.poses.at(cur_id - 1).pose);
+    poses.push_back(global_path_->poses.at(cur_id - 1).pose);
   }
 
   return poses;
@@ -261,7 +257,7 @@ Lattice::Vertex Lattice::Generator::generateVertex(const geometry_msgs::Pose& re
                                                    const int lateral_pos) const
 {
   double yaw = TF2Wrapper::yawFromQuat(reference_pose.orientation);
-  double offset = lateral_pos * pattern_.lateral_spacing_;
+  double offset = lateral_pos * lateral_spacing_;
   double x = reference_pose.position.x + offset * cos(yaw + M_PI_2);
   double y = reference_pose.position.y + offset * sin(yaw + M_PI_2);
 
@@ -273,20 +269,20 @@ bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lat
   geometry_msgs::PointStamped source_point;
   geometry_msgs::PointStamped target_point;
 
-  source_point.header.frame_id = global_path_.header.frame_id;
+  source_point.header.frame_id = global_path_->header.frame_id;
   source_point.point.x = source.x_;
   source_point.point.y = source.y_;
 
-  target_point.header.frame_id = global_path_.header.frame_id;
+  target_point.header.frame_id = global_path_->header.frame_id;
   target_point.point.x = target.x_;
   target_point.point.y = target.y_;
 
   return collision_checker_ptr_->checkCollision(source_point, target_point);
 }
 
-void Lattice::Generator::setGlobalPath(const nav_msgs::Path& global_path)
+void Lattice::Generator::setGlobalPath(const nav_msgs::PathConstPtr& path)
 {
-  global_path_ = global_path;
+  global_path_ = path;
 }
 
 void Lattice::Generator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
@@ -294,39 +290,64 @@ void Lattice::Generator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& cost
   collision_checker_ptr_->setCostmap(costmap_msg);
 }
 
-void Lattice::Generator::setLengthWeight(const double weight)
+void Lattice::Generator::setNumLayers(const int num_layers)
 {
-  if (weight >= 0.0 && weight <= 1.0)
+  if (num_layers < 4)
   {
-    k_movement_ = weight;
+    throw std::invalid_argument("Number of layers must be at least 4");
   }
-  else
+
+  layer_spacing_ = num_layers_ = num_layers;
+}
+
+void Lattice::Generator::setNumLateralSamplesPerSide(const int num_lateral_samples_per_side)
+{
+  if (num_lateral_samples_per_side < 0)
+  {
+    throw std::invalid_argument("Number of lateral samples per side must be non-negative");
+  }
+
+  num_lateral_samples_per_side_ = num_lateral_samples_per_side;
+}
+
+void Lattice::Generator::setLayerSpacing(const double layer_spacing)
+{
+  if (layer_spacing <= 0.0)
+  {
+    throw std::invalid_argument("Layer spacing must be positive");
+  }
+
+  layer_spacing_ = layer_spacing;
+}
+
+void Lattice::Generator::setLateralSpacing(const double lateral_spacing)
+{
+  if (lateral_spacing <= 0.0)
+  {
+    throw std::invalid_argument("Lateral spacing must be positive");
+  }
+
+  lateral_spacing_ = lateral_spacing;
+}
+
+void Lattice::Generator::setMaxCurvature(const double curvature)
+{
+  if (curvature <= 0.0)
+  {
+    throw std::invalid_argument("Maximum curvature must be positive");
+  }
+
+  max_curvature_ = curvature;
+}
+
+void Lattice::Generator::setMovementWeight(const double weight)
+{
+  if (weight < 0.0 || weight > 1.0)
   {
     throw std::invalid_argument("Weight must be between 0 and 1");
   }
-}
 
-void Lattice::Generator::setPattern(const Pattern& pattern)
-{
-  pattern_ = pattern;
-}
-
-/* -------------------------------------------------------------------------- */
-/*                          Lattice Generator Pattern                         */
-/* -------------------------------------------------------------------------- */
-
-Lattice::Generator::Pattern::Pattern(const int num_layers, const double longitudinal_spacing,
-                                     const int num_lateral_samples_per_side, const double lateral_spacing)
-{
-  if (num_layers <= 0 || longitudinal_spacing <= 0.0 || num_lateral_samples_per_side < 0 || lateral_spacing <= 0.0)
-  {
-    throw std::invalid_argument("Invalid lattice pattern specified");
-  }
-
-  num_layers_ = num_layers;
-  longitudinal_spacing_ = longitudinal_spacing;
-  num_lateral_samples_per_side_ = num_lateral_samples_per_side;
-  lateral_spacing_ = lateral_spacing;
+  k_movement_ = weight;
 }
 
 /* -------------------------------------------------------------------------- */

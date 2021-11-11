@@ -81,37 +81,37 @@ public:
   class Generator
   {
   public:
-    struct Pattern
-    {
-      int num_layers_;
-      double longitudinal_spacing_;
-      int num_lateral_samples_per_side_;
-      double lateral_spacing_;
-
-      Pattern(const int num_layers, const double longitudinal_spacing, const int num_lateral_samples_per_side,
-              const double lateral_spacing);
-    };
-
-    Generator(const Pattern& lattice_pattern, const double k_length,
+    Generator(const int num_layers, const double layer_spacing, const int num_lateral_samples_per_side,
+              const double lateral_spacing, double max_curvature, const double k_length,
               const std::shared_ptr<CollisionChecker>& collision_checker_ptr);
-
-    Generator(const Generator& generator);
 
     Lattice generate(const geometry_msgs::Pose& source_pose) const;
 
-    void setGlobalPath(const nav_msgs::Path& global_path);
+    void setGlobalPath(const nav_msgs::PathConstPtr& path);
 
     void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
-    void setLengthWeight(const double weight);
+    void setNumLayers(const int num_layers);
 
-    void setPattern(const Pattern& pattern);
+    void setNumLateralSamplesPerSide(const int num_lateral_samples_per_side);
+
+    void setLayerSpacing(const double layer_spacing);
+
+    void setLateralSpacing(const double lateral_spacing);
+
+    void setMaxCurvature(const double curvature);
+
+    void setMovementWeight(const double weight);
 
   private:
-    Pattern pattern_;
-    double k_movement_;
+    int num_layers_;                    // Number of layers including the source vertex layer
+    int num_lateral_samples_per_side_;  // Number of vertices per side in 1ayer
+    double layer_spacing_;              // Spacing between layers
+    double lateral_spacing_;            // Spacing between vertices in a layer
+    double max_curvature_;              // Maximum allowable curvature between 2 vertices for an edge to be added
+    double k_movement_;                 // Tradeoff between lateral movement cost and cumulative lateral offset cost
 
-    nav_msgs::Path global_path_;
+    nav_msgs::PathConstPtr global_path_;
 
     std::shared_ptr<CollisionChecker> collision_checker_ptr_;
 
@@ -132,8 +132,6 @@ public:
 
   boost::optional<std::pair<std::vector<geometry_msgs::Point>, double>> getShortestPath(const int layer,
                                                                                         const int offset) const;
-
-  std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<Vertex>& path) const;
 
   VertexDescriptor getVertexIdFromPosition(const Position& pos) const;
 

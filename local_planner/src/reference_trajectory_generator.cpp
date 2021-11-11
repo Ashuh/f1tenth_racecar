@@ -14,17 +14,19 @@
 #include "local_planner/trajectory.h"
 
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
-    const Lattice::Generator& lattice_generator, const AccelerationRegulator::Constraints& velocity_constraints,
+    const std::shared_ptr<Lattice::Generator>& lattice_generator_ptr,
+    const std::shared_ptr<AccelerationRegulator>& acc_regulator_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : lat_gen_(lattice_generator), acc_capper_(velocity_constraints)
 {
+  lat_gen_ptr_ = lattice_generator_ptr;
+  acc_regulator_ptr_ = acc_regulator_ptr;
   viz_ptr_ = viz_ptr;
 }
 
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
   Path reference_path = generateReferencePath(current_pose);
-  Trajectory reference_trajectory(reference_path, acc_capper_);
+  Trajectory reference_trajectory(reference_path, *acc_regulator_ptr_);
   visualizeReferenceTrajectory(reference_trajectory);
 
   return reference_trajectory;
@@ -33,54 +35,51 @@ Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geome
 Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
   // Generate lattice
-  Lattice lattice = lat_gen_.generate(current_pose);
+  Lattice lattice = lat_gen_ptr_->generate(current_pose);
   visualizeLattice(lattice);
   lattice.computeShortestPaths();
 
-  // Get SSSP for each vertex in final layer
-  std::vector<std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>> lattice_sssp_results;
+  // Get SSSP for each vertex in the furthest possible layer
+  static constexpr int MIN_PATH_SIZE = 4;  // Cubic spline interpolation requires at least 4 points
   int max_offset = (lattice.getNumLateralSamples() - 1) / 2;
 
-  for (int i = 1; i <= lattice.getNumLayers(); ++i)
-  {
-    std::vector<std::pair<std::vector<geometry_msgs::Point>, double>> layer_sssp_results;
+  std::vector<std::pair<std::vector<geometry_msgs::Point>, double>> sssp_results;
 
+  for (int i = lattice.getNumLayers() - 1; i >= MIN_PATH_SIZE - 1; --i)
+  {
     for (int j = -max_offset; j <= max_offset; ++j)
     {
       auto result = lattice.getShortestPath(i, j);
 
       if (result)
       {
-        layer_sssp_results.push_back(result.get());
+        sssp_results.push_back(result.get());
       }
     }
 
-    lattice_sssp_results.push_back(layer_sssp_results);
+    if (!sssp_results.empty())
+    {
+      break;
+    }
   }
 
-  std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(lattice_sssp_results);
+  if (sssp_results.empty())
+  {
+    throw std::runtime_error("Failed to find path in lattice");
+  }
 
+  std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
   visualizeSSSP(pointsToPath(best_sssp));
   Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
   return reference_path;
 }
 
 std::vector<geometry_msgs::Point> ReferenceTrajectoryGenerator::getBestSSSP(
-    std::vector<std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>>& sssp_results)
+    std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>& sssp_results)
 {
-  for (int i = sssp_results.size() - 1; i >= 0; --i)
-  {
-    if (sssp_results.at(i).empty())
-    {
-      continue;
-    }
-
-    std::sort(sssp_results.at(i).begin(), sssp_results.at(i).end(),
-              [](const auto& p1, const auto& p2) { return p1.second < p2.second; });
-    return sssp_results.at(i).at(0).first;
-  }
-
-  throw std::runtime_error("No paths found in lattice");
+  std::sort(sssp_results.begin(), sssp_results.end(),
+            [](const auto& p1, const auto& p2) { return p1.second < p2.second; });
+  return sssp_results.at(0).first;
 }
 
 std::vector<geometry_msgs::Point>
@@ -181,31 +180,6 @@ double ReferenceTrajectoryGenerator::mengerCurvature(const geometry_msgs::Point&
   double area = triangleArea(length_ab, length_bc, length_ca);
 
   return (4 * area) / (length_ab * length_bc * length_ca);
-}
-
-void ReferenceTrajectoryGenerator::setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg)
-{
-  lat_gen_.setGlobalPath(*global_path_msg);
-}
-
-void ReferenceTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
-{
-  lat_gen_.setCostmap(costmap_msg);
-}
-
-void ReferenceTrajectoryGenerator::setLengthWeight(const double weight)
-{
-  lat_gen_.setLengthWeight(weight);
-}
-
-void ReferenceTrajectoryGenerator::setLatticePattern(const Lattice::Generator::Pattern& pattern)
-{
-  lat_gen_.setPattern(pattern);
-}
-
-void ReferenceTrajectoryGenerator::setVelocityConstraints(const AccelerationRegulator::Constraints& constraints)
-{
-  acc_capper_.setConstraints(constraints);
 }
 
 void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)

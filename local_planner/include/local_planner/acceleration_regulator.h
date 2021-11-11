@@ -13,24 +13,24 @@
 class AccelerationRegulator
 {
 public:
-  struct Constraints
-  {
-    double max_speed_;
-    double max_lat_acc_;
-    double max_lon_acc_;
-    double max_lon_dec_;
-
-    Constraints(const double max_speed, const double max_lat_acc, const double max_lon_acc, const double max_lon_dec);
-  };
-
-  explicit AccelerationRegulator(const Constraints& constraints);
+  AccelerationRegulator(const double max_speed_, const double max_lat_acc_, const double max_lon_acc_,
+                        const double max_lon_dec_);
 
   std::vector<double> generateVelocityProfile(const Path& path) const;
 
-  void setConstraints(const Constraints& constraints);
+  void setMaxSpeed(const double speed);
+
+  void setMaxLateralAcceleration(const double acceleration);
+
+  void setMaxLongitudinalAcceleration(const double acceleration);
+
+  void setMaxLongitudinalDeceleration(const double deceleration);
 
 private:
-  Constraints constraints_;
+  double max_speed_;
+  double max_lat_acc_;
+  double max_lon_acc_;
+  double max_lon_dec_;
 
   bool isValidProfile(const Path& path, const std::vector<double>& velocity_profile) const;
 

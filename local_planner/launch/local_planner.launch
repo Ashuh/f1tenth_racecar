@@ -4,7 +4,7 @@
 
     <arg name="lattice_num_layers" value="8" />
     <arg name="lattice_num_lateral_samples_per_side" value="8" />
-    <arg name="lattice_longitudinal_spacing" value="2.0" />
+    <arg name="lattice_layer_spacing" value="2.0" />
     <arg name="lattice_lateral_spacing" value="0.05" />
     <arg name="lattice_k_length" value="0.5" />
 
@@ -32,7 +32,7 @@
 
         <param name="lattice_num_layers" value="$(arg lattice_num_layers)" />
         <param name="lattice_num_lateral_samples_per_side" value="$(arg lattice_num_lateral_samples_per_side)" />
-        <param name="lattice_longitudinal_spacing" value="$(arg lattice_longitudinal_spacing)" />
+        <param name="lattice_layer_spacing" value="$(arg lattice_layer_spacing)" />
         <param name="lattice_lateral_spacing" value="$(arg lattice_lateral_spacing)" />
         <param name="lattice_k_length" value="$(arg lattice_k_length)" />
 

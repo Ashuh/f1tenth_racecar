@@ -15,37 +15,30 @@
 #include "local_planner/trajectory.h"
 #include "local_planner/trajectory_evaluator.h"
 
-TrackingTrajectoryGenerator::SamplingPattern::SamplingPattern(const int num_paths, const double lateral_spacing,
-                                                              const double look_ahead_time)
-{
-  if (num_paths < 1 || lateral_spacing < 0.0 || look_ahead_time < 0.0)
-  {
-    throw std::invalid_argument("Invalid sampling pattern specified");
-  }
-
-  num_paths_ = num_paths;
-  lateral_spacing_ = lateral_spacing;
-  look_ahead_time_ = look_ahead_time;
-}
-
 TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
-    const SamplingPattern& sampling_pattern, const double max_curvature,
+    const int num_paths, const double lateral_spacing, const double look_ahead_time, const double max_curvature,
     const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
     const std::shared_ptr<TrajectoryEvaluator>& trajectory_evaluator_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : sampling_pattern_(sampling_pattern), cubic_spiral_opt_(max_curvature)
+  : cubic_spiral_opt_(max_curvature)
 {
-  trajectory_evaluator_ptr_ = trajectory_evaluator_ptr;
-  viz_ptr_ = viz_ptr;
+  setNumPaths(num_paths);
+  setLateralSpacing(lateral_spacing);
+  setLookAheadTime(look_ahead_time);
 
-  if (collision_checker_ptr != nullptr)
+  if (trajectory_evaluator_ptr == nullptr)
   {
-    collision_checker_ptr_ = collision_checker_ptr;
+    throw std::invalid_argument("Trajectory evaluator cannot be nullptr");
   }
-  else
+
+  if (collision_checker_ptr == nullptr)
   {
-    throw std::invalid_argument("Collision checker pointer is null");
+    throw std::invalid_argument("Collision checker cannot be nullptr");
   }
+
+  trajectory_evaluator_ptr_ = trajectory_evaluator_ptr;
+  collision_checker_ptr_ = collision_checker_ptr;
+  viz_ptr_ = viz_ptr;
 }
 
 Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Trajectory& reference_trajectory,
@@ -57,8 +50,7 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
     throw std::runtime_error("Reference trajectory is empty");
   }
 
-  Trajectory ref_traj_trimmed =
-      reference_trajectory.trim(0, reference_trajectory.getWpIdAtTime(sampling_pattern_.look_ahead_time_));
+  Trajectory ref_traj_trimmed = reference_trajectory.trim(0, reference_trajectory.getWpIdAtTime(look_ahead_time_));
 
   geometry_msgs::Pose reference_goal = ref_traj_trimmed.pose(ref_traj_trimmed.size() - 1);
 
@@ -101,14 +93,44 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
   return final_trajectory;
 }
 
+void TrackingTrajectoryGenerator::setNumPaths(const int num_paths)
+{
+  if (num_paths < 1)
+  {
+    throw std::invalid_argument("Number of paths must be at least 1");
+  }
+
+  num_paths_ = num_paths;
+}
+
+void TrackingTrajectoryGenerator::setLateralSpacing(const double spacing)
+{
+  if (spacing <= 0.0)
+  {
+    throw std::invalid_argument("Lateral spacing must be positive");
+  }
+
+  lateral_spacing_ = spacing;
+}
+
+void TrackingTrajectoryGenerator::setLookAheadTime(const double time)
+{
+  if (time <= 0.0)
+  {
+    throw std::invalid_argument("Look ahead time must be positive");
+  }
+
+  look_ahead_time_ = time;
+}
+
 std::vector<Path> TrackingTrajectoryGenerator::generateCandidatePaths(const geometry_msgs::Pose& reference_goal,
                                                                       const int num_wp, const double initial_curvature)
 {
   std::vector<Path> paths;
 
-  for (int i = 0; i < sampling_pattern_.num_paths_; ++i)
+  for (int i = 0; i < num_paths_; ++i)
   {
-    double goal_offset = (i - sampling_pattern_.num_paths_ / 2) * sampling_pattern_.lateral_spacing_;
+    double goal_offset = (i - num_paths_ / 2) * lateral_spacing_;
 
     geometry_msgs::Pose2D goal = offsetGoal(reference_goal, goal_offset);
     Path path =
@@ -164,16 +186,6 @@ bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
   }
 
   return false;
-}
-
-void TrackingTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
-{
-  collision_checker_ptr_->setCostmap(costmap_msg);
-}
-
-void TrackingTrajectoryGenerator::setSamplingPattern(const SamplingPattern& pattern)
-{
-  sampling_pattern_ = pattern;
 }
 
 void TrackingTrajectoryGenerator::visualizePaths(const std::vector<Path>& safe_paths,
