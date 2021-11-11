@@ -58,4 +58,4 @@ private:
   static double getFinalVelocity(const double v_i, const double a, const double s);
 };
 
-#endif // LOCAL_PLANNER_ACCELERATION_REGULATOR_H
+#endif  // LOCAL_PLANNER_ACCELERATION_REGULATOR_H
