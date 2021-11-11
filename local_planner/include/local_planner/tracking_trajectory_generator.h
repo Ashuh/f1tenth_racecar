@@ -17,31 +17,26 @@
 class TrackingTrajectoryGenerator
 {
 public:
-  struct SamplingPattern
-  {
-    int num_paths_;
-    double lateral_spacing_;
-    double look_ahead_time_;
-
-    SamplingPattern(const int num_paths, const double lateral_spacing, const double look_ahead_time);
-  };
-
-  TrackingTrajectoryGenerator(const SamplingPattern& sampling_pattern, const double max_curvature,
+  TrackingTrajectoryGenerator(const int num_paths, const double lateral_spacing, const double look_ahead_time,
+                              const double max_curvature,
                               const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
                               const std::shared_ptr<TrajectoryEvaluator>& trajectory_evaluator_ptr,
-                              const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
+                              const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr);
 
   Trajectory generateTrackingTrajectory(const Trajectory& reference_trajectory, const double initial_velocity,
                                         const double initial_curvature);
 
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
+  void setNumPaths(const int num_paths);
 
-  void setSamplingPattern(const SamplingPattern& pattern);
+  void setLateralSpacing(const double spacing);
+
+  void setLookAheadTime(const double time);
 
 private:
-  SamplingPattern sampling_pattern_;
+  int num_paths_;
+  double lateral_spacing_;
+  double look_ahead_time_;
 
-  // CubicSpiral::OptimizerIFOPT cubic_spiral_opt_;
   CubicSpiral::OptimizerNLOPT cubic_spiral_opt_;
 
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;

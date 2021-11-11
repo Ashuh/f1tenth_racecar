@@ -14,17 +14,19 @@
 #include "local_planner/trajectory.h"
 
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
-    const Lattice::Generator& lattice_generator, const AccelerationRegulator::Constraints& velocity_constraints,
+    const std::shared_ptr<Lattice::Generator>& lattice_generator_ptr,
+    const std::shared_ptr<AccelerationRegulator>& acc_regulator_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
-  : lat_gen_(lattice_generator), acc_capper_(velocity_constraints)
 {
+  lat_gen_ptr_ = lattice_generator_ptr;
+  acc_regulator_ptr_ = acc_regulator_ptr;
   viz_ptr_ = viz_ptr;
 }
 
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
   Path reference_path = generateReferencePath(current_pose);
-  Trajectory reference_trajectory(reference_path, acc_capper_);
+  Trajectory reference_trajectory(reference_path, *acc_regulator_ptr_);
   visualizeReferenceTrajectory(reference_trajectory);
 
   return reference_trajectory;
@@ -33,7 +35,7 @@ Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geome
 Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
 {
   // Generate lattice
-  Lattice lattice = lat_gen_.generate(current_pose);
+  Lattice lattice = lat_gen_ptr_->generate(current_pose);
   visualizeLattice(lattice);
   lattice.computeShortestPaths();
 
@@ -43,7 +45,7 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
 
   std::vector<std::pair<std::vector<geometry_msgs::Point>, double>> sssp_results;
 
-  for (int i = lattice.getNumLayers(); i >= MIN_PATH_SIZE; --i)
+  for (int i = lattice.getNumLayers() - 1; i >= MIN_PATH_SIZE - 1; --i)
   {
     for (int j = -max_offset; j <= max_offset; ++j)
     {
@@ -178,31 +180,6 @@ double ReferenceTrajectoryGenerator::mengerCurvature(const geometry_msgs::Point&
   double area = triangleArea(length_ab, length_bc, length_ca);
 
   return (4 * area) / (length_ab * length_bc * length_ca);
-}
-
-void ReferenceTrajectoryGenerator::setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg)
-{
-  lat_gen_.setGlobalPath(*global_path_msg);
-}
-
-void ReferenceTrajectoryGenerator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
-{
-  lat_gen_.setCostmap(costmap_msg);
-}
-
-void ReferenceTrajectoryGenerator::setLengthWeight(const double weight)
-{
-  lat_gen_.setLengthWeight(weight);
-}
-
-void ReferenceTrajectoryGenerator::setLatticePattern(const Lattice::Generator::Pattern& pattern)
-{
-  lat_gen_.setPattern(pattern);
-}
-
-void ReferenceTrajectoryGenerator::setVelocityConstraints(const AccelerationRegulator::Constraints& constraints)
-{
-  acc_capper_.setConstraints(constraints);
 }
 
 void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)

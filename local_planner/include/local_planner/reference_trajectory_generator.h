@@ -17,25 +17,15 @@
 class ReferenceTrajectoryGenerator
 {
 public:
-  ReferenceTrajectoryGenerator(const Lattice::Generator& lattice_generator,
-                               const AccelerationRegulator::Constraints& velocity_constraints,
-                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr = nullptr);
+  ReferenceTrajectoryGenerator(const std::shared_ptr<Lattice::Generator>& lattice_generator_ptr,
+                               const std::shared_ptr<AccelerationRegulator>& acc_regulator_ptr,
+                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr);
 
   Trajectory generateReferenceTrajectory(const geometry_msgs::Pose& current_pose);
 
-  void setGlobalPath(const nav_msgs::PathConstPtr& global_path_msg);
-
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
-
-  void setLatticePattern(const Lattice::Generator::Pattern& pattern);
-
-  void setLengthWeight(const double weight);
-
-  void setVelocityConstraints(const AccelerationRegulator::Constraints& constraints);
-
 private:
-  AccelerationRegulator acc_capper_;
-  Lattice::Generator lat_gen_;
+  std::shared_ptr<Lattice::Generator> lat_gen_ptr_;
+  std::shared_ptr<AccelerationRegulator> acc_regulator_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
   Path generateReferencePath(const geometry_msgs::Pose& current_pose);
@@ -46,8 +36,6 @@ private:
   std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path);
 
   Path pointsToPath(std::vector<geometry_msgs::Point> points);
-
-  std::vector<double> generateVelocityProfile(const Path& path);
 
   /**
    * @brief Calculates the acceleration required to accelerate from an initial velocity to a final velocity over a

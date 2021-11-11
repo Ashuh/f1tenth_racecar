@@ -13,9 +13,10 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
-#include "local_planner/trajectory.h"
+#include "local_planner/acceleration_regulator.h"
 #include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/tracking_trajectory_generator.h"
+#include "local_planner/trajectory.h"
 #include "local_planner/LocalPlannerConfig.h"
 
 class LocalPlanner
@@ -41,6 +42,9 @@ private:
 
   std::unique_ptr<ReferenceTrajectoryGenerator> ref_traj_gen_ptr_;
   std::unique_ptr<TrackingTrajectoryGenerator> track_traj_gen_ptr_;
+
+  std::shared_ptr<Lattice::Generator> lat_gen_ptr_;
+  std::shared_ptr<AccelerationRegulator> acc_regulator_ptr_;
   std::shared_ptr<TrajectoryEvaluator> trajectory_evaulator_ptr_;
   std::shared_ptr<CollisionChecker> collision_checker_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
@@ -56,11 +60,7 @@ private:
 
   void initCallbacks(const ros::NodeHandle& private_nh);
 
-  void initShared(const ros::NodeHandle& private_nh);
-
-  void initRTG(const ros::NodeHandle& private_nh);
-
-  void initTTG(const ros::NodeHandle& private_nh);
+  void initPlanner(const ros::NodeHandle& private_nh);
 
   void timerCallback(const ros::TimerEvent& timer_event);
 

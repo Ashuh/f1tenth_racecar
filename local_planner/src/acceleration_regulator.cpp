@@ -3,22 +3,13 @@
 
 #include "local_planner/acceleration_regulator.h"
 
-AccelerationRegulator::Constraints::Constraints(const double max_speed, const double max_lat_acc,
-                                                const double max_lon_acc, const double max_lon_dec)
+AccelerationRegulator::AccelerationRegulator(const double max_speed, const double max_lat_acc, const double max_lon_acc,
+                                             const double max_lon_dec)
 {
-  if (max_speed <= 0.0 || max_lat_acc <= 0.0 || max_lon_acc <= 0.0 || max_lon_dec <= 0.0)
-  {
-    throw std::invalid_argument("Invalid constraints specified");
-  }
-
-  max_speed_ = max_speed;
-  max_lat_acc_ = max_lat_acc;
-  max_lon_acc_ = max_lon_acc;
-  max_lon_dec_ = max_lon_dec;
-}
-
-AccelerationRegulator::AccelerationRegulator(const Constraints& constraints) : constraints_(constraints)
-{
+  setMaxSpeed(max_speed);
+  setMaxLateralAcceleration(max_lat_acc);
+  setMaxLongitudinalAcceleration(max_lon_acc);
+  setMaxLongitudinalDeceleration(max_lon_dec);
 }
 
 std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& path) const
@@ -27,8 +18,8 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
 
   for (int i = 0; i < path.size(); ++i)
   {
-    double curvature_speed_limit = constraints_.max_lat_acc_ / path.curvature(i);
-    velocity_profile.push_back(std::min(constraints_.max_speed_, curvature_speed_limit));
+    double curvature_speed_limit = max_lat_acc_ / path.curvature(i);
+    velocity_profile.push_back(std::min(max_speed_, curvature_speed_limit));
   }
 
   do
@@ -45,10 +36,9 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
         {
           double wp_distance = path.distance(i) - path.distance(i - 1);
 
-          if (-getLonAcc(velocity_profile.at(i - 1), velocity_profile.at(i), wp_distance) > constraints_.max_lon_dec_)
+          if (-getLonAcc(velocity_profile.at(i - 1), velocity_profile.at(i), wp_distance) > max_lon_dec_)
           {
-            velocity_profile.at(i - 1) =
-                getFinalVelocity(velocity_profile.at(i), constraints_.max_lon_dec_, wp_distance);
+            velocity_profile.at(i - 1) = getFinalVelocity(velocity_profile.at(i), max_lon_dec_, wp_distance);
           }
         }
       }
@@ -62,10 +52,9 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
 
           double acc = getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance);
 
-          if (getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance) > constraints_.max_lon_acc_)
+          if (getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance) > max_lon_acc_)
           {
-            velocity_profile.at(i + 1) =
-                getFinalVelocity(velocity_profile.at(i), constraints_.max_lon_acc_, wp_distance);
+            velocity_profile.at(i + 1) = getFinalVelocity(velocity_profile.at(i), max_lon_acc_, wp_distance);
           }
         }
       }
@@ -75,9 +64,44 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
   return velocity_profile;
 }
 
-void AccelerationRegulator::setConstraints(const Constraints& constraints)
+void AccelerationRegulator::setMaxSpeed(const double speed)
 {
-  constraints_ = constraints;
+  if (speed <= 0.0)
+  {
+    throw std::invalid_argument("Maximum speed must be be positive");
+  }
+
+  max_speed_ = speed;
+}
+
+void AccelerationRegulator::setMaxLateralAcceleration(const double acceleration)
+{
+  if (acceleration <= 0.0)
+  {
+    throw std::invalid_argument("Maximum lateral acceleration must be be positive");
+  }
+
+  max_lat_acc_ = acceleration;
+}
+
+void AccelerationRegulator::setMaxLongitudinalAcceleration(const double acceleration)
+{
+  if (acceleration <= 0.0)
+  {
+    throw std::invalid_argument("Maximum longitudinal acceleration must be be positive");
+  }
+
+  max_lon_acc_ = acceleration;
+}
+
+void AccelerationRegulator::setMaxLongitudinalDeceleration(const double deceleration)
+{
+  if (max_lon_dec_ <= 0.0)
+  {
+    throw std::invalid_argument("Maximum longitudinal deceleration must be be positive");
+  }
+
+  max_lon_dec_ = deceleration;
 }
 
 std::vector<std::pair<int, int>>
@@ -119,7 +143,7 @@ bool AccelerationRegulator::isValidProfile(const Path& path, const std::vector<d
     double lon_acc =
         getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), path.distance(i + 1) - path.distance(i));
 
-    if (lon_acc > constraints_.max_lon_acc_ * 1.01 || -lon_acc > constraints_.max_lon_dec_ * 1.01)
+    if (lon_acc > max_lon_acc_ * 1.01 || -lon_acc > max_lon_dec_ * 1.01)
     {
       return false;
     }
