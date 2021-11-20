@@ -1,0 +1,60 @@
+path_recorder:
+  mode: 0
+  interval: 0.1
+  odom_topic: odom
+  path_topic: path/global
+
+costmap_generator:
+  grid_size_x: 10
+  grid_size_y: 10
+  grid_resolution: 0.05
+  map_topic: map
+  scan_topic: scan
+  costmap_topic: costmap
+
+local_planner:
+  circle_offsets: [0.1, 0.3]
+  circle_radius: 0.2
+  lattice_num_layers: 8
+  lattice_num_lateral_samples_per_side: 3
+  lattice_layer_spacing: 2.0
+  lattice_lateral_spacing: 0.05
+  lattice_k_length: 0.5
+
+  ref_max_speed: 5.0
+  ref_max_lat_acc: 1.0
+  ref_max_lon_acc: 1.0
+  ref_max_lon_dec: 1.0
+
+  track_num_paths: 9
+  wheelbase: 0.3
+  max_steering_angle: 0.4
+  track_path_lateral_spacing: 0.05
+  track_look_ahead_time: 0.5
+
+  costmap_topic: costmap
+  global_path_topic: path/global
+  local_path_topic: path/local
+  odom_topic: odom
+  inflated_costmap_topic: inflated_costmap
+  viz_topic: viz/local_planner
+
+drive_controller:
+  look_ahead_dist: 1
+  gain: 0.5
+  trajectory_topic: path/local
+  odom_topic: odom
+  auto_drive_topic: drive/auto
+  viz_topic: drive_controller/viz
+
+drive_mode_selector:
+  drive_mode_topic: drive_mode
+  joy_drive_topic: drive/joy
+  auto_drive_topic: drive/auto
+  selected_drive_topic: drive/selected
+
+safety_controller:
+  odom_topic: odom
+  time_to_collision_topic: time_to_collision
+  selected_drive_topic: drive/selected
+  safe_drive_topic: drive

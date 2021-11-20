@@ -1,0 +1,25 @@
+<launch>
+    <arg name="param_file_name" default="autonomy.yaml"/>
+    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/$(arg param_file_name)"/>
+
+    <arg name="file_name" value="$(find f1tenth_racecar_bringup)/path/berlin.csv"/>
+
+    <node name="path_recorder" pkg="path_recorder" type="path_recorder_node" output="screen">
+        <param name="file_name" value="$(arg file_name)" />
+    </node>
+
+    <node name="costmap_generator" pkg="costmap_generator" type="costmap_generator_node" output="screen">
+    </node>
+
+    <node name="local_planner" pkg="local_planner" type="local_planner_node" output="screen">
+    </node>
+
+    <node name="drive_controller" pkg="drive_controller" type="drive_controller_node" output="screen">
+    </node>
+
+    <node name="drive_mode_selector" pkg="drive_mode_selector" type="drive_mode_selector_node" output="screen">
+    </node>
+
+    <node name="safety_controller" pkg="safety_controller" type="safety_controller_node" output="screen">
+    </node>
+</launch>

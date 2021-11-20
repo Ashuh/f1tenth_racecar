@@ -1,0 +1,12 @@
+ds4_driver:
+  use_standard_msgs: false
+  deadzone: 0
+
+ds4_controller:
+  status_topic: status
+  feedback_topic: set_feedback
+  joy_drive_topic: drive/joy
+  drive_mode_topic: drive_mode
+  timeout: 0.5
+  max_steering_angle: 0.3
+  max_speed: 5
