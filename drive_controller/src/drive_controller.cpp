@@ -52,6 +52,7 @@ void DriveController::timerCallback(const ros::TimerEvent& timer_event)
                                                           << " degrees");
     drive_pub_.publish(drive_msg);
     viz_pub_.publish(*viz_ptr_);
+    viz_ptr_->markers.clear();
   }
   catch (const std::invalid_argument& ex)
   {
