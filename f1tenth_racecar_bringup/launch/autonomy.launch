@@ -8,6 +8,9 @@
         <param name="file_name" value="$(arg file_name)" />
     </node>
 
+    <node name="amcl" pkg="amcl" type="amcl" output="screen">
+    </node>
+
     <node name="costmap_generator" pkg="costmap_generator" type="costmap_generator_node" output="screen">
     </node>
 

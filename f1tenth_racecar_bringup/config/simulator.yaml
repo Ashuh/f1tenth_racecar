@@ -57,7 +57,7 @@ imu_topic: "/imu"
 pose_rviz_topic: "/initialpose"
 
 # The names of the transformation frames published to
-map_frame: "map"
+map_frame: "odom"
 base_frame: "base_link"
 scan_frame: "laser"
 
