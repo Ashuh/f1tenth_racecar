@@ -8,6 +8,7 @@ project(costmap_generator)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  f1tenth_msgs
   f1tenth_utils
   geometry_msgs
   grid_map_cv
