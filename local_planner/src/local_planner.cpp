@@ -181,10 +181,7 @@ void LocalPlanner::driveCallback(const ackermann_msgs::AckermannDriveStamped::Co
 void LocalPlanner::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
 {
   ros::Time begin = ros::Time::now();
-
   collision_checker_ptr_->setCostmap(costmap_msg);
-  inflated_costmap_pub_.publish(collision_checker_ptr_->getInflatedGridMsg());
-
   ROS_INFO("[Local Planner] CostmapCallback completed in %.3fs", (ros::Time::now() - begin).toSec());
 }
 
