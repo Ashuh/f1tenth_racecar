@@ -31,11 +31,9 @@ private:
   ros::Subscriber global_path_sub_;
   ros::Subscriber odom_sub_;
   ros::Subscriber drive_sub_;
-  ros::Subscriber costmap_sub_;
 
   ros::Publisher trajectory_pub_;
   ros::Publisher viz_pub_;
-  ros::Publisher inflated_costmap_pub_;
 
   dynamic_reconfigure::Server<local_planner::LocalPlannerConfig> server_;
   dynamic_reconfigure::Server<local_planner::LocalPlannerConfig>::CallbackType f_;
@@ -69,8 +67,6 @@ private:
   void odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg);
 
   void driveCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr& drive_msg);
-
-  void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
   void configCallback(local_planner::LocalPlannerConfig& config, uint32_t level);
 

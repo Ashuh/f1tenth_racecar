@@ -285,11 +285,6 @@ void Lattice::Generator::setGlobalPath(const nav_msgs::PathConstPtr& path)
   global_path_ = path;
 }
 
-void Lattice::Generator::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
-{
-  collision_checker_ptr_->setCostmap(costmap_msg);
-}
-
 void Lattice::Generator::setNumLayers(const int num_layers)
 {
   if (num_layers < 4)

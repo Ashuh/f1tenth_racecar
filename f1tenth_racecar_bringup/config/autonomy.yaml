@@ -42,7 +42,6 @@ costmap_generator:
   grid_resolution: 0.05
   map_topic: map
   scan_topic: scan
-  costmap_topic: costmap
 
 local_planner:
   circle_offsets: [0.1, 0.3]
@@ -64,11 +63,9 @@ local_planner:
   track_path_lateral_spacing: 0.05
   track_look_ahead_time: 0.5
 
-  costmap_topic: costmap
   global_path_topic: path/global
   local_path_topic: path/local
   odom_topic: odom
-  inflated_costmap_topic: inflated_costmap
   viz_topic: viz/local_planner
 
 drive_controller:

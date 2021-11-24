@@ -89,8 +89,6 @@ public:
 
     void setGlobalPath(const nav_msgs::PathConstPtr& path);
 
-    void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
-
     void setNumLayers(const int num_layers);
 
     void setNumLateralSamplesPerSide(const int num_lateral_samples_per_side);

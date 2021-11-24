@@ -26,7 +26,6 @@ CostmapGenerator::CostmapGenerator()
 
   std::string map_topic;
   std::string scan_topic;
-  std::string costmap_topic;
 
   private_nh.param("grid_resolution", grid_resolution, 0.05);
   private_nh.param("grid_size_x", grid_size_x, 10.0);
@@ -34,11 +33,10 @@ CostmapGenerator::CostmapGenerator()
 
   private_nh.param("map_topic", map_topic, std::string("map"));
   private_nh.param("scan_topic", scan_topic, std::string("scan"));
-  private_nh.param("costmap_topic", costmap_topic, std::string("costmap"));
 
   map_sub_ = nh_.subscribe(map_topic, 1, &CostmapGenerator::mapCallback, this);
   scan_sub_ = nh_.subscribe(scan_topic, 1, &CostmapGenerator::scanCallback, this);
-  costmap_pub_ = nh_.advertise<grid_map_msgs::GridMap>(costmap_topic, 1, true);
+  costmap_pub_ = nh_.advertise<grid_map_msgs::GridMap>("costmap", 1, true);
   timer_ = nh_.createTimer(ros::Duration(0.1), &CostmapGenerator::timerCallback, this);
 
   global_map_ = grid_map::GridMap({ STATIC_LAYER_ });

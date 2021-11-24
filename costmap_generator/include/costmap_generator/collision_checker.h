@@ -14,6 +14,7 @@ class CollisionChecker
 private:
   ros::NodeHandle nh_;
   ros::ServiceClient client_;
+  ros::Subscriber costmap_sub_;
 
   const std::string id_;                // id of the collision checker
   grid_map::GridMap costmap_;           // latest available costmap
@@ -26,6 +27,8 @@ private:
   void sendInflationRequest(const double radius);
 
   void cancelInflationRequest();
+
+  void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
   std::vector<geometry_msgs::PointStamped>
   getCirclePositionsFromPose(const geometry_msgs::PoseStamped& pose_stamped) const;
@@ -48,8 +51,6 @@ public:
   bool checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const;
 
   bool checkCollision(const geometry_msgs::PointStamped& source, const geometry_msgs::PointStamped& target) const;
-
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 };
 
 #endif  // COSTMAP_GENERATOR_COLLISION_CHECKER_H

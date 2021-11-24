@@ -20,6 +20,8 @@ CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets, co
 
   connect();
   sendInflationRequest(circle_radius);
+
+  costmap_sub_ = nh_.subscribe("costmap", 1, &CollisionChecker::costmapCallback, this);
 }
 
 CollisionChecker::~CollisionChecker()
@@ -56,6 +58,11 @@ void CollisionChecker::cancelInflationRequest()
   srv.request.client_id = id_;
   srv.request.action = f1tenth_msgs::InflateCostmapRequest::DELETE;
   client_.call(srv);
+}
+
+void CollisionChecker::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
+{
+  grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_, { layer_id_ });
 }
 
 bool CollisionChecker::checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const
@@ -165,9 +172,4 @@ std::vector<geometry_msgs::PoseStamped> CollisionChecker::lineToPoses(const geom
   }
 
   return poses;
-}
-
-void CollisionChecker::setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
-{
-  grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_, { layer_id_ });
 }

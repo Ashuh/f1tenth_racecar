@@ -4,7 +4,6 @@
     <arg name="grid_resolution" value="0.05" />
     <arg name="map_topic" value="map" />
     <arg name="scan_topic" value="scan" />
-    <arg name="costmap_topic" value="costmap" />
 
     <node name="costmap_generator" pkg="costmap_generator" type="costmap_generator_node" output="screen">
         <param name="grid_size_x" value="$(arg grid_size_x)" />
@@ -13,6 +12,5 @@
 
         <param name="map_topic" value="$(arg map_topic)" />
         <param name="scan_topic" value="$(arg scan_topic)" />
-        <param name="costmap_topic" value="$(arg costmap_topic)" />
     </node>
 </launch>
