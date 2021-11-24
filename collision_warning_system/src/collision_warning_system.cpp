@@ -38,21 +38,21 @@ CollisionWarningSystem::CollisionWarningSystem() : tf_listener(tf_buffer)
   std::string vehicle_footprints_viz_topic;
   std::string collision_viz_topic;
 
-  ROS_ASSERT(private_nh.getParam("t_max", t_max_) && t_max_ >= 0);
-  ROS_ASSERT(private_nh.getParam("delta_t", delta_t_) && delta_t_ > 0);
+  private_nh.getParam("t_max", t_max_);
+  private_nh.getParam("delta_t", delta_t_);
 
-  ROS_ASSERT(private_nh.getParam("wheelbase", wheelbase) && wheelbase > 0);
-  ROS_ASSERT(private_nh.getParam("vehicle_width", vehicle_width) && vehicle_width > 0);
-  ROS_ASSERT(private_nh.getParam("vehicle_length", vehicle_length) && vehicle_length > 0);
-  ROS_ASSERT(private_nh.getParam("base_link_to_center_dist", base_link_to_center_dist) && base_link_to_center_dist > 0);
+  private_nh.getParam("wheelbase", wheelbase);
+  private_nh.getParam("vehicle_width", vehicle_width);
+  private_nh.getParam("vehicle_length", vehicle_length);
+  private_nh.getParam("base_link_to_center_dist", base_link_to_center_dist);
 
-  ROS_ASSERT(private_nh.getParam("odom_topic", odom_topic));
-  ROS_ASSERT(private_nh.getParam("drive_topic", drive_topic));
-  ROS_ASSERT(private_nh.getParam("obstacle_topic", obstacle_topic));
-  ROS_ASSERT(private_nh.getParam("time_to_collision_topic", time_to_collision_topic));
-  ROS_ASSERT(private_nh.getParam("trajectory_topic", trajectory_topic));
-  ROS_ASSERT(private_nh.getParam("vehicle_footprints_viz_topic", vehicle_footprints_viz_topic));
-  ROS_ASSERT(private_nh.getParam("collision_viz_topic", collision_viz_topic));
+  private_nh.getParam("odom_topic", odom_topic);
+  private_nh.getParam("drive_topic", drive_topic);
+  private_nh.getParam("obstacle_topic", obstacle_topic);
+  private_nh.getParam("time_to_collision_topic", time_to_collision_topic);
+  private_nh.getParam("trajectory_topic", trajectory_topic);
+  private_nh.getParam("vehicle_footprints_viz_topic", vehicle_footprints_viz_topic);
+  private_nh.getParam("collision_viz_topic", collision_viz_topic);
 
   biycle_model_ = new BicycleModel(wheelbase);
   collision_checker_ = new CollisionChecker(vehicle_width, vehicle_length, base_link_to_center_dist);
