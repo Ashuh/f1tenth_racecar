@@ -34,7 +34,7 @@ DriveController::DriveController()
   odom_sub_ = nh_.subscribe(odom_topic, 1, &DriveController::odomCallback, this);
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
   viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
-  timer_ = nh_.createTimer(ros::Duration(0.1), &DriveController::timerCallback, this);
+  timer_ = nh_.createTimer(ros::Duration(1.0 / UPDATE_FREQUENCY), &DriveController::timerCallback, this);
 
   viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
   pure_pursuit_ = std::make_unique<PurePursuit>(look_ahead_dist, gain, viz_ptr_);
@@ -45,6 +45,13 @@ DriveController::DriveController()
 
 void DriveController::timerCallback(const ros::TimerEvent& timer_event)
 {
+  if ((ros::Time::now() - trajectrory_.header.stamp).toSec() > 1.0 / UPDATE_FREQUENCY)
+  {
+    ROS_ERROR("[Drive Controller] Trajectory information is outdated. Publishing empty message.");
+    drive_pub_.publish(ackermann_msgs::AckermannDriveStamped());
+    return;
+  }
+
   try
   {
     ackermann_msgs::AckermannDriveStamped drive_msg = pure_pursuit_->computeDrive(odom_msg_, trajectrory_);

@@ -13,6 +13,8 @@
 class DriveController
 {
 private:
+  static constexpr int UPDATE_FREQUENCY = 10;
+
   ros::NodeHandle nh_;
 
   ros::Timer timer_;
