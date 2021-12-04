@@ -5,15 +5,14 @@
 #include <vector>
 
 #include <ros/ros.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
+#include <geometry_msgs/PolygonStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
-#include <ackermann_msgs/AckermannDriveStamped.h>
-#include <tf2_ros/transform_listener.h>
 
-#include "f1tenth_msgs/ObstacleArray.h"
 #include "collision_warning_system/bicycle_model.h"
 #include "collision_warning_system/bicycle_state.h"
-#include "collision_warning_system/collision_checker.h"
+#include "costmap_generator/collision_checker.h"
 
 namespace f1tenth_racecar
 {
@@ -21,6 +20,9 @@ namespace safety
 {
 class CollisionWarningSystem
 {
+public:
+  CollisionWarningSystem();
+
 private:
   ros::NodeHandle nh_;
   ros::Timer timer_;
@@ -32,35 +34,29 @@ private:
 
   // Publishers
   ros::Publisher time_to_collision_pub_;
-  ros::Publisher trajectory_pub_;
-  ros::Publisher vehicle_footprints_pub_;
-  ros::Publisher collision_viz_pub_;
-
-  tf2_ros::Buffer tf_buffer;
-  tf2_ros::TransformListener tf_listener;
+  ros::Publisher viz_pub_;
 
   BicycleModel* biycle_model_;
-  CollisionChecker* collision_checker_;
+  std::unique_ptr<CollisionChecker> collision_checker_;
 
-  std::string obstacle_frame_ = "laser";
-  std::string odom_frame_ = "map";
+  std::string map_frame_ = "map";
 
   nav_msgs::Odometry odom_msg_;
   ackermann_msgs::AckermannDriveStamped drive_msg_;
-  f1tenth_msgs::ObstacleArray obstacles_msg_;
 
   double t_max_;
   double delta_t_;
+  double vehicle_length_;
+  double vehicle_width_;
+  double base_link_to_center_dist_;
 
   void timerCallback(const ros::TimerEvent& timer_event);
-  void odomCallback(const nav_msgs::Odometry odom_msg);
-  void driveCallback(const ackermann_msgs::AckermannDriveStamped drive_msg);
-  void obstacleCallback(const f1tenth_msgs::ObstacleArray obstacles);
-  void visualizeCollisions(double collision_index);
-  void visualizeVehicleFootprints(const std::vector<f1tenth_msgs::RectangleStamped> footprints);
 
-public:
-  CollisionWarningSystem();
+  void odomCallback(const nav_msgs::Odometry& odom_msg);
+
+  void driveCallback(const ackermann_msgs::AckermannDriveStamped& drive_msg);
+
+  void visualizeProjectedTrajectory(const nav_msgs::Path& path);
 };
 }  // namespace safety
 }  // namespace f1tenth_racecar

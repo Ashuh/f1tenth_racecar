@@ -8,11 +8,12 @@ project(collision_warning_system)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
   ackermann_msgs
-  nav_msgs
-  tf2_geometry_msgs
+  costmap_generator
   f1tenth_msgs
+  f1tenth_utils
+  nav_msgs
+  roscpp
 )
 
 ## System dependencies are found with CMake's conventions
@@ -136,10 +137,9 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node 
-  src/collision_warning_system.cpp
   src/bicycle_model.cpp
   src/bicycle_state.cpp
-  src/collision_checker.cpp
+  src/collision_warning_system.cpp
 )
 
 ## Rename C++ executable without prefix
