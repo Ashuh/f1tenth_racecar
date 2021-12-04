@@ -54,6 +54,7 @@
   <exec_depend>roscpp</exec_depend>
 
   <depend>ackermann_msgs</depend>
+  <depend>costmap_generator</depend>
   <depend>f1tenth_msgs</depend>
   <depend>f1tenth_utils</depend>
   <depend>nav_msgs</depend>
