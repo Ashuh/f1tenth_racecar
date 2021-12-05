@@ -42,6 +42,9 @@ scan_std_dev: 0.01 # meters
 # Used for the lidar simulator.
 map_free_threshold: 0.8
 
+# Time to collision cutoff value
+ttc_threshold: 0.01
+
 # obstacle parameters
 obstacle_size: 2
 
