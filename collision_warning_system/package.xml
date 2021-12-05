@@ -52,10 +52,12 @@
   <build_depend>roscpp</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>roscpp</exec_depend>
-  <depend>tf2_geometry_msgs</depend>
+
   <depend>ackermann_msgs</depend>
-  <depend>nav_msgs</depend>
+  <depend>costmap_generator</depend>
   <depend>f1tenth_msgs</depend>
+  <depend>f1tenth_utils</depend>
+  <depend>nav_msgs</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

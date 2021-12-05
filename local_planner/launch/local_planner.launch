@@ -19,7 +19,6 @@
     <arg name="track_path_lateral_spacing" value="0.06" />
     <arg name="track_look_ahead_time" value="0.5" />
 
-    <arg name="costmap_topic" value="costmap" />
     <arg name="global_path_topic" value="path/global" />
     <arg name="local_path_topic" value="path/local" />
     <arg name="odom_topic" value="odom" />
@@ -47,7 +46,6 @@
         <param name="track_path_lateral_spacing" value="$(arg track_path_lateral_spacing)" />
         <param name="track_look_ahead_time" value="$(arg track_look_ahead_time)" />
 
-        <param name="costmap_topic" value="$(arg costmap_topic)" />
         <param name="global_path_topic" value="$(arg global_path_topic)" />
         <param name="local_path_topic" value="$(arg local_path_topic)" />
         <param name="odom_topic" value="$(arg odom_topic)" />

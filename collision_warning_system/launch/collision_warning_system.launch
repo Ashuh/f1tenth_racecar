@@ -1,11 +1,13 @@
 <launch>
+    <arg name="circle_offsets" value="[0.1, 0.3]" />
+    <arg name="circle_radius" value="0.2" />
     <arg name="t_max" value="2"/>
-    <arg name="delta_t" value="0.2"/>
+    <arg name="delta_t" value="0.1"/>
 
     <arg name="wheelbase" value="0.3"/>
     <arg name="vehicle_width" value="0.3"/>
-    <arg name="vehicle_length" value="0.8"/>
-    <arg name="base_link_to_center_dist" value="0.4"/>
+    <arg name="vehicle_length" value="0.5"/>
+    <arg name="base_link_to_center_dist" value="0.1"/>
 
     <arg name="odom_topic" value="odom"/>
     <arg name="drive_topic" value="drive"/>
@@ -16,6 +18,8 @@
     <arg name="collision_viz_topic" value="collision_viz"/>
 
     <node name="collision_warning_system" pkg="collision_warning_system" type="collision_warning_system_node" output="screen">
+        <rosparam param="circle_offsets" subst_value="True">$(arg circle_offsets)</rosparam>
+        <param name="circle_radius" value="$(arg circle_radius)" />
         <param name="t_max" value="$(arg t_max)"/>
         <param name="delta_t" value="$(arg delta_t)"/>
 

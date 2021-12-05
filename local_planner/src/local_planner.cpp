@@ -34,7 +34,6 @@ LocalPlanner::LocalPlanner()
 
 void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
 {
-  std::string costmap_topic;
   std::string global_path_topic;
   std::string local_path_topic;
   std::string odom_topic;
@@ -42,7 +41,6 @@ void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
   std::string viz_topic;
   std::string drive_topic;
 
-  private_nh.param("costmap_topic", costmap_topic, std::string("costmap"));
   private_nh.param("global_path_topic", global_path_topic, std::string("path/global"));
   private_nh.param("local_path_topic", local_path_topic, std::string("path/local"));
   private_nh.param("odom_topic", odom_topic, std::string("odom"));
@@ -53,12 +51,10 @@ void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
   global_path_sub_ = nh_.subscribe(global_path_topic, 1, &LocalPlanner::globalPathCallback, this);
   odom_sub_ = nh_.subscribe(odom_topic, 1, &LocalPlanner::odomCallback, this);
   drive_sub_ = nh_.subscribe(drive_topic, 1, &LocalPlanner::driveCallback, this);
-  costmap_sub_ = nh_.subscribe(costmap_topic, 1, &LocalPlanner::costmapCallback, this);
   timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
 
   trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>(local_path_topic, 1);
   viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
-  inflated_costmap_pub_ = nh_.advertise<nav_msgs::OccupancyGrid>(inflated_costmap_topic, 1);
 }
 
 void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
@@ -176,16 +172,6 @@ void LocalPlanner::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 void LocalPlanner::driveCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr& drive_msg)
 {
   current_steering_angle_ = drive_msg->drive.steering_angle;
-}
-
-void LocalPlanner::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)
-{
-  ros::Time begin = ros::Time::now();
-
-  collision_checker_ptr_->setCostmap(costmap_msg);
-  inflated_costmap_pub_.publish(collision_checker_ptr_->getInflatedGridMsg());
-
-  ROS_INFO("[Local Planner] CostmapCallback completed in %.3fs", (ros::Time::now() - begin).toSec());
 }
 
 void LocalPlanner::configCallback(local_planner::LocalPlannerConfig& config, uint32_t level)

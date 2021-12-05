@@ -1,7 +1,6 @@
 #ifndef COSTMAP_GENERATOR_COLLISION_CHECKER_H
 #define COSTMAP_GENERATOR_COLLISION_CHECKER_H
 
-#include <mutex>
 #include <string>
 #include <vector>
 
@@ -9,29 +8,27 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <grid_map_msgs/GridMap.h>
 #include <grid_map_ros/grid_map_ros.hpp>
-#include <visualization_msgs/MarkerArray.h>
-
-#include "costmap_generator/costmap_layer.h"
 
 class CollisionChecker
 {
 private:
+  ros::NodeHandle nh_;
+  ros::ServiceClient client_;
+  ros::Subscriber costmap_sub_;
+
+  const std::string id_;                // id of the collision checker
+  grid_map::GridMap costmap_;           // latest available costmap
+  std::string layer_id_;                // id of the layer to use in the costmap
   std::vector<double> circle_offsets_;  // offsets of the circle centers with respect to the base link
   double circle_radius_;                // radius of the circles
 
-  grid_map::GridMap inflated_costmap_;
+  void connect();
 
-  mutable std::mutex mutex_;
+  void sendInflationRequest(const double radius);
 
-  /**
-   * @brief Inflates the occupied cells in the costmap such that all cells within the specified inflation radius are
-   * marked as occupied as well.
-   *
-   * @param costmap The map to be inflated.
-   * @param radius The inflation radius.
-   * @return The inflated map.
-   */
-  static grid_map::GridMap inflateMap(const grid_map::GridMap& costmap, const double radius);
+  void cancelInflationRequest();
+
+  void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
   std::vector<geometry_msgs::PointStamped>
   getCirclePositionsFromPose(const geometry_msgs::PoseStamped& pose_stamped) const;
@@ -40,7 +37,9 @@ private:
                                                       const geometry_msgs::PointStamped& target) const;
 
 public:
-  CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius);
+  CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius, const std::string& id = "");
+
+  ~CollisionChecker();
 
   /**
    * @brief Checks whether a pose would result in a collision. The pose will be transformed to the same frame as the
@@ -52,10 +51,6 @@ public:
   bool checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const;
 
   bool checkCollision(const geometry_msgs::PointStamped& source, const geometry_msgs::PointStamped& target) const;
-
-  void setCostmap(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
-
-  nav_msgs::OccupancyGrid getInflatedGridMsg() const;
 };
 
 #endif  // COSTMAP_GENERATOR_COLLISION_CHECKER_H
