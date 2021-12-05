@@ -20,6 +20,8 @@ CollisionWarningSystem::CollisionWarningSystem()
 {
   ros::NodeHandle private_nh("~");
 
+  std::vector<double> circle_offsets;
+  double circle_radius;
   double wheelbase;
 
   std::string odom_topic;
@@ -27,6 +29,8 @@ CollisionWarningSystem::CollisionWarningSystem()
   std::string time_to_collision_topic;
   std::string collision_viz_topic;
 
+  private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
+  private_nh.param("circle_radius", circle_radius, 0.2);
   private_nh.getParam("t_max", t_max_);
   private_nh.getParam("delta_t", delta_t_);
 
@@ -41,7 +45,7 @@ CollisionWarningSystem::CollisionWarningSystem()
   private_nh.getParam("collision_viz_topic", collision_viz_topic);
 
   biycle_model_ = new BicycleModel(wheelbase);
-  collision_checker_ = std::make_unique<CollisionChecker>(std::vector<double>{ 0.1, 0.3 }, 0.3);
+  collision_checker_ = std::make_unique<CollisionChecker>(circle_offsets, circle_radius);
   time_to_collision_pub_ = nh_.advertise<std_msgs::Float64>(time_to_collision_topic, 1);
   viz_pub_ = nh_.advertise<visualization_msgs::Marker>(collision_viz_topic, 1);
 
