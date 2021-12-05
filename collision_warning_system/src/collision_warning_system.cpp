@@ -109,6 +109,7 @@ void CollisionWarningSystem::visualizeProjectedTrajectory(const nav_msgs::Path& 
   projected_marker.action = visualization_msgs::Marker::ADD;
   projected_marker.type = visualization_msgs::Marker::LINE_STRIP;
   projected_marker.lifetime = ros::Duration(0.1);
+  projected_marker.pose.orientation.w = 1;
   projected_marker.points.reserve(path.poses.size() * 2);
   projected_marker.scale.x = 0.01;
   projected_marker.color.r = 0;
