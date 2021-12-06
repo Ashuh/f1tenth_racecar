@@ -17,23 +17,14 @@ DS4Controller::DS4Controller()
 {
   ros::NodeHandle private_nh("~");
 
-  std::string feedback_topic;
-  std::string drive_topic;
-  std::string drive_mode_topic;
-
-  getParam("status_topic", status_topic_);
-  getParam("feedback_topic", feedback_topic);
-  getParam("joy_drive_topic", drive_topic);
-  getParam("drive_mode_topic", drive_mode_topic);
   getParam("timeout", timeout_);
   getParam("max_steering_angle", max_steering_angle_);
   getParam("max_speed", max_speed_);
 
-  status_sub_ = nh_.subscribe(status_topic_, 1, &DS4Controller::statusCallback, this);
-  drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
-  drive_mode_pub_ = nh_.advertise<f1tenth_msgs::DriveMode>(drive_mode_topic, 1);
-
-  feedback_pub_ = nh_.advertise<ds4_driver::Feedback>(feedback_topic, 1);
+  status_sub_ = nh_.subscribe("status", 1, &DS4Controller::statusCallback, this);
+  drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_joy", 1);
+  drive_mode_pub_ = nh_.advertise<f1tenth_msgs::DriveMode>("drive_mode", 1);
+  feedback_pub_ = nh_.advertise<ds4_driver::Feedback>("set_feedback", 1);
 
   waitForConnection();
 
@@ -104,7 +95,7 @@ void DS4Controller::waitForConnection()
 
   ROS_INFO("[DS4 Controller] DS4 Driver Started");
 
-  while (ros::topic::waitForMessage<ds4_driver::Status>(status_topic_, ros::Duration(0.1)) == NULL)
+  while (ros::topic::waitForMessage<ds4_driver::Status>(status_sub_.getTopic(), ros::Duration(0.1)) == NULL)
   {
     ROS_WARN_THROTTLE(1, "[DS4 Controller] Waiting for Connection to DualShock 4");
   }

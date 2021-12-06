@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="odom_topic" default="odom"/>
+
+    <node name="collision_warning_system" pkg="collision_warning_system" type="collision_warning_system_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/collision_warning_system.yaml"/>
+
+        <remap from="odom" to="$(arg odom_topic)"/>
+        <remap from="drive" to="drive_safe"/>
+    </node>
+</launch>

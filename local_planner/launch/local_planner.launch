@@ -1,29 +1,27 @@
 <launch>
-    <arg name="circle_offsets" value="[0.1, 0.3]" />
-    <arg name="circle_radius" value="0.2" />
+    <arg name="circle_offsets" default="[0.1, 0.3]" />
+    <arg name="circle_radius" default="0.2" />
 
-    <arg name="lattice_num_layers" value="8" />
-    <arg name="lattice_num_lateral_samples_per_side" value="8" />
-    <arg name="lattice_layer_spacing" value="2.0" />
-    <arg name="lattice_lateral_spacing" value="0.05" />
-    <arg name="lattice_k_length" value="0.5" />
+    <arg name="lattice_num_layers" default="8" />
+    <arg name="lattice_num_lateral_samples_per_side" default="8" />
+    <arg name="lattice_layer_spacing" default="2.0" />
+    <arg name="lattice_lateral_spacing" default="0.05" />
+    <arg name="lattice_k_length" default="0.5" />
 
-    <arg name="ref_max_speed" value="5.0" />
-    <arg name="ref_max_lat_acc" value="1.0" />
-    <arg name="ref_max_lon_acc" value="1.0" />
-    <arg name="ref_max_lon_dec" value="1.0" />
+    <arg name="ref_max_speed" default="5.0" />
+    <arg name="ref_max_lat_acc" default="1.0" />
+    <arg name="ref_max_lon_acc" default="1.0" />
+    <arg name="ref_max_lon_dec" default="1.0" />
 
-    <arg name="track_num_paths" value="9" />
-    <arg name="wheelbase" value="0.3" />
-    <arg name="max_steering_angle" value="0.4" />
-    <arg name="track_path_lateral_spacing" value="0.06" />
-    <arg name="track_look_ahead_time" value="0.5" />
+    <arg name="track_num_paths" default="9" />
+    <arg name="wheelbase" default="0.3" />
+    <arg name="max_steering_angle" default="0.4" />
+    <arg name="track_path_lateral_spacing" default="0.06" />
+    <arg name="track_look_ahead_time" default="0.5" />
 
-    <arg name="global_path_topic" value="path/global" />
-    <arg name="local_path_topic" value="path/local" />
-    <arg name="odom_topic" value="odom" />
-    <arg name="inflated_costmap_topic" value="inflated_costmap" />
-    <arg name="viz_topic" value="viz/local_planner" />
+    <arg name="global_path_topic" default="global_path" />
+    <arg name="odom_topic" default="odom" />
+    <arg name="drive_feedback_topic" default="drive_feedback" />
 
     <node name="local_planner" pkg="local_planner" type="local_planner_node" output="screen">
         <rosparam param="circle_offsets" subst_value="True">$(arg circle_offsets)</rosparam>
@@ -46,10 +44,8 @@
         <param name="track_path_lateral_spacing" value="$(arg track_path_lateral_spacing)" />
         <param name="track_look_ahead_time" value="$(arg track_look_ahead_time)" />
 
-        <param name="global_path_topic" value="$(arg global_path_topic)" />
-        <param name="local_path_topic" value="$(arg local_path_topic)" />
-        <param name="odom_topic" value="$(arg odom_topic)" />
-        <param name="inflated_costmap_topic" value="$(arg inflated_costmap_topic)" />
-        <param name="viz_topic" value="$(arg viz_topic)" />
+        <remap from="global_path" to="$(arg global_path_topic)"/>
+        <remap from="odom" to="$(arg odom_topic)"/>
+        <remap from="drive_feedback" to="$(arg drive_feedback_topic)"/>
     </node>
 </launch>

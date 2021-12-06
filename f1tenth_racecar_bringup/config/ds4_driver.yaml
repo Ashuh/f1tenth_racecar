@@ -1,0 +1,6 @@
+device_addr: 84:30:95:56:EE:1A
+backend: hidraw
+use_standard_msgs: false
+deadzone: 0.1
+frame_id: ds4
+imu_frame_id: ds4_imu

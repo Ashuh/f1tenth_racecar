@@ -1,0 +1,16 @@
+<launch>
+    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vehicle_params.yaml"/>
+
+    <include file="$(find f1tenth_racecar_bringup)/launch/joy.launch">
+    </include>
+
+    <include file="$(find f1tenth_racecar_bringup)/launch/vesc.launch">
+        <param name="vesc_drive_topic" value="drive_joy"/>
+    </include>
+
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/gmapping.yaml"/>
+        <remap from="scan" to="scan"/>
+        <remap from="odom" to="odom"/>
+    </node>
+</launch>

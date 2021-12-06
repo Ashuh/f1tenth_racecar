@@ -1,0 +1,16 @@
+<launch>
+    <arg name="vesc_drive_topic" default="ackermann_cmd"/>
+
+    <node name="vesc_driver_node" pkg="vesc_driver" type="vesc_driver_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vesc_driver.yaml"/>
+    </node>
+
+    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vesc_ackermann.yaml"/>
+
+    <node name="ackermann_to_vesc" pkg="vesc_ackermann" type="ackermann_to_vesc_node" output="screen">
+        <remap from="ackermann_cmd" to="$(arg vesc_cmd_topic)"/>
+    </node>
+
+    <node name="vesc_to_odom" pkg="vesc_ackermann" type="vesc_to_odom_node" output="screen">
+    </node>
+</launch>

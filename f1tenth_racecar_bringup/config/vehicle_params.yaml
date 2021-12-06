@@ -1,0 +1,5 @@
+vehicle_length: 0.5 # meters
+vehicle_width: 0.27 # meters
+base_link_to_center_dist: 0.165 # meters
+wheelbase: 0.33 # meters
+max_steering_angle: 0.4189 # radians

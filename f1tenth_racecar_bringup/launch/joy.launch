@@ -1,11 +1,9 @@
 <launch>
-    <arg name="param_file_name" default="joy.yaml"/>
-    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/$(arg param_file_name)"/>
-
     <node name="ds4_driver" pkg="ds4_driver" type="ds4_driver_node.py" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/ds4_driver.yaml"/>
     </node>
 
     <node name="ds4_controller" pkg="ds4_controller" type="ds4_controller_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/ds4_controller.yaml"/>
     </node>
 </launch>
-  

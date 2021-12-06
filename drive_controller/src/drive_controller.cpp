@@ -18,22 +18,13 @@ DriveController::DriveController()
   double look_ahead_dist;
   double gain;
 
-  std::string trajectory_topic;
-  std::string odom_topic;
-  std::string drive_topic;
-  std::string viz_topic;
-
   private_nh.getParam("look_ahead_dist", look_ahead_dist);
   private_nh.getParam("gain", gain);
-  private_nh.getParam("trajectory_topic", trajectory_topic);
-  private_nh.getParam("odom_topic", odom_topic);
-  private_nh.getParam("auto_drive_topic", drive_topic);
-  private_nh.getParam("viz_topic", viz_topic);
 
-  trajectory_sub_ = nh_.subscribe(trajectory_topic, 1, &DriveController::trajectoryCallback, this);
-  odom_sub_ = nh_.subscribe(odom_topic, 1, &DriveController::odomCallback, this);
-  drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(drive_topic, 1);
-  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
+  trajectory_sub_ = nh_.subscribe("trajectory", 1, &DriveController::trajectoryCallback, this);
+  odom_sub_ = nh_.subscribe("odom", 1, &DriveController::odomCallback, this);
+  drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_auto", 1);
+  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization/drive_controller", 1);
   timer_ = nh_.createTimer(ros::Duration(0.1), &DriveController::timerCallback, this);
 
   viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();

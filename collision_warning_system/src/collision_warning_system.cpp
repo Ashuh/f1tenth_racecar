@@ -20,33 +20,23 @@ CollisionWarningSystem::CollisionWarningSystem()
   double circle_radius;
   double wheelbase;
 
-  std::string odom_topic;
-  std::string drive_topic;
-  std::string time_to_collision_topic;
-  std::string collision_viz_topic;
-
   private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
   private_nh.param("circle_radius", circle_radius, 0.2);
   private_nh.getParam("t_max", t_max_);
   private_nh.getParam("delta_t", delta_t_);
 
-  private_nh.getParam("wheelbase", wheelbase);
-  private_nh.getParam("vehicle_width", vehicle_width_);
-  private_nh.getParam("vehicle_length", vehicle_length_);
-  private_nh.getParam("base_link_to_center_dist", base_link_to_center_dist_);
-
-  private_nh.getParam("odom_topic", odom_topic);
-  private_nh.getParam("drive_topic", drive_topic);
-  private_nh.getParam("time_to_collision_topic", time_to_collision_topic);
-  private_nh.getParam("collision_viz_topic", collision_viz_topic);
+  nh_.getParam("wheelbase", wheelbase);
+  nh_.getParam("vehicle_width", vehicle_width_);
+  nh_.getParam("vehicle_length", vehicle_length_);
+  nh_.getParam("base_link_to_center_dist", base_link_to_center_dist_);
 
   biycle_model_ = new BicycleModel(wheelbase);
   collision_checker_ = std::make_unique<CollisionChecker>(circle_offsets, circle_radius);
-  time_to_collision_pub_ = nh_.advertise<std_msgs::Float64>(time_to_collision_topic, 1);
-  viz_pub_ = nh_.advertise<visualization_msgs::Marker>(collision_viz_topic, 1);
+  time_to_collision_pub_ = nh_.advertise<std_msgs::Float64>("time_to_collision", 1);
+  viz_pub_ = nh_.advertise<visualization_msgs::Marker>("vizualization/collision_warning_system", 1);
 
-  odom_sub_ = nh_.subscribe(odom_topic, 1, &CollisionWarningSystem::odomCallback, this);
-  drive_sub_ = nh_.subscribe(drive_topic, 1, &CollisionWarningSystem::driveCallback, this);
+  odom_sub_ = nh_.subscribe("odom", 1, &CollisionWarningSystem::odomCallback, this);
+  drive_sub_ = nh_.subscribe("drive", 1, &CollisionWarningSystem::driveCallback, this);
   timer_ = nh_.createTimer(ros::Duration(0.1), &CollisionWarningSystem::timerCallback, this);
 }
 

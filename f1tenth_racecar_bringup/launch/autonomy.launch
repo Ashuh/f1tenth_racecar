@@ -1,28 +1,51 @@
 <launch>
-    <arg name="param_file_name" default="autonomy.yaml"/>
-    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/$(arg param_file_name)"/>
+    <arg name="map_name" default="map"/>
+    <arg name="path_name" default="path"/>
 
-    <arg name="file_name" value="$(find f1tenth_racecar_bringup)/path/berlin.csv"/>
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find f1tenth_racecar_bringup)/map/$(arg map_name).yaml"/>
 
     <node name="path_recorder" pkg="path_recorder" type="path_recorder_node" output="screen">
-        <param name="file_name" value="$(arg file_name)" />
+        <param name="mode" value="0"/>
+        <param name="file_name" value="$(find f1tenth_racecar_bringup)/path/$(arg path_name).csv"/>
     </node>
 
     <node name="amcl" pkg="amcl" type="amcl" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/amcl.yaml"/>
+        <remap from="scan" to="scan"/>
     </node>
 
     <node name="costmap_generator" pkg="costmap_generator" type="costmap_generator_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/costmap_generator.yaml"/>
+        <remap from="scan" to="scan"/>
     </node>
 
     <node name="local_planner" pkg="local_planner" type="local_planner_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/local_planner.yaml"/>
+        <remap from="global_path" to="global_path"/>
+        <remap from="odom" to="odom"/>
+        <remap from="drive_feedback" to="drive_safe"/>
     </node>
 
     <node name="drive_controller" pkg="drive_controller" type="drive_controller_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/drive_controller.yaml"/>
+        <remap from="trajectory" to="local_trajectory"/>
+        <remap from="odom" to="odom"/>
     </node>
 
     <node name="drive_mode_selector" pkg="drive_mode_selector" type="drive_mode_selector_node" output="screen">
+        <remap from="drive_mode" to="drive_mode"/>
+        <remap from="drive_joy" to="drive_joy"/>
+        <remap from="drive_auto" to="drive_auto"/>
+    </node>
+
+    <node name="collision_warning_system" pkg="collision_warning_system" type="collision_warning_system_node" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/collision_warning_system.yaml"/>
+        <remap from="odom" to="odom"/>
+        <remap from="drive" to="drive_safe"/>
     </node>
 
     <node name="safety_controller" pkg="safety_controller" type="safety_controller_node" output="screen">
+        <remap from="odom" to="odom"/>
+        <remap from="drive_in" to="drive_selected"/>
     </node>
 </launch>

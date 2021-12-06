@@ -1,0 +1,4 @@
+circle_offsets: [0.1, 0.3]
+circle_radius: 0.2
+t_max: 2
+delta_t: 0.1
