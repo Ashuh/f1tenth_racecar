@@ -12,10 +12,6 @@
 #include "collision_warning_system/collision_warning_system.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
-namespace f1tenth_racecar
-{
-namespace safety
-{
 CollisionWarningSystem::CollisionWarningSystem()
 {
   ros::NodeHandle private_nh("~");
@@ -176,13 +172,11 @@ void CollisionWarningSystem::visualizeProjectedTrajectory(const nav_msgs::Path& 
 
   viz_pub_.publish(projected_marker);
 }
-}  // namespace safety
-}  // namespace f1tenth_racecar
 
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "collision_warning_system");
-  f1tenth_racecar::safety::CollisionWarningSystem cws;
+  CollisionWarningSystem cws;
   ros::spin();
   return 0;
 }

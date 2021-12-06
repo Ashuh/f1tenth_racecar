@@ -8,10 +8,6 @@
 
 #include "collision_warning_system/bicycle_model.h"
 
-namespace f1tenth_racecar
-{
-namespace safety
-{
 BicycleModel::BicycleModel(const double wheelbase) : wheelbase_(wheelbase)
 {
 }
@@ -84,5 +80,3 @@ geometry_msgs::PoseStamped BicycleModel::bicycleStateToPoseStamped(const Bicycle
 
   return pose_stamped;
 }
-}  // namespace safety
-}  // namespace f1tenth_racecar
