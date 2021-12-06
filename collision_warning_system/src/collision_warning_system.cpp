@@ -89,6 +89,11 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
     ROS_WARN("%s", ex.what());
     return;
   }
+  catch (const std::runtime_error& ex)
+  {
+    ROS_WARN("%s", ex.what());
+    return;
+  }
 }
 
 void CollisionWarningSystem::odomCallback(const nav_msgs::Odometry& odom_msg)
