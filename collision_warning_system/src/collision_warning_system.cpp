@@ -78,7 +78,8 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
     }
 
     time_to_collision_pub_.publish(ttc);
-    ROS_WARN_COND(ttc.data < std::numeric_limits<double>::max(), "Time to collision: %.1f", ttc.data);
+    ROS_WARN_COND(ttc.data < std::numeric_limits<double>::max(), "[Collision Warning System] Time to collision: %.1f",
+                  ttc.data);
   }
   catch (const tf2::TransformException& ex)
   {
