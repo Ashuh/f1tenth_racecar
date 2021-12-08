@@ -5,7 +5,10 @@
     </include>
 
     <include file="$(find f1tenth_racecar_bringup)/launch/vesc.launch">
-        <param name="vesc_drive_topic" value="drive_joy"/>
+        <arg name="vesc_drive_topic" value="drive_joy"/>
+    </include>
+
+    <include file="$(find f1tenth_racecar_bringup)/launch/lidar.launch">
     </include>
 
     <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
@@ -13,4 +16,6 @@
         <remap from="scan" to="scan"/>
         <remap from="odom" to="odom"/>
     </node>
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find f1tenth_racecar_bringup)/rviz/f1tenth_slam.rviz" output="screen"/>
 </launch>
