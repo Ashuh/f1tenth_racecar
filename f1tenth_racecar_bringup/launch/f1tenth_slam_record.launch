@@ -1,14 +1,14 @@
 <launch>
     <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vehicle_params.yaml"/>
 
-    <include file="$(find f1tenth_racecar_bringup)/launch/joy.launch">
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_teleop.launch">
     </include>
 
-    <include file="$(find f1tenth_racecar_bringup)/launch/vesc.launch">
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_vesc.launch">
         <arg name="vesc_drive_topic" value="drive_joy"/>
     </include>
 
-    <include file="$(find f1tenth_racecar_bringup)/launch/lidar.launch">
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_lidar.launch">
     </include>
 
     <node pkg="rosbag" type="record" name="rosbag_record" args="record -a -O $(find f1tenth_racecar_bringup)/bag/slam_record.bag" />

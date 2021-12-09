@@ -1,15 +1,18 @@
 <launch>
     <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vehicle_params.yaml"/>
 
-    <include file="$(find f1tenth_racecar_bringup)/launch/joy.launch">
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_teleop.launch">
     </include>
 
-    <include file="$(find f1tenth_racecar_bringup)/launch/autonomy.launch">
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_lidar.launch">
+    </include>
+
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_navigation.launch">
         <arg name="map_name" value="map"/>
         <arg name="path_name" value="path"/>
     </include>
 
-    <include file="$(find f1tenth_racecar_bringup)/launch/vesc.launch">
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_vesc.launch">
         <arg name="vesc_drive_topic" value="drive_safe"/>
     </include>
 

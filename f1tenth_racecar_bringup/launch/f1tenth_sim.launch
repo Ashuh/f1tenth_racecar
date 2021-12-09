@@ -1,20 +1,20 @@
 <launch>
   <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vehicle_params.yaml"/>
 
-  <include file="$(find f1tenth_racecar_bringup)/launch/joy.launch">
+  <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_teleop.launch">
   </include>
 
-  <include file="$(find f1tenth_racecar_bringup)/launch/autonomy.launch">
+  <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_navigation.launch">
     <arg name="map_name" value="berlin"/>
     <arg name="path_name" value="berlin"/>
   </include>
 
   <node pkg="f1tenth_simulator" name="f1tenth_simulator" type="simulator" output="screen">
-    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/simulator.yaml"/>
+    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/f1tenth_simulator.yaml"/>
     <remap from="drive" to="drive_safe"/>
   </node>
 
   <include file="$(find f1tenth_simulator)/launch/racecar_model.launch"/>
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find f1tenth_racecar_bringup)/rviz/f1tenth_racecar.rviz" output="screen"/>
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find f1tenth_racecar_bringup)/rviz/f1tenth_sim.rviz" output="screen"/>
 </launch>
