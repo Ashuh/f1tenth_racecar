@@ -1,0 +1,29 @@
+<launch>
+    <arg name="map_name" value="map"/>
+    <arg name="path_name" value="path"/>
+
+    <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vehicle_params.yaml"/>
+
+    <node pkg="map_server" name="map_server" type="map_server" args="$(find f1tenth_racecar_bringup)/map/$(arg map_name).yaml"/>
+
+    <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_teleop.launch">
+    </include>
+
+    <node name="path_recorder" pkg="path_recorder" type="path_recorder_node" output="screen">
+        <param name="mode" value="1"/>
+        <param name="odom_topic" value="odom"/>
+        <param name="interval" value="0.1"/>
+        <param name="file_name" value="$(find f1tenth_racecar_bringup)/path/$(arg path_name).csv"/>
+    </node>
+
+    <node pkg="f1tenth_simulator" name="f1tenth_simulator" type="simulator" output="screen">
+        <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/f1tenth_simulator.yaml"/>
+        <param name="map_frame" value="map"/>
+        <param name="base_frame" value="base_link"/>
+        <remap from="drive" to="drive_joy"/>
+    </node>
+
+    <include file="$(find f1tenth_simulator)/launch/racecar_model.launch"/>
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find f1tenth_racecar_bringup)/rviz/f1tenth.rviz" output="screen"/>
+</launch>
