@@ -9,10 +9,6 @@
 #include "ds4_controller/ds4_controller.h"
 #include "f1tenth_msgs/DriveMode.h"
 
-namespace f1tenth_racecar
-{
-namespace utils
-{
 DS4Controller::DS4Controller()
 {
   ros::NodeHandle private_nh("~");
@@ -134,13 +130,11 @@ void DS4Controller::getParam(const std::string& key, T& result)
     ros::shutdown();
   }
 }
-}  // namespace utils
-}  // namespace f1tenth_racecar
 
 int main(int argc, char* argv[])
 {
   ros::init(argc, argv, "ds4_controller");
-  f1tenth_racecar::utils::DS4Controller ds4_controller;
+  DS4Controller ds4_controller;
   ros::spin();
   return 0;
 }

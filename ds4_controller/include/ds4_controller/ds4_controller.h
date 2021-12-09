@@ -7,10 +7,6 @@
 
 #include "ds4_driver/Status.h"
 
-namespace f1tenth_racecar
-{
-namespace utils
-{
 class DS4Controller
 {
 private:
@@ -50,7 +46,5 @@ private:
 public:
   DS4Controller();
 };
-}  // namespace utils
-}  // namespace f1tenth_racecar
 
 #endif  // DS4_CONTROLLER_DS4_CONTROLLER_H
