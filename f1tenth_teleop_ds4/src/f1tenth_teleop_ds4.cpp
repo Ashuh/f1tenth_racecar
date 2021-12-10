@@ -33,7 +33,7 @@ TeleopDS4::TeleopDS4()
   waitForConnection();
 }
 
-void TeleopDS4::statusCallback(const ds4_driver::Status status_msg)
+void TeleopDS4::statusCallback(const ds4_driver::Status& status_msg)
 {
   battery_percentage_ = std::min(status_msg.battery_percentage, 1.0f);  // Fix driver reporting value greater than 1
 

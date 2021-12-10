@@ -38,7 +38,7 @@ private:
   double battery_percentage_;
   Mode mode_;
 
-  void statusCallback(const ds4_driver::Status status_msg);
+  void statusCallback(const ds4_driver::Status& status_msg);
 
   void publishDriveMsg(const double throttle_axis, const double steering_axis);
 
