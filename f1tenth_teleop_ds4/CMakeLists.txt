@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   ackermann_msgs
   ds4_driver
   f1tenth_msgs
+  f1tenth_utils
   roscpp
 )
 

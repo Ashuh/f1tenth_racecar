@@ -55,8 +55,9 @@
   <build_export_depend>roscpp</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <depend>ackermann_msgs</depend>
-  <depend>f1tenth_msgs</depend>
   <depend>ds4_driver</depend>
+  <depend>f1tenth_msgs</depend>
+  <depend>f1tenth_utils</depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

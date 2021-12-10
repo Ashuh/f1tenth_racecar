@@ -9,6 +9,7 @@
 #include "ds4_driver/Status.h"
 #include "f1tenth_msgs/DriveMode.h"
 #include "f1tenth_teleop_ds4/f1tenth_teleop_ds4.h"
+#include "f1tenth_utils/node_utils.h"
 
 TeleopDS4::TeleopDS4()
 {
@@ -21,7 +22,7 @@ TeleopDS4::TeleopDS4()
   private_nh.getParam("max_speed_crawl", max_speeds_.at(0));
   private_nh.getParam("max_speed_normal", max_speeds_.at(1));
   private_nh.getParam("max_speed_race", max_speeds_.at(2));
-  private_nh.getParam("max_steering_angle", max_steering_angle_);
+  getClosestParam(private_nh, "max_steering_angle", max_steering_angle_);
 
   status_sub_ = nh_.subscribe("status", 1, &TeleopDS4::statusCallback, this);
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_joy", 1);
