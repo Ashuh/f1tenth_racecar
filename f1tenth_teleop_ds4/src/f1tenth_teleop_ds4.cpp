@@ -84,14 +84,7 @@ void TeleopDS4::checkConnection()
 
 void TeleopDS4::waitForConnection()
 {
-  while (status_sub_.getNumPublishers() == 0)
-  {
-    ROS_WARN_THROTTLE(1, "Waiting for DS4 Driver");
-  }
-
-  ROS_INFO("DS4 Driver Started");
-
-  while (ros::topic::waitForMessage<ds4_driver::Status>(status_sub_.getTopic(), ros::Duration(0.1)) == NULL)
+  while (ros::topic::waitForMessage<ds4_driver::Status>(status_sub_.getTopic(), ros::Duration(0.1)) == nullptr)
   {
     ROS_WARN_THROTTLE(1, "Waiting for Connection to DualShock 4");
   }
