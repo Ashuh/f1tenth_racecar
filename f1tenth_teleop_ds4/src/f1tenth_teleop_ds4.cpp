@@ -106,11 +106,3 @@ void TeleopDS4::batteryToRGB(float& r, float& g, float& b)
   g = std::min(2.0 * battery_percentage_, 1.0);
   b = 0;
 }
-
-int main(int argc, char* argv[])
-{
-  ros::init(argc, argv, "f1tenth_teleop_ds4");
-  TeleopDS4 teleop;
-  ros::spin();
-  return 0;
-}
