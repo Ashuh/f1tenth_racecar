@@ -13,6 +13,7 @@ bool getClosestParam(const ros::NodeHandle& nh, const std::string& key, T& resul
   if (nh.searchParam(key, key_found))
   {
     nh.getParam(key_found, result);
+    return true;
   }
   else
   {
