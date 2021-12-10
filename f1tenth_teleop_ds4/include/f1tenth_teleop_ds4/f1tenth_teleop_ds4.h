@@ -2,6 +2,7 @@
 #define F1TENTH_TELEOP_DS4_F1TENTH_TELEOP_DS4_H
 
 #include <string>
+#include <vector>
 
 #include <ros/ros.h>
 
@@ -13,23 +14,29 @@ public:
   TeleopDS4();
 
 private:
-  ros::NodeHandle nh_;
+  enum Mode
+  {
+    CRAWL = 0,
+    NORMAL = 1,
+    RACE = 2
+  };
 
+  ros::NodeHandle nh_;
   ros::Timer timer_;
 
   ros::Subscriber status_sub_;
-
   ros::Publisher feedback_pub_;
   ros::Publisher drive_pub_;
   ros::Publisher drive_mode_pub_;
 
-  ros::Time last_message_time_;
+  ds4_driver::Status prev_status_;
+
   double timeout_;
-
-  double battery_percentage_;
-
+  std::vector<double> max_speeds_;
+  double min_speed_;
   double max_steering_angle_;
-  double max_speed_;
+  double battery_percentage_;
+  Mode mode_;
 
   void statusCallback(const ds4_driver::Status status_msg);
 
@@ -42,6 +49,8 @@ private:
   void waitForConnection();
 
   void batteryToRGB(float& r, float& g, float& b);
+
+  bool buttonIsPressed(const ds4_driver::Status& status, int32_t ds4_driver::Status::*button) const;
 };
 
 #endif  // F1TENTH_TELEOP_DS4_F1TENTH_TELEOP_DS4_H
