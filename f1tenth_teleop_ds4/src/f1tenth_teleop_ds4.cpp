@@ -13,9 +13,9 @@ TeleopDS4::TeleopDS4()
 {
   ros::NodeHandle private_nh("~");
 
-  getParam("timeout", timeout_);
-  getParam("max_steering_angle", max_steering_angle_);
-  getParam("max_speed", max_speed_);
+  private_nh.getParam("timeout", timeout_);
+  private_nh.getParam("max_steering_angle", max_steering_angle_);
+  private_nh.getParam("max_speed", max_speed_);
 
   status_sub_ = nh_.subscribe("status", 1, &TeleopDS4::statusCallback, this);
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_joy", 1);
@@ -112,23 +112,6 @@ void TeleopDS4::batteryToRGB(float& r, float& g, float& b)
   r = std::min(2.0 * (1 - battery_percentage_), 1.0);
   g = std::min(2.0 * battery_percentage_, 1.0);
   b = 0;
-}
-
-template <typename T>
-void TeleopDS4::getParam(const std::string& key, T& result)
-{
-  ros::NodeHandle private_nh("~");
-
-  std::string found;
-  if (private_nh.searchParam(key, found))
-  {
-    private_nh.getParam(found, result);
-  }
-  else
-  {
-    ROS_FATAL("Parameter [%s] not found, shutting down", key.c_str());
-    ros::shutdown();
-  }
 }
 
 int main(int argc, char* argv[])

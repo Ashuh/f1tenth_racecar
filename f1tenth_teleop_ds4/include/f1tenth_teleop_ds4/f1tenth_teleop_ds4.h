@@ -9,6 +9,9 @@
 
 class TeleopDS4
 {
+public:
+  TeleopDS4();
+
 private:
   ros::NodeHandle nh_;
 
@@ -39,12 +42,6 @@ private:
   void waitForConnection();
 
   void batteryToRGB(float& r, float& g, float& b);
-
-  template <typename T>
-  void getParam(const std::string& key, T& result);
-
-public:
-  TeleopDS4();
 };
 
 #endif  // F1TENTH_TELEOP_DS4_F1TENTH_TELEOP_DS4_H
