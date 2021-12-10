@@ -53,7 +53,7 @@
   <exec_depend>f1tenth_racecar_bringup</exec_depend>
   <exec_depend>f1tenth_msgs</exec_depend>
   <exec_depend>ds4_driver</exec_depend>
-  <exec_depend>ds4_controller</exec_depend>
+  <exec_depend>f1tenth_teleop_ds4</exec_depend>
   <exec_depend>collision_warning_system</exec_depend>
   <exec_depend>drive_controller</exec_depend>
   <exec_depend>drive_mode_selector</exec_depend>

@@ -1,6 +1,0 @@
-status_topic: status
-feedback_topic: set_feedback
-joy_drive_topic: drive/joy
-drive_mode_topic: drive_mode
-timeout: 0.5
-max_speed: 5

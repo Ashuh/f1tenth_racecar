@@ -1,5 +1,5 @@
-#ifndef DS4_CONTROLLER_DS4_CONTROLLER_H
-#define DS4_CONTROLLER_DS4_CONTROLLER_H
+#ifndef F1TENTH_TELEOP_DS4_F1TENTH_TELEOP_DS4_H
+#define F1TENTH_TELEOP_DS4_F1TENTH_TELEOP_DS4_H
 
 #include <string>
 
@@ -7,7 +7,7 @@
 
 #include "ds4_driver/Status.h"
 
-class DS4Controller
+class TeleopDS4
 {
 private:
   ros::NodeHandle nh_;
@@ -44,7 +44,7 @@ private:
   void getParam(const std::string& key, T& result);
 
 public:
-  DS4Controller();
+  TeleopDS4();
 };
 
-#endif  // DS4_CONTROLLER_DS4_CONTROLLER_H
+#endif  // F1TENTH_TELEOP_DS4_F1TENTH_TELEOP_DS4_H

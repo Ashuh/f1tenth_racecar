@@ -6,10 +6,10 @@
 
 #include "ds4_driver/Feedback.h"
 #include "ds4_driver/Status.h"
-#include "ds4_controller/ds4_controller.h"
 #include "f1tenth_msgs/DriveMode.h"
+#include "f1tenth_teleop_ds4/f1tenth_teleop_ds4.h"
 
-DS4Controller::DS4Controller()
+TeleopDS4::TeleopDS4()
 {
   ros::NodeHandle private_nh("~");
 
@@ -17,17 +17,17 @@ DS4Controller::DS4Controller()
   getParam("max_steering_angle", max_steering_angle_);
   getParam("max_speed", max_speed_);
 
-  status_sub_ = nh_.subscribe("status", 1, &DS4Controller::statusCallback, this);
+  status_sub_ = nh_.subscribe("status", 1, &TeleopDS4::statusCallback, this);
   drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_joy", 1);
   drive_mode_pub_ = nh_.advertise<f1tenth_msgs::DriveMode>("drive_mode", 1);
   feedback_pub_ = nh_.advertise<ds4_driver::Feedback>("set_feedback", 1);
 
   waitForConnection();
 
-  timer_ = nh_.createTimer(ros::Duration(0.1), &DS4Controller::timerCallback, this);
+  timer_ = nh_.createTimer(ros::Duration(0.1), &TeleopDS4::timerCallback, this);
 }
 
-void DS4Controller::statusCallback(const ds4_driver::Status status_msg)
+void TeleopDS4::statusCallback(const ds4_driver::Status status_msg)
 {
   last_message_time_ = ros::Time::now();
   battery_percentage_ = std::min(status_msg.battery_percentage, 1.0f);  // Fix driver reporting value greater than 1
@@ -52,7 +52,7 @@ void DS4Controller::statusCallback(const ds4_driver::Status status_msg)
   }
 }
 
-void DS4Controller::publishDriveMsg(const double throttle_axis, const double steering_axis)
+void TeleopDS4::publishDriveMsg(const double throttle_axis, const double steering_axis)
 {
   ackermann_msgs::AckermannDriveStamped drive_msg;
   drive_msg.header.stamp = ros::Time::now();
@@ -62,7 +62,7 @@ void DS4Controller::publishDriveMsg(const double throttle_axis, const double ste
   drive_pub_.publish(drive_msg);
 }
 
-void DS4Controller::timerCallback(const ros::TimerEvent& timer_event)
+void TeleopDS4::timerCallback(const ros::TimerEvent& timer_event)
 {
   checkConnection();
 
@@ -73,30 +73,30 @@ void DS4Controller::timerCallback(const ros::TimerEvent& timer_event)
   feedback_pub_.publish(feedback_msg);
 }
 
-void DS4Controller::checkConnection()
+void TeleopDS4::checkConnection()
 {
   if ((ros::Time::now() - last_message_time_).toSec() > timeout_)
   {
-    ROS_ERROR("[DS4 Controller] Lost connection to DualShock 4");
+    ROS_ERROR("Lost connection to DualShock 4");
     waitForConnection();
   }
 }
 
-void DS4Controller::waitForConnection()
+void TeleopDS4::waitForConnection()
 {
   while (status_sub_.getNumPublishers() == 0)
   {
-    ROS_WARN_THROTTLE(1, "[DS4 Controller] Waiting for DS4 Driver");
+    ROS_WARN_THROTTLE(1, "Waiting for DS4 Driver");
   }
 
-  ROS_INFO("[DS4 Controller] DS4 Driver Started");
+  ROS_INFO("DS4 Driver Started");
 
   while (ros::topic::waitForMessage<ds4_driver::Status>(status_sub_.getTopic(), ros::Duration(0.1)) == NULL)
   {
-    ROS_WARN_THROTTLE(1, "[DS4 Controller] Waiting for Connection to DualShock 4");
+    ROS_WARN_THROTTLE(1, "Waiting for Connection to DualShock 4");
   }
 
-  ROS_INFO("[DS4 Controller] Connection success");
+  ROS_INFO("Connected to DualShock 4");
 
   ds4_driver::Feedback feedback_msg;
   feedback_msg.set_rumble = true;
@@ -107,7 +107,7 @@ void DS4Controller::waitForConnection()
   ros::Duration(0.5).sleep();
 }
 
-void DS4Controller::batteryToRGB(float& r, float& g, float& b)
+void TeleopDS4::batteryToRGB(float& r, float& g, float& b)
 {
   r = std::min(2.0 * (1 - battery_percentage_), 1.0);
   g = std::min(2.0 * battery_percentage_, 1.0);
@@ -115,7 +115,7 @@ void DS4Controller::batteryToRGB(float& r, float& g, float& b)
 }
 
 template <typename T>
-void DS4Controller::getParam(const std::string& key, T& result)
+void TeleopDS4::getParam(const std::string& key, T& result)
 {
   ros::NodeHandle private_nh("~");
 
@@ -126,15 +126,15 @@ void DS4Controller::getParam(const std::string& key, T& result)
   }
   else
   {
-    ROS_FATAL("[DS4 Controller] Parameter [%s] not found, shutting down", key.c_str());
+    ROS_FATAL("Parameter [%s] not found, shutting down", key.c_str());
     ros::shutdown();
   }
 }
 
 int main(int argc, char* argv[])
 {
-  ros::init(argc, argv, "ds4_controller");
-  DS4Controller ds4_controller;
+  ros::init(argc, argv, "f1tenth_teleop_ds4");
+  TeleopDS4 teleop;
   ros::spin();
   return 0;
 }
