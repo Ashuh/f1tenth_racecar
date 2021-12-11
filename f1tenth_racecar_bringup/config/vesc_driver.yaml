@@ -9,5 +9,5 @@ position_max: 0.0
 position_min: 0.0
 servo_max: 1.0
 servo_min: 0.0
-speed_max: 23250.0
-speed_min: -23250.0
+speed_max: 200000.0
+speed_min: -200000.0
