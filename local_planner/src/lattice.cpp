@@ -117,8 +117,14 @@ Lattice::Generator::Generator(const int num_layers, const double layer_spacing, 
 
   collision_checker_ptr_ = collision_checker_ptr;
 }
+
 Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) const
 {
+  if (global_path_ == nullptr || global_path_->poses.empty())
+  {
+    throw std::runtime_error("Global path has not been set");
+  }
+
   std::vector<geometry_msgs::Pose> reference_poses = getReferencePoses(source_pose);
   PositionMap map(reference_poses.size());
 
@@ -180,11 +186,6 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
 
 int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
 {
-  if (global_path_->poses.empty())
-  {
-    throw std::runtime_error("Global path has not been set");
-  }
-
   int nearest_wp_id = -1;
   double nearest_wp_dist = std::numeric_limits<double>::max();
 
