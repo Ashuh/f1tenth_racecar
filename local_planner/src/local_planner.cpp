@@ -23,24 +23,22 @@
 LocalPlanner::LocalPlanner()
 {
   ros::NodeHandle private_nh("~");
-  initCallbacks(private_nh);
   initPlanner(private_nh);
-
-  /* --------------------------- Dynamic Reconfigure -------------------------- */
-
-  f_ = boost::bind(&LocalPlanner::configCallback, this, _1, _2);
-  server_.setCallback(f_);
+  initCallbacks(private_nh);
 }
 
 void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
 {
+  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>("local_trajectory", 1);
+  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization/local_planner", 1);
+
   global_path_sub_ = nh_.subscribe("global_path", 1, &LocalPlanner::globalPathCallback, this);
   odom_sub_ = nh_.subscribe("odom", 1, &LocalPlanner::odomCallback, this);
   drive_sub_ = nh_.subscribe("drive_feedback", 1, &LocalPlanner::driveCallback, this);
   timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
 
-  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>("local_trajectory", 1);
-  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization/local_planner", 1);
+  f_ = boost::bind(&LocalPlanner::configCallback, this, _1, _2);
+  server_.setCallback(f_);
 }
 
 void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
@@ -96,6 +94,7 @@ void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
   lat_gen_ptr_ = std::make_shared<Lattice::Generator>(lattice_num_layers, lattice_layer_spacing,
                                                       lattice_num_lateral_samples_per_side, lattice_lateral_spacing,
                                                       max_curvature, lattice_k_length, collision_checker_ptr_);
+
   acc_regulator_ptr_ =
       std::make_shared<AccelerationRegulator>(ref_max_speed, ref_max_lat_acc, ref_max_lon_acc, ref_max_lon_dec);
 
