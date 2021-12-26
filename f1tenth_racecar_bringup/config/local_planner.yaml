@@ -1,0 +1,16 @@
+circle_offsets: [0.1, 0.3]
+circle_radius: 0.2
+lattice_num_layers: 8
+lattice_num_lateral_samples_per_side: 3
+lattice_layer_spacing: 2.0
+lattice_lateral_spacing: 0.05
+lattice_k_length: 0.5
+
+ref_max_speed: 5.0
+ref_max_lat_acc: 1.0
+ref_max_lon_acc: 1.0
+ref_max_lon_dec: 1.0
+
+track_num_paths: 9
+track_path_lateral_spacing: 0.05
+track_look_ahead_time: 0.5

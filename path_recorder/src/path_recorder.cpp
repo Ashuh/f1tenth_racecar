@@ -18,7 +18,6 @@ PathRecorder::PathRecorder()
 
   int mode;
   std::string file_name;
-  std::string path_topic;
 
   private_nh.param("mode", mode, 1);
 
@@ -27,10 +26,9 @@ PathRecorder::PathRecorder()
     throw std::invalid_argument("Invalid file specified");
   }
 
-  private_nh.param("path_topic", path_topic, std::string("path"));
   private_nh.param("interval", interval_, 0.1);
 
-  path_pub_ = nh_.advertise<nav_msgs::Path>(path_topic, 1, true);
+  path_pub_ = nh_.advertise<nav_msgs::Path>("global_path", 1, true);
 
   if (mode == static_cast<int>(Mode::Record))
   {

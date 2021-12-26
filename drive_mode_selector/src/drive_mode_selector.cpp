@@ -12,21 +12,10 @@ DriveModeSelector::DriveModeSelector()
 {
   ros::NodeHandle private_nh("~");
 
-  std::string drive_mode_topic;
-  std::string joy_drive_topic;
-  std::string auto_drive_topic;
-  std::string selected_drive_topic;
-
-  getParam("drive_mode_topic", drive_mode_topic);
-  getParam("joy_drive_topic", joy_drive_topic);
-  getParam("auto_drive_topic", auto_drive_topic);
-  getParam("selected_drive_topic", selected_drive_topic);
-
-  drive_mode_sub_ = nh_.subscribe(drive_mode_topic, 1, &DriveModeSelector::driveModeCallback, this);
-  joy_drive_sub_ = nh_.subscribe(joy_drive_topic, 1, &DriveModeSelector::joyDriveCallback, this);
-  auto_drive_sub_ = nh_.subscribe(auto_drive_topic, 1, &DriveModeSelector::autoDriveCallback, this);
-
-  selected_drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(selected_drive_topic, 1);
+  drive_mode_sub_ = nh_.subscribe("drive_mode", 1, &DriveModeSelector::driveModeCallback, this);
+  joy_drive_sub_ = nh_.subscribe("drive_joy", 1, &DriveModeSelector::joyDriveCallback, this);
+  auto_drive_sub_ = nh_.subscribe("drive_auto", 1, &DriveModeSelector::autoDriveCallback, this);
+  selected_drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_selected", 1);
 
   drive_mode_ = Mode::PARK;
 }

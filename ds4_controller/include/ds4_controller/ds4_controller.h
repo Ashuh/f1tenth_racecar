@@ -24,8 +24,6 @@ private:
   ros::Publisher drive_pub_;
   ros::Publisher drive_mode_pub_;
 
-  std::string status_topic_;
-
   ros::Time last_message_time_;
   double timeout_;
 

@@ -1,13 +1,16 @@
 <launch>
-    <arg name="drive_mode_topic" value="drive_mode" />
-    <arg name="joy_drive_topic" value="drive/joy" />
-    <arg name="auto_drive_topic" value="drive/auto" />
-    <arg name="selected_drive_topic" value="drive/selected" />
+    <arg name="drive_mode_topic" default="drive_mode" />
+    <arg name="joy_drive_topic" default="drive_joy" />
+    <arg name="auto_drive_topic" default="drive_auto" />
 
     <node name="drive_mode_selector" pkg="drive_mode_selector" type="drive_mode_selector_node" output="screen">
         <param name="drive_mode_topic" value="$(arg drive_mode_topic)" />
         <param name="joy_drive_topic" value="$(arg joy_drive_topic)" />
         <param name="auto_drive_topic" value="$(arg auto_drive_topic)" />
         <param name="selected_drive_topic" value="$(arg selected_drive_topic)" />
+
+        <remap from="drive_mode_topic" to="$(arg drive_mode_topic)"/>
+        <remap from="joy_drive_topic" to="$(arg joy_drive_topic)"/>
+        <remap from="auto_drive_topic" to="$(arg auto_drive_topic)"/>
     </node>
 </launch>

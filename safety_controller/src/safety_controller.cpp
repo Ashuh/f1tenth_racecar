@@ -14,21 +14,10 @@ SafetyController::SafetyController()
 {
   ros::NodeHandle private_nh("~");
 
-  std::string odom_topic;
-  std::string time_to_collision_topic;
-  std::string selected_drive_topic;
-  std::string safe_drive_topic;
-
-  getParam("odom_topic", odom_topic);
-  getParam("time_to_collision_topic", time_to_collision_topic);
-  getParam("selected_drive_topic", selected_drive_topic);
-  getParam("safe_drive_topic", safe_drive_topic);
-
-  odom_sub_ = nh_.subscribe(odom_topic, 1, &SafetyController::odomCallback, this);
-  time_to_collision_sub_ = nh_.subscribe(time_to_collision_topic, 1, &SafetyController::timeToCollisionCallback, this);
-  selected_drive_sub_ = nh_.subscribe(selected_drive_topic, 1, &SafetyController::driveCallback, this);
-
-  safe_drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(safe_drive_topic, 1);
+  odom_sub_ = nh_.subscribe("odom", 1, &SafetyController::odomCallback, this);
+  time_to_collision_sub_ = nh_.subscribe("time_to_collision", 1, &SafetyController::timeToCollisionCallback, this);
+  selected_drive_sub_ = nh_.subscribe("drive_in", 1, &SafetyController::driveCallback, this);
+  safe_drive_pub_ = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("drive_safe", 1);
 }
 
 void SafetyController::driveCallback(const ackermann_msgs::AckermannDriveStamped drive_msg)

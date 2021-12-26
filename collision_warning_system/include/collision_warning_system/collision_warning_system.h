@@ -14,10 +14,6 @@
 #include "collision_warning_system/bicycle_state.h"
 #include "costmap_generator/collision_checker.h"
 
-namespace f1tenth_racecar
-{
-namespace safety
-{
 class CollisionWarningSystem
 {
 public:
@@ -58,6 +54,5 @@ private:
 
   void visualizeProjectedTrajectory(const nav_msgs::Path& path);
 };
-}  // namespace safety
-}  // namespace f1tenth_racecar
+
 #endif  // COLLISION_WARNING_SYSTEM_COLLISION_WARNING_SYSTEM_H

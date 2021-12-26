@@ -34,27 +34,13 @@ LocalPlanner::LocalPlanner()
 
 void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
 {
-  std::string global_path_topic;
-  std::string local_path_topic;
-  std::string odom_topic;
-  std::string inflated_costmap_topic;
-  std::string viz_topic;
-  std::string drive_topic;
-
-  private_nh.param("global_path_topic", global_path_topic, std::string("path/global"));
-  private_nh.param("local_path_topic", local_path_topic, std::string("path/local"));
-  private_nh.param("odom_topic", odom_topic, std::string("odom"));
-  private_nh.param("drive_topic", drive_topic, std::string("drive"));
-  private_nh.param("inflated_costmap_topic", inflated_costmap_topic, std::string("inflated_costmap"));
-  private_nh.param("viz_topic", viz_topic, std::string("viz/local_planner"));
-
-  global_path_sub_ = nh_.subscribe(global_path_topic, 1, &LocalPlanner::globalPathCallback, this);
-  odom_sub_ = nh_.subscribe(odom_topic, 1, &LocalPlanner::odomCallback, this);
-  drive_sub_ = nh_.subscribe(drive_topic, 1, &LocalPlanner::driveCallback, this);
+  global_path_sub_ = nh_.subscribe("global_path", 1, &LocalPlanner::globalPathCallback, this);
+  odom_sub_ = nh_.subscribe("odom", 1, &LocalPlanner::odomCallback, this);
+  drive_sub_ = nh_.subscribe("drive_feedback", 1, &LocalPlanner::driveCallback, this);
   timer_ = nh_.createTimer(ros::Duration(0.1), &LocalPlanner::timerCallback, this);
 
-  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>(local_path_topic, 1);
-  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>(viz_topic, 1);
+  trajectory_pub_ = nh_.advertise<f1tenth_msgs::Trajectory>("local_trajectory", 1);
+  viz_pub_ = nh_.advertise<visualization_msgs::MarkerArray>("visualization/local_planner", 1);
 }
 
 void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
@@ -80,6 +66,9 @@ void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
   double track_k_spatial;
   double track_k_temporal;
 
+  nh_.param("wheelbase", wheelbase_, 0.3);
+  nh_.param("max_steering_angle", max_steering_angle, 0.4);
+
   private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
   private_nh.param("circle_radius", circle_radius, 0.2);
 
@@ -94,8 +83,6 @@ void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
   private_nh.param("ref_max_lon_dec", ref_max_lon_dec, 1.0);
 
   private_nh.param("track_num_paths", track_num_paths, 9);
-  private_nh.param("wheelbase", wheelbase_, 0.3);
-  private_nh.param("max_steering_angle", max_steering_angle, 0.4);
   private_nh.param("track_path_lateral_spacing", track_path_lateral_spacing, 0.05);
   private_nh.param("track_look_ahead_time", track_look_ahead_time, 0.5);
   private_nh.param("track_k_spatial", track_k_spatial, 1.0);

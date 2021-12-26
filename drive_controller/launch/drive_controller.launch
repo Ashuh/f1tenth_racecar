@@ -1,19 +1,15 @@
 <launch>
-    <arg name="look_ahead_dist" value="1" />
-    <arg name="gain" value="0.25" />
+    <arg name="look_ahead_dist" default="1"/>
+    <arg name="gain" default="0.40"/>
 
-    <arg name="trajectory_topic" value="path/local" />
-    <arg name="odom_topic" value="odom" />
-    <arg name="auto_drive_topic" value="drive" />
-    <arg name="viz_topic" value="drive_controller_viz" />
+    <arg name="trajectory_topic" default="trajectory"/>
+    <arg name="odom_topic" default="odom"/>
 
     <node name="drive_controller" pkg="drive_controller" type="drive_controller_node" output="screen">
-        <param name="look_ahead_dist" value="$(arg look_ahead_dist)" />
-        <param name="gain" value="$(arg gain)" />
+        <param name="look_ahead_dist" value="$(arg look_ahead_dist)"/>
+        <param name="gain" value="$(arg gain)"/>
 
-        <param name="trajectory_topic" value="$(arg trajectory_topic)" />
-        <param name="odom_topic" value="$(arg odom_topic)" />
-        <param name="auto_drive_topic" value="$(arg auto_drive_topic)" />
-        <param name="viz_topic" value="$(arg viz_topic)" />
+        <remap from="trajectory" to="$(arg trajectory_topic)"/>
+        <remap from="odom" to="$(arg odom_topic)"/>
     </node>
 </launch>

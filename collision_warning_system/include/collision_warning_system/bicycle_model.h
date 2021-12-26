@@ -9,10 +9,6 @@
 
 #include "collision_warning_system/bicycle_state.h"
 
-namespace f1tenth_racecar
-{
-namespace safety
-{
 class BicycleModel
 {
 private:
@@ -29,7 +25,5 @@ public:
                                    const double velocity, const double steering_angle, const double delta_t,
                                    const double t_max);
 };
-}  // namespace safety
-}  // namespace f1tenth_racecar
 
 #endif  // COLLISION_WARNING_SYSTEM_BICYCLE_MODEL_H

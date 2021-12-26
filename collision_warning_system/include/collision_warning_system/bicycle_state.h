@@ -1,10 +1,6 @@
 #ifndef COLLISION_WARNING_SYSTEM_BICYCLE_STATE_H
 #define COLLISION_WARNING_SYSTEM_BICYCLE_STATE_H
 
-namespace f1tenth_racecar
-{
-namespace safety
-{
 class BicycleState
 {
 private:
@@ -23,8 +19,5 @@ public:
   double yaw() const;
   double steering_angle() const;
 };
-
-}  // namespace safety
-}  // namespace f1tenth_racecar
 
 #endif  // COLLISION_WARNING_SYSTEM_BICYCLE_STATE_H
