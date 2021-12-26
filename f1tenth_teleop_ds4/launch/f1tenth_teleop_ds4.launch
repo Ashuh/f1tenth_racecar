@@ -1,0 +1,17 @@
+<launch>
+  <arg name="timeout" default="0.5"/>
+  <arg name="min_speed" default="0.5"/>
+  <arg name="max_speed_crawl" default="1"/>
+  <arg name="max_speed_normal" default="5"/>
+  <arg name="max_speed_race" default="15"/>
+  <arg name="max_steering_angle" default="0.4"/>
+
+  <node name="f1tenth_teleop_ds4" pkg="f1tenth_teleop_ds4" type="f1tenth_teleop_ds4_node" output="screen">
+    <param name="timeout" value="$(arg timeout)" />
+    <param name="min_speed" value="$(arg min_speed)"/>
+    <param name="max_speed_crawl" value="$(arg max_speed_crawl)"/>
+    <param name="max_speed_normal" value="$(arg max_speed_normal)"/>
+    <param name="max_speed_race" value="$(arg max_speed_race)"/>
+    <param name="max_steering_angle" value="$(arg max_steering_angle)"/>
+  </node>
+</launch>

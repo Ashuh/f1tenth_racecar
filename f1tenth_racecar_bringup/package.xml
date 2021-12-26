@@ -10,7 +10,7 @@
 
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>f1tenth_msgs</exec_depend>
-  <exec_depend>ds4_controller</exec_depend>
+  <exec_depend>f1tenth_teleop_ds4</exec_depend>
   <exec_depend>ds4_driver</exec_depend>
   <exec_depend>path_recorder</exec_depend>
   <exec_depend>lidar_obstacle_detector</exec_depend>

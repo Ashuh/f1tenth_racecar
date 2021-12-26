@@ -1,0 +1,5 @@
+timeout: 0.5
+min_speed: 0.5
+max_speed_crawl: 1
+max_speed_normal: 5
+max_speed_race: 15
