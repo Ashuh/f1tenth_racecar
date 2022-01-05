@@ -48,6 +48,9 @@ ackermann_msgs::AckermannDriveStamped PurePursuit::computeDrive(const nav_msgs::
 
 int PurePursuit::findLookAheadWaypointId(const nav_msgs::Odometry& odom, const f1tenth_msgs::Trajectory& trajectory)
 {
+  geometry_msgs::Pose cur_pose =
+      TF2Wrapper::doTransform(odom.pose.pose, odom.header.frame_id, trajectory.header.frame_id);
+
   double max_dist = -std::numeric_limits<double>::max();
 
   int id = 0;
@@ -58,7 +61,7 @@ int PurePursuit::findLookAheadWaypointId(const nav_msgs::Odometry& odom, const f
     geometry_msgs::Point point;
     point.x = waypoint.x;
     point.y = waypoint.y;
-    double dist = calculateDistance(point.x, point.y, odom.pose.pose.position.x, odom.pose.pose.position.y);
+    double dist = calculateDistance(point.x, point.y, cur_pose.position.x, cur_pose.position.y);
 
     bool isWaypointAhead = TF2Wrapper::doTransform(point, odom.child_frame_id, waypoint.header.frame_id).x > 0;
 
