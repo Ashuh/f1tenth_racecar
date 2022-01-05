@@ -117,7 +117,7 @@ void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
     geometry_msgs::PoseStamped current_pose;
     current_pose.header = latest_odom_.header;
     current_pose.pose = latest_odom_.pose.pose;
-    TF2Wrapper::doTransform<geometry_msgs::PoseStamped>(current_pose, "map");
+    current_pose = TF2Wrapper::doTransform<geometry_msgs::PoseStamped>(current_pose, "map");
     Trajectory reference_trajectory = ref_traj_gen_ptr_->generateReferenceTrajectory(current_pose.pose);
     double ref_time = (ros::Time::now() - ref_begin).toSec();
 
