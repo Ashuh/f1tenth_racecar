@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -65,7 +66,7 @@ void CollisionChecker::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& c
   grid_map::GridMapRosConverter::fromMessage(*costmap_msg, costmap_, { layer_id_ });
 }
 
-bool CollisionChecker::checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const
+double CollisionChecker::checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const
 {
   if (!costmap_.exists(layer_id_))
   {
@@ -76,21 +77,33 @@ bool CollisionChecker::checkCollision(const geometry_msgs::PoseStamped& pose_sta
   geometry_msgs::PoseStamped pose_stamped_transformed = TF2Wrapper::doTransform(pose_stamped, costmap_.getFrameId());
   std::vector<geometry_msgs::PointStamped> circle_points = getCirclePositionsFromPose(pose_stamped_transformed);
 
+  double max_cost = 0;
+
   for (const auto& point_stamped : circle_points)
   {
     grid_map::Position pos(point_stamped.point.x, point_stamped.point.y);
-
-    if (costmap_.isInside(pos) && costmap_.atPosition(layer_id_, pos) == static_cast<int>(CostmapValue::OCCUPIED))
+    if (!costmap_.isInside(pos))
     {
-      return true;
+      continue;
+    }
+
+    double cost = costmap_.atPosition(layer_id_, pos);
+
+    if (cost == static_cast<int>(CostmapValue::OCCUPIED))
+    {
+      return cost;
+    }
+    else
+    {
+      max_cost = std::max(max_cost, cost);
     }
   }
 
-  return false;
+  return max_cost;
 }
 
-bool CollisionChecker::checkCollision(const geometry_msgs::PointStamped& source,
-                                      const geometry_msgs::PointStamped& target) const
+double CollisionChecker::checkCollision(const geometry_msgs::PointStamped& source,
+                                        const geometry_msgs::PointStamped& target) const
 {
   if (!costmap_.exists(layer_id_))
   {
@@ -101,16 +114,22 @@ bool CollisionChecker::checkCollision(const geometry_msgs::PointStamped& source,
   geometry_msgs::PointStamped source_transformed = TF2Wrapper::doTransform(source, costmap_.getFrameId());
   geometry_msgs::PointStamped target_transformed = TF2Wrapper::doTransform(target, costmap_.getFrameId());
   std::vector<geometry_msgs::PoseStamped> poses = lineToPoses(source_transformed, target_transformed);
+  double max_cost = 0;
 
   for (auto& pose : poses)
   {
-    if (checkCollision(pose))
+    double pose_cost = checkCollision(pose);
+    if (pose_cost == static_cast<int>(CostmapValue::OCCUPIED))
     {
-      return true;
-    };
+      return pose_cost;
+    }
+    else
+    {
+      max_cost = std::max(max_cost, pose_cost);
+    }
   }
 
-  return false;
+  return max_cost;
 }
 
 std::vector<geometry_msgs::PointStamped>

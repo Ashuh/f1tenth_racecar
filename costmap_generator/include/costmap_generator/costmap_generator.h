@@ -35,6 +35,8 @@ private:
   static const std::string STATIC_LAYER_;
   static const std::string SCAN_LAYER_;
 
+  double freespace_dist_;  // distance away from obstacles considered to be absolutely free
+
   void timerCallback(const ros::TimerEvent& timer_event);
 
   void scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan_msg);
@@ -49,6 +51,8 @@ private:
   void deleteRequest(const std::string& client_id);
 
   void generateStaticLayer();
+
+  void propagateCosts(cv::Mat& input, cv::Mat& output);
 
   void inflateMap(const double radius, const std::string& layer_id);
 

@@ -27,6 +27,7 @@ CostmapGenerator::CostmapGenerator()
   private_nh.param("grid_resolution", grid_resolution, 0.05);
   private_nh.param("grid_size_x", grid_size_x, 10.0);
   private_nh.param("grid_size_y", grid_size_y, 10.0);
+  private_nh.param("freespace_distance", freespace_dist_, 0.3);
 
   map_sub_ = nh_.subscribe("map", 1, &CostmapGenerator::mapCallback, this);
   scan_sub_ = nh_.subscribe("scan", 1, &CostmapGenerator::scanCallback, this);
@@ -200,6 +201,18 @@ void CostmapGenerator::generateStaticLayer()
   }
 }
 
+void CostmapGenerator::propagateCosts(cv::Mat& input, cv::Mat& output)
+{
+  double max_d = freespace_dist_ / local_map_.getResolution();
+
+  cv::bitwise_not(input, input);
+  cv::distanceTransform(input, input, cv::DistanceTypes::DIST_L2, 5, CV_32F);
+  cv::threshold(input, input, max_d, 255, cv::THRESH_TRUNC);
+  cv::normalize(input, input, 0, 255, cv::NORM_MINMAX);
+  input.convertTo(input, CV_8U);
+  cv::bitwise_not(input, output);
+}
+
 void CostmapGenerator::inflateMap(const double radius, const std::string& layer_id)
 {
   int kernel_size = 2 * ceil(radius / local_map_.getResolution()) + 1;
@@ -210,13 +223,16 @@ void CostmapGenerator::inflateMap(const double radius, const std::string& layer_
     local_map_.add(layer_id, local_map_[STATIC_LAYER_].cwiseMax(local_map_[SCAN_LAYER_]));
 
     cv::Mat image;
-    grid_map::GridMapCvConverter::toImage<u_int16_t, 1>(local_map_, layer_id, CV_16U,
-                                                        static_cast<int>(CostmapValue::FREE),
-                                                        static_cast<int>(CostmapValue::OCCUPIED), image);
+    grid_map::GridMapCvConverter::toImage<u_int8_t, 1>(local_map_, layer_id, CV_8U,
+                                                       static_cast<int>(CostmapValue::FREE),
+                                                       static_cast<int>(CostmapValue::OCCUPIED), image);
+
+    propagateCosts(image, image);
+
     kernel_map_.insert({ kernel_size, layer_id });
     cv::Mat kernel = cv::getStructuringElement(cv::MorphShapes::MORPH_ELLIPSE, cv::Size(kernel_size, kernel_size));
     cv::dilate(image, image, kernel);
-    grid_map::GridMapCvConverter::addLayerFromImage<u_int16_t, 4>(
+    grid_map::GridMapCvConverter::addLayerFromImage<u_int8_t, 4>(
         image, layer_id, local_map_, static_cast<int>(CostmapValue::FREE), static_cast<int>(CostmapValue::OCCUPIED));
   }
   else

@@ -6,7 +6,6 @@
 #include <grid_map_ros/grid_map_ros.hpp>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "costmap_generator/collision_checker.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 #include "local_planner/cubic_spiral.h"
 #include "local_planner/cubic_velocity_time_profile.h"
@@ -17,7 +16,6 @@
 
 TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
     const int num_paths, const double lateral_spacing, const double look_ahead_time, const double max_curvature,
-    const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
     const std::shared_ptr<TrajectoryEvaluator>& trajectory_evaluator_ptr,
     const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr)
   : cubic_spiral_opt_(max_curvature)
@@ -31,13 +29,7 @@ TrackingTrajectoryGenerator::TrackingTrajectoryGenerator(
     throw std::invalid_argument("Trajectory evaluator cannot be nullptr");
   }
 
-  if (collision_checker_ptr == nullptr)
-  {
-    throw std::invalid_argument("Collision checker cannot be nullptr");
-  }
-
   trajectory_evaluator_ptr_ = trajectory_evaluator_ptr;
-  collision_checker_ptr_ = collision_checker_ptr;
   viz_ptr_ = viz_ptr;
 }
 
@@ -56,16 +48,10 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
 
   std::vector<Path> candidate_paths =
       generateCandidatePaths(reference_goal, ref_traj_trimmed.size(), initial_curvature);
-  auto partition = std::partition(candidate_paths.begin(), candidate_paths.end(),
-                                  [this](const Path& p) { return checkCollision(p); });
-  std::vector<Path> unsafe_paths(candidate_paths.begin(), partition);
-  std::vector<Path> safe_paths(partition, candidate_paths.end());
-
-  visualizePaths(safe_paths, unsafe_paths);
 
   std::vector<Trajectory> trajectories;
 
-  for (auto& path : safe_paths)
+  for (auto& path : candidate_paths)
   {
     CubicVelocityTimeProfile profile(initial_velocity, ref_traj_trimmed.velocity(ref_traj_trimmed.size() - 1),
                                      path.distance(path.size() - 1));
@@ -75,20 +61,36 @@ Trajectory TrackingTrajectoryGenerator::generateTrackingTrajectory(const Traject
 
   trajectory_evaluator_ptr_->setReferenceTrajectory(ref_traj_trimmed);
   std::vector<double> costs;
+  std::vector<Trajectory> safe_trajectories;
+  std::vector<Path> unsafe_paths;
+  std::vector<Path> safe_paths;
 
   for (auto& trajectory : trajectories)
   {
     double cost = trajectory_evaluator_ptr_->evaluate(trajectory);
-    costs.push_back(cost);
+
+    if (cost < std::numeric_limits<double>::max())
+    {
+      safe_trajectories.push_back(trajectory);
+      safe_paths.push_back(trajectory);
+      costs.push_back(cost);
+    }
+    else
+    {
+      unsafe_paths.push_back(trajectory);
+    }
   }
 
-  if (trajectories.empty())
+  visualizePaths(safe_paths, unsafe_paths);
+
+  if (safe_trajectories.empty())
   {
     throw std::runtime_error("No safe paths found");
   }
 
   int best_traj_id = std::min_element(costs.begin(), costs.end()) - costs.begin();
-  Trajectory final_trajectory = trajectories.at(best_traj_id);
+
+  Trajectory final_trajectory = safe_trajectories.at(best_traj_id);
   visualizeFinalTrajectory(final_trajectory);
   return final_trajectory;
 }
@@ -167,7 +169,7 @@ geometry_msgs::Pose2D TrackingTrajectoryGenerator::offsetGoal(const geometry_msg
   return goal;
 }
 
-bool TrackingTrajectoryGenerator::checkCollision(const Path& path)
+double TrackingTrajectoryGenerator::checkCollision(const Path& path)
 {
   try
   {

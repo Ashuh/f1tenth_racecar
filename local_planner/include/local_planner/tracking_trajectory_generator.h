@@ -8,7 +8,6 @@
 #include <grid_map_msgs/GridMap.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#include "costmap_generator/collision_checker.h"
 #include "local_planner/cubic_spiral.h"
 #include "local_planner/path.h"
 #include "local_planner/trajectory.h"
@@ -19,7 +18,6 @@ class TrackingTrajectoryGenerator
 public:
   TrackingTrajectoryGenerator(const int num_paths, const double lateral_spacing, const double look_ahead_time,
                               const double max_curvature,
-                              const std::shared_ptr<CollisionChecker>& collision_checker_ptr,
                               const std::shared_ptr<TrajectoryEvaluator>& trajectory_evaluator_ptr,
                               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr);
 
@@ -50,7 +48,7 @@ private:
 
   geometry_msgs::Pose2D offsetGoal(const geometry_msgs::Pose& reference_goal, const double lateral_offset);
 
-  bool checkCollision(const Path& trajectory);
+  double checkCollision(const Path& trajectory);
 
   void visualizePaths(const std::vector<Path>& safe_paths, const std::vector<Path>& unsafe_paths);
 

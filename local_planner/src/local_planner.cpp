@@ -100,11 +100,12 @@ void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
 
   ref_traj_gen_ptr_ = std::make_unique<RTG>(lat_gen_ptr_, acc_regulator_ptr_, viz_ptr_);
 
-  trajectory_evaulator_ptr_ = std::make_shared<TrajectoryEvaluator>(track_k_spatial, track_k_temporal);
+  double max_lateral_offset = (track_num_paths / 2) * track_path_lateral_spacing;
+  trajectory_evaulator_ptr_ = std::make_shared<TrajectoryEvaluator>(collision_checker_ptr_, track_k_spatial,
+                                                                    track_k_temporal, max_lateral_offset);
 
-  track_traj_gen_ptr_ =
-      std::make_unique<TTG>(track_num_paths, track_path_lateral_spacing, track_look_ahead_time, max_curvature,
-                            collision_checker_ptr_, trajectory_evaulator_ptr_, viz_ptr_);
+  track_traj_gen_ptr_ = std::make_unique<TTG>(track_num_paths, track_path_lateral_spacing, track_look_ahead_time,
+                                              max_curvature, trajectory_evaulator_ptr_, viz_ptr_);
 }
 
 void LocalPlanner::timerCallback(const ros::TimerEvent& timer_event)
@@ -178,4 +179,5 @@ void LocalPlanner::configCallback(local_planner::LocalPlannerConfig& config, uin
   track_traj_gen_ptr_->setLookAheadTime(config.track_look_ahead_time);
 
   trajectory_evaulator_ptr_->setWeights(config.track_k_spatial, config.track_k_temporal);
+  trajectory_evaulator_ptr_->setMaxLateralOffset((config.track_num_paths / 2) * config.track_lateral_spacing);
 }

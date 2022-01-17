@@ -46,11 +46,11 @@ public:
    * costmap as long as the frame id in the header is correctly specified.
    *
    * @param pose The pose to check for collision.
-   * @return True if there is a collision.
+   * @return The cost associated with the pose. CostmapValue::OCCUPIED indicates a collision.
    */
-  bool checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const;
+  double checkCollision(const geometry_msgs::PoseStamped& pose_stamped) const;
 
-  bool checkCollision(const geometry_msgs::PointStamped& source, const geometry_msgs::PointStamped& target) const;
+  double checkCollision(const geometry_msgs::PointStamped& source, const geometry_msgs::PointStamped& target) const;
 };
 
 #endif  // COSTMAP_GENERATOR_COLLISION_CHECKER_H

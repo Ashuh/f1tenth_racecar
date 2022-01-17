@@ -13,6 +13,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "costmap_generator/collision_checker.h"
+#include "costmap_generator/costmap_value.h"
 #include "f1tenth_utils/math.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 #include "local_planner/lattice.h"
@@ -278,7 +279,7 @@ bool Lattice::Generator::checkCollision(const Lattice::Vertex& source, const Lat
   target_point.point.x = target.x_;
   target_point.point.y = target.y_;
 
-  return collision_checker_ptr_->checkCollision(source_point, target_point);
+  return collision_checker_ptr_->checkCollision(source_point, target_point) == static_cast<int>(CostmapValue::OCCUPIED);
 }
 
 void Lattice::Generator::setGlobalPath(const nav_msgs::PathConstPtr& path)
