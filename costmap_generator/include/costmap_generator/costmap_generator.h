@@ -21,8 +21,6 @@ private:
   ros::Subscriber scan_sub_;
   ros::Publisher costmap_pub_;
 
-  ros::ServiceServer server_;
-
   grid_map::GridMap global_map_;
   grid_map::GridMap local_map_;
 
