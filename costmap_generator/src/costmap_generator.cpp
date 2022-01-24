@@ -182,6 +182,7 @@ void CostmapGenerator::generateStaticLayer()
   local_map_[STATIC_LAYER_].setConstant(static_cast<int>(CostmapValue::FREE));
 
   grid_map::Matrix& data = local_map_[STATIC_LAYER_];
+  geometry_msgs::TransformStamped tf = TF2Wrapper::lookupTransform(global_map_.getFrameId(), local_map_.getFrameId());
 
   for (grid_map::GridMapIterator iterator(local_map_); !iterator.isPastEnd(); ++iterator)
   {
@@ -193,7 +194,7 @@ void CostmapGenerator::generateStaticLayer()
     geometry_msgs::Point point;
     point.x = local_pos.x();
     point.y = local_pos.y();
-    point = TF2Wrapper::doTransform<geometry_msgs::Point>(point, global_map_.getFrameId(), local_map_.getFrameId());
+    tf2::doTransform(point, point, tf);
     grid_map::Position global_pos(point.x, point.y);
 
     data(index(0), index(1)) = (global_map_.isInside(global_pos)) ? global_map_.atPosition(STATIC_LAYER_, global_pos) :
