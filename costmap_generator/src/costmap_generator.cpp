@@ -45,7 +45,7 @@ void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
   try
   {
     generateStaticLayer();
-    inflateMap(inflation_radius_, INFLATION_LAYER_);
+    generateInflationLayer();
 
     // Transform map from vehicle frame to static map frame
     Eigen::Isometry3d tf = tf2::transformToEigen(TF2Wrapper::lookupTransform("map", local_map_.getFrameId()));
@@ -112,7 +112,22 @@ void CostmapGenerator::generateStaticLayer()
   }
 }
 
-void CostmapGenerator::propagateCosts(cv::Mat& input, cv::Mat& output)
+void CostmapGenerator::generateInflationLayer()
+{
+  local_map_.add(INFLATION_LAYER_, local_map_[STATIC_LAYER_].cwiseMax(local_map_[SCAN_LAYER_]));
+
+  cv::Mat image;
+  grid_map::GridMapCvConverter::toImage<u_int8_t, 1>(local_map_, INFLATION_LAYER_, CV_8U,
+                                                     static_cast<int>(CostmapValue::FREE),
+                                                     static_cast<int>(CostmapValue::OCCUPIED), image);
+  generateBufferZone(image, image);
+  generateConfigurationSpace(image, image);
+  grid_map::GridMapCvConverter::addLayerFromImage<u_int8_t, 4>(image, INFLATION_LAYER_, local_map_,
+                                                               static_cast<int>(CostmapValue::FREE),
+                                                               static_cast<int>(CostmapValue::OCCUPIED));
+}
+
+void CostmapGenerator::generateBufferZone(cv::Mat& input, cv::Mat& output)
 {
   double max_d = freespace_dist_ / local_map_.getResolution();
 
@@ -124,20 +139,9 @@ void CostmapGenerator::propagateCosts(cv::Mat& input, cv::Mat& output)
   cv::bitwise_not(input, output);
 }
 
-void CostmapGenerator::inflateMap(const double radius, const std::string& layer_id)
+void CostmapGenerator::generateConfigurationSpace(cv::Mat& input, cv::Mat& output)
 {
-  int kernel_size = 2 * ceil(radius / local_map_.getResolution()) + 1;
-
-  local_map_.add(layer_id, local_map_[STATIC_LAYER_].cwiseMax(local_map_[SCAN_LAYER_]));
-
-  cv::Mat image;
-  grid_map::GridMapCvConverter::toImage<u_int8_t, 1>(local_map_, layer_id, CV_8U, static_cast<int>(CostmapValue::FREE),
-                                                     static_cast<int>(CostmapValue::OCCUPIED), image);
-
-  propagateCosts(image, image);
-
+  int kernel_size = 2 * ceil(inflation_radius_ / local_map_.getResolution()) + 1;
   cv::Mat kernel = cv::getStructuringElement(cv::MorphShapes::MORPH_ELLIPSE, cv::Size(kernel_size, kernel_size));
-  cv::dilate(image, image, kernel);
-  grid_map::GridMapCvConverter::addLayerFromImage<u_int8_t, 4>(
-      image, layer_id, local_map_, static_cast<int>(CostmapValue::FREE), static_cast<int>(CostmapValue::OCCUPIED));
+  cv::dilate(input, output, kernel);
 }
