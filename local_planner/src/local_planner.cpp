@@ -44,7 +44,6 @@ void LocalPlanner::initCallbacks(const ros::NodeHandle& private_nh)
 void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
 {
   std::vector<double> circle_offsets;
-  double circle_radius;
 
   int lattice_num_layers;
   int lattice_num_lateral_samples_per_side;
@@ -68,7 +67,6 @@ void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
   nh_.param("max_steering_angle", max_steering_angle, 0.4);
 
   private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
-  private_nh.param("circle_radius", circle_radius, 0.2);
 
   private_nh.param("lattice_num_layers", lattice_num_layers, 8);
   private_nh.param("lattice_num_lateral_samples_per_side", lattice_num_lateral_samples_per_side, 8);
@@ -88,7 +86,7 @@ void LocalPlanner::initPlanner(const ros::NodeHandle& private_nh)
 
   double max_curvature = tan(max_steering_angle) / wheelbase_;
 
-  collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets, circle_radius);
+  collision_checker_ptr_ = std::make_shared<CollisionChecker>(circle_offsets);
   viz_ptr_ = std::make_shared<visualization_msgs::MarkerArray>();
 
   lat_gen_ptr_ = std::make_shared<Lattice::Generator>(lattice_num_layers, lattice_layer_spacing,

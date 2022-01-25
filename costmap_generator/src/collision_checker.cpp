@@ -12,11 +12,9 @@
 #include "f1tenth_msgs/InflateCostmap.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
-CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius)
+CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets)
 {
   circle_offsets_ = circle_offsets;
-  circle_radius_ = circle_radius;
-
   costmap_sub_ = nh_.subscribe("costmap", 1, &CollisionChecker::costmapCallback, this);
 }
 

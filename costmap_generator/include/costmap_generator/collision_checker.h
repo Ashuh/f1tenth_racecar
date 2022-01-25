@@ -18,7 +18,6 @@ private:
   grid_map::GridMap costmap_;           // latest available costmap
   std::string layer_id_ = "INFLATION";  // id of the layer to use in the costmap
   std::vector<double> circle_offsets_;  // offsets of the circle centers with respect to the base link
-  double circle_radius_;                // radius of the circles
 
   void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
@@ -29,7 +28,7 @@ private:
                                                       const geometry_msgs::PointStamped& target) const;
 
 public:
-  CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius);
+  explicit CollisionChecker(const std::vector<double>& circle_offsets);
 
   /**
    * @brief Checks whether a pose would result in a collision. The pose will be transformed to the same frame as the

@@ -21,7 +21,6 @@ CollisionWarningSystem::CollisionWarningSystem()
   double wheelbase;
 
   private_nh.param("circle_offsets", circle_offsets, std::vector<double>{ 0.1, 0.3 });
-  private_nh.param("circle_radius", circle_radius, 0.2);
   private_nh.getParam("t_max", t_max_);
   private_nh.getParam("delta_t", delta_t_);
 
@@ -31,7 +30,7 @@ CollisionWarningSystem::CollisionWarningSystem()
   nh_.getParam("base_link_to_center_dist", base_link_to_center_dist_);
 
   biycle_model_ = new BicycleModel(wheelbase);
-  collision_checker_ = std::make_unique<CollisionChecker>(circle_offsets, circle_radius);
+  collision_checker_ = std::make_unique<CollisionChecker>(circle_offsets);
   time_to_collision_pub_ = nh_.advertise<std_msgs::Float64>("time_to_collision", 1);
   viz_pub_ = nh_.advertise<visualization_msgs::Marker>("vizualization/collision_warning_system", 1);
 
