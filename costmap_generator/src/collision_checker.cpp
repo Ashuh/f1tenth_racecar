@@ -9,7 +9,6 @@
 
 #include "costmap_generator/costmap_value.h"
 #include "costmap_generator/collision_checker.h"
-#include "f1tenth_msgs/InflateCostmap.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
 CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets)
