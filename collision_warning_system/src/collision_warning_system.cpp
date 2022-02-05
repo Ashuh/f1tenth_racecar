@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "costmap_generator/collision_checker.h"
+#include "costmap_generator/costmap_value.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
 CollisionWarningSystem::CollisionWarningSystem()
@@ -61,7 +62,8 @@ void CollisionWarningSystem::timerCallback(const ros::TimerEvent& timer_event)
 
     for (int i = 0; i < projected_trajectory.poses.size(); ++i)
     {
-      if (collision_checker_->checkCollision(projected_trajectory.poses.at(i)))
+      if (collision_checker_->checkCollision(projected_trajectory.poses.at(i)) ==
+          static_cast<int>(CostmapValue::OCCUPIED))
       {
         ttc.data = i * delta_t_;
         break;
