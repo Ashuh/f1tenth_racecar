@@ -13,20 +13,11 @@ class CollisionChecker
 {
 private:
   ros::NodeHandle nh_;
-  ros::ServiceClient client_;
   ros::Subscriber costmap_sub_;
 
-  const std::string id_;                // id of the collision checker
   grid_map::GridMap costmap_;           // latest available costmap
-  std::string layer_id_;                // id of the layer to use in the costmap
+  std::string layer_id_ = "INFLATION";  // id of the layer to use in the costmap
   std::vector<double> circle_offsets_;  // offsets of the circle centers with respect to the base link
-  double circle_radius_;                // radius of the circles
-
-  void connect();
-
-  void sendInflationRequest(const double radius);
-
-  void cancelInflationRequest();
 
   void costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg);
 
@@ -37,9 +28,7 @@ private:
                                                       const geometry_msgs::PointStamped& target) const;
 
 public:
-  CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius, const std::string& id = "");
-
-  ~CollisionChecker();
+  explicit CollisionChecker(const std::vector<double>& circle_offsets);
 
   /**
    * @brief Checks whether a pose would result in a collision. The pose will be transformed to the same frame as the

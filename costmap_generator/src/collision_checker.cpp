@@ -9,56 +9,12 @@
 
 #include "costmap_generator/costmap_value.h"
 #include "costmap_generator/collision_checker.h"
-#include "f1tenth_msgs/InflateCostmap.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
-CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets, const double circle_radius,
-                                   const std::string& id)
-  : id_(id)
+CollisionChecker::CollisionChecker(const std::vector<double>& circle_offsets)
 {
   circle_offsets_ = circle_offsets;
-  circle_radius_ = circle_radius;
-
-  connect();
-  sendInflationRequest(circle_radius);
-
   costmap_sub_ = nh_.subscribe("costmap", 1, &CollisionChecker::costmapCallback, this);
-}
-
-CollisionChecker::~CollisionChecker()
-{
-  cancelInflationRequest();
-}
-
-void CollisionChecker::connect()
-{
-  client_ = nh_.serviceClient<f1tenth_msgs::InflateCostmap>("inflate_costmap", true);
-  client_.waitForExistence();
-}
-
-void CollisionChecker::sendInflationRequest(const double radius)
-{
-  if (!client_.isValid())
-  {
-    ROS_ERROR("[Collision Checker] Lost connection to service [%s], attempting to reconnect",
-              client_.getService().c_str());
-    connect();
-  }
-
-  f1tenth_msgs::InflateCostmap srv;
-  srv.request.client_id = id_;
-  srv.request.action = f1tenth_msgs::InflateCostmapRequest::ADD;
-  srv.request.radius = circle_radius_;
-  client_.call(srv);
-  layer_id_ = srv.response.layer_id;
-}
-
-void CollisionChecker::cancelInflationRequest()
-{
-  f1tenth_msgs::InflateCostmap srv;
-  srv.request.client_id = id_;
-  srv.request.action = f1tenth_msgs::InflateCostmapRequest::DELETE;
-  client_.call(srv);
 }
 
 void CollisionChecker::costmapCallback(const grid_map_msgs::GridMap::ConstPtr& costmap_msg)

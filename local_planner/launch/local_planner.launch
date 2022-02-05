@@ -1,6 +1,5 @@
 <launch>
     <arg name="circle_offsets" default="[0.1, 0.3]" />
-    <arg name="circle_radius" default="0.2" />
 
     <arg name="lattice_num_layers" default="8" />
     <arg name="lattice_num_lateral_samples_per_side" default="8" />
@@ -25,7 +24,6 @@
 
     <node name="local_planner" pkg="local_planner" type="local_planner_node" output="screen">
         <rosparam param="circle_offsets" subst_value="True">$(arg circle_offsets)</rosparam>
-        <param name="circle_radius" value="$(arg circle_radius)" />
 
         <param name="lattice_num_layers" value="$(arg lattice_num_layers)" />
         <param name="lattice_num_lateral_samples_per_side" value="$(arg lattice_num_lateral_samples_per_side)" />

@@ -10,11 +10,11 @@
 
 #include "costmap_generator/costmap_generator.h"
 #include "costmap_generator/costmap_value.h"
-#include "f1tenth_msgs/InflateCostmap.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
 const std::string CostmapGenerator::STATIC_LAYER_ = "STATIC";
 const std::string CostmapGenerator::SCAN_LAYER_ = "SCAN";
+const std::string CostmapGenerator::INFLATION_LAYER_ = "INFLATION";
 
 CostmapGenerator::CostmapGenerator()
 {
@@ -28,6 +28,7 @@ CostmapGenerator::CostmapGenerator()
   private_nh.param("grid_size_x", grid_size_x, 10.0);
   private_nh.param("grid_size_y", grid_size_y, 10.0);
   private_nh.param("freespace_distance", freespace_dist_, 0.3);
+  private_nh.param("inflation_radius", inflation_radius_, 0.3);
 
   map_sub_ = nh_.subscribe("map", 1, &CostmapGenerator::mapCallback, this);
   scan_sub_ = nh_.subscribe("scan", 1, &CostmapGenerator::scanCallback, this);
@@ -37,8 +38,6 @@ CostmapGenerator::CostmapGenerator()
   global_map_ = grid_map::GridMap({ STATIC_LAYER_ });
   local_map_ = grid_map::GridMap({ STATIC_LAYER_, SCAN_LAYER_ });
   local_map_.setGeometry(grid_map::Length(grid_size_x, grid_size_y), grid_resolution);
-
-  server_ = nh_.advertiseService("inflate_costmap", &CostmapGenerator::serviceCallback, this);
 }
 
 void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
@@ -46,13 +45,7 @@ void CostmapGenerator::timerCallback(const ros::TimerEvent& timer_event)
   try
   {
     generateStaticLayer();
-
-    for (const auto& pair : request_map_)
-    {
-      double radius = pair.first;
-      std::string layer = pair.second.first;
-      inflateMap(radius, layer);
-    }
+    generateInflationLayer();
 
     // Transform map from vehicle frame to static map frame
     Eigen::Isometry3d tf = tf2::transformToEigen(TF2Wrapper::lookupTransform("map", local_map_.getFrameId()));
@@ -85,8 +78,6 @@ void CostmapGenerator::scanCallback(const sensor_msgs::LaserScan::ConstPtr& scan
       local_map_.atPosition(SCAN_LAYER_, pos) = static_cast<int>(CostmapValue::OCCUPIED);
     }
   }
-
-  kernel_map_.clear();
 }
 
 void CostmapGenerator::mapCallback(const nav_msgs::OccupancyGridConstPtr& occ_grid_msg)
@@ -94,87 +85,6 @@ void CostmapGenerator::mapCallback(const nav_msgs::OccupancyGridConstPtr& occ_gr
   ROS_INFO("[Costmap Generator] Received a new map");
 
   grid_map::GridMapRosConverter::fromOccupancyGrid(*occ_grid_msg, STATIC_LAYER_, global_map_);
-  kernel_map_.clear();
-}
-
-bool CostmapGenerator::serviceCallback(
-    ros::ServiceEvent<f1tenth_msgs::InflateCostmapRequest, f1tenth_msgs::InflateCostmapResponse>& event)
-{
-  auto request = event.getRequest();
-  std::string client_id = event.getCallerName() + "/" + request.client_id;
-  std::string layer_id = generateLayerId(request.radius);
-
-  if (event.getRequest().action == f1tenth_msgs::InflateCostmapRequest::ADD)
-  {
-    ROS_INFO("[Costmap Generator] Received add request for [%.2f m] from [%s]", request.radius, client_id.c_str());
-
-    addRequest(client_id, request.radius, layer_id);
-    event.getResponse().layer_id = layer_id;
-  }
-  else
-  {
-    ROS_INFO("[Costmap Generator] Received delete request from [%s]", client_id.c_str());
-
-    try
-    {
-      deleteRequest(client_id);
-    }
-    catch (const std::invalid_argument& ex)
-    {
-      ROS_ERROR("[Costmap Generator] %s", ex.what());
-      return false;
-    }
-  }
-
-  ROS_INFO("[Costmap Generator] Request success");
-  return true;
-}
-
-void CostmapGenerator::addRequest(const std::string& client_id, const double radius, const std::string& layer_id)
-{
-  std::string layer = generateLayerId(radius);
-
-  bool is_new_client = client_map_.insert({ client_id, radius }).second;
-
-  if (!is_new_client)
-  {
-    client_map_.at(client_id) = radius;
-  }
-
-  auto request_it = request_map_.find(radius);
-
-  if (request_it == request_map_.end())
-  {
-    ROS_DEBUG("[Costmap Generator] Adding new request [%.2f m]", radius);
-    request_map_.insert({ radius, { layer, 1 } });  // create new request with 1 client
-  }
-  else
-  {
-    ROS_DEBUG("[Costmap Generator] Request [%.2f m] already exists, incrementing number of clients", radius);
-    request_it->second.second++;  // increment number of clients
-  }
-}
-
-void CostmapGenerator::deleteRequest(const std::string& client_id)
-{
-  auto client_it = client_map_.find(client_id);
-
-  if (client_it == client_map_.end())
-  {
-    throw std::invalid_argument(client_id + " does not have an existing request");
-  }
-
-  client_map_.erase(client_id);
-  double radius = client_it->second;
-
-  ROS_DEBUG("[Costmap Generator] Decrementing number of clients of [%.2f m]", radius);
-  int num_remaining_users = --request_map_.find(radius)->second.second;
-
-  if (num_remaining_users == 0)
-  {
-    ROS_DEBUG("[Costmap Generator] Deleting request [%.2f m] since it has 0 clients", radius);
-    request_map_.erase(radius);
-  }
 }
 
 void CostmapGenerator::generateStaticLayer()
@@ -202,7 +112,22 @@ void CostmapGenerator::generateStaticLayer()
   }
 }
 
-void CostmapGenerator::propagateCosts(cv::Mat& input, cv::Mat& output)
+void CostmapGenerator::generateInflationLayer()
+{
+  local_map_.add(INFLATION_LAYER_, local_map_[STATIC_LAYER_].cwiseMax(local_map_[SCAN_LAYER_]));
+
+  cv::Mat image;
+  grid_map::GridMapCvConverter::toImage<u_int8_t, 1>(local_map_, INFLATION_LAYER_, CV_8U,
+                                                     static_cast<int>(CostmapValue::FREE),
+                                                     static_cast<int>(CostmapValue::OCCUPIED), image);
+  generateBufferZone(image, image);
+  generateConfigurationSpace(image, image);
+  grid_map::GridMapCvConverter::addLayerFromImage<u_int8_t, 4>(image, INFLATION_LAYER_, local_map_,
+                                                               static_cast<int>(CostmapValue::FREE),
+                                                               static_cast<int>(CostmapValue::OCCUPIED));
+}
+
+void CostmapGenerator::generateBufferZone(cv::Mat& input, cv::Mat& output)
 {
   double max_d = freespace_dist_ / local_map_.getResolution();
 
@@ -214,35 +139,9 @@ void CostmapGenerator::propagateCosts(cv::Mat& input, cv::Mat& output)
   cv::bitwise_not(input, output);
 }
 
-void CostmapGenerator::inflateMap(const double radius, const std::string& layer_id)
+void CostmapGenerator::generateConfigurationSpace(cv::Mat& input, cv::Mat& output)
 {
-  int kernel_size = 2 * ceil(radius / local_map_.getResolution()) + 1;
-  auto it = kernel_map_.find(kernel_size);
-
-  if (it == kernel_map_.end())
-  {
-    local_map_.add(layer_id, local_map_[STATIC_LAYER_].cwiseMax(local_map_[SCAN_LAYER_]));
-
-    cv::Mat image;
-    grid_map::GridMapCvConverter::toImage<u_int8_t, 1>(local_map_, layer_id, CV_8U,
-                                                       static_cast<int>(CostmapValue::FREE),
-                                                       static_cast<int>(CostmapValue::OCCUPIED), image);
-
-    propagateCosts(image, image);
-
-    kernel_map_.insert({ kernel_size, layer_id });
-    cv::Mat kernel = cv::getStructuringElement(cv::MorphShapes::MORPH_ELLIPSE, cv::Size(kernel_size, kernel_size));
-    cv::dilate(image, image, kernel);
-    grid_map::GridMapCvConverter::addLayerFromImage<u_int8_t, 4>(
-        image, layer_id, local_map_, static_cast<int>(CostmapValue::FREE), static_cast<int>(CostmapValue::OCCUPIED));
-  }
-  else
-  {
-    local_map_.add(layer_id, local_map_[it->second]);
-  }
-}
-
-std::string CostmapGenerator::generateLayerId(const double radius)
-{
-  return "inflation/" + std::to_string(radius);
+  int kernel_size = 2 * ceil(inflation_radius_ / local_map_.getResolution()) + 1;
+  cv::Mat kernel = cv::getStructuringElement(cv::MorphShapes::MORPH_ELLIPSE, cv::Size(kernel_size, kernel_size));
+  cv::dilate(input, output, kernel);
 }
