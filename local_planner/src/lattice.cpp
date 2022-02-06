@@ -182,7 +182,7 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
     }
   }
 
-  return Lattice(graph, map, source_id, num_layers_, 2 * num_lateral_samples_per_side_ + 1);
+  return Lattice(graph, map, source_id, reference_poses.size(), 2 * num_lateral_samples_per_side_ + 1);
 }
 
 int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
