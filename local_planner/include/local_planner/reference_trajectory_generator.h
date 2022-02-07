@@ -82,7 +82,7 @@ private:
 
   void visualizeLattice(const Lattice& lattice);
 
-  void visualizeSSSP(const Path& path);
+  void visualizeSSSP(const std::vector<geometry_msgs::Point>& path);
 
   void visualizeReferenceTrajectory(const Trajectory& trajectory);
 };

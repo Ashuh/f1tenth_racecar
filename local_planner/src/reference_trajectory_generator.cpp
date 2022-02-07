@@ -69,7 +69,7 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   }
 
   std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
-  visualizeSSSP(pointsToPath(best_sssp));
+  visualizeSSSP(best_sssp);
   Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
   return reference_path;
 }
@@ -199,15 +199,31 @@ void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)
   }
 }
 
-void ReferenceTrajectoryGenerator::visualizeSSSP(const Path& path)
+void ReferenceTrajectoryGenerator::visualizeSSSP(const std::vector<geometry_msgs::Point>& path)
 {
   if (viz_ptr_ == nullptr)
   {
     return;
   }
 
-  visualization_msgs::Marker path_marker = path.generateLineMarker(0, "sssp", 0.02, 0.0, 0.0, 0.0, 1.0);
-  viz_ptr_->markers.push_back(path_marker);
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time::now();
+  marker.ns = "sssp";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 0.02;
+  marker.color.b = 1.0;
+  marker.color.a = 1.0;
+
+  for (const auto& p : path)
+  {
+    marker.points.push_back(p);
+  }
+
+  viz_ptr_->markers.push_back(marker);
 }
 
 void ReferenceTrajectoryGenerator::visualizeReferenceTrajectory(const Trajectory& trajectory)
