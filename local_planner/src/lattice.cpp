@@ -1,22 +1,23 @@
+#include "local_planner/lattice.h"
+
+#include <geometry_msgs/Point.h>
+#include <grid_map_msgs/GridMap.h>
+#include <nav_msgs/Path.h>
+#include <visualization_msgs/MarkerArray.h>
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/optional.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
 #include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/dijkstra_shortest_paths.hpp>
-#include <boost/optional.hpp>
-#include <geometry_msgs/Point.h>
-#include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
-#include <nav_msgs/Path.h>
-#include <visualization_msgs/MarkerArray.h>
-
 #include "costmap_generator/collision_checker.h"
 #include "costmap_generator/costmap_value.h"
 #include "f1tenth_utils/math.h"
 #include "f1tenth_utils/tf2_wrapper.h"
-#include "local_planner/lattice.h"
 
 /* -------------------------------------------------------------------------- */
 /*                              Lattice Position                              */
@@ -182,7 +183,8 @@ Lattice Lattice::Generator::generate(const geometry_msgs::Pose& source_pose) con
     }
   }
 
-  return Lattice(graph, map, source_id, reference_poses.size(), 2 * num_lateral_samples_per_side_ + 1);
+  bool is_end_of_path = reference_poses.back() == global_path_->poses.back().pose;
+  return Lattice(graph, map, source_id, reference_poses.size(), 2 * num_lateral_samples_per_side_ + 1, is_end_of_path);
 }
 
 int Lattice::Generator::getNearestWaypointId(const geometry_msgs::Pose& current_pose) const
@@ -352,13 +354,14 @@ void Lattice::Generator::setMovementWeight(const double weight)
 /* -------------------------------------------------------------------------- */
 
 Lattice::Lattice(const Graph& graph, const PositionMap& position_map, const VertexDescriptor source_id,
-                 const int num_layers, const int num_lateral_samples)
+                 const int num_layers, const int num_lateral_samples, const bool is_end_of_path)
 {
   graph_ = graph;
   position_map_ = position_map;
   source_id_ = source_id;
   num_layers_ = num_layers;
   num_lateral_samples_ = num_lateral_samples;
+  is_end_of_path_ = is_end_of_path;
 }
 
 void Lattice::computeShortestPaths()
@@ -444,6 +447,11 @@ int Lattice::getNumLayers() const
 int Lattice::getNumLateralSamples() const
 {
   return num_lateral_samples_;
+}
+
+bool Lattice::isEndOfPath() const
+{
+  return is_end_of_path_;
 }
 
 visualization_msgs::Marker Lattice::generateVertexMarker(const int marker_id, const std::string& ns, const double scale,

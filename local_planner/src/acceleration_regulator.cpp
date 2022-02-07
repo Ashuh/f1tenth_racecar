@@ -1,7 +1,7 @@
+#include "local_planner/acceleration_regulator.h"
+
 #include <utility>
 #include <vector>
-
-#include "local_planner/acceleration_regulator.h"
 
 AccelerationRegulator::AccelerationRegulator(const double max_speed, const double max_lat_acc, const double max_lon_acc,
                                              const double max_lon_dec)
@@ -10,6 +10,7 @@ AccelerationRegulator::AccelerationRegulator(const double max_speed, const doubl
   setMaxLateralAcceleration(max_lat_acc);
   setMaxLongitudinalAcceleration(max_lon_acc);
   setMaxLongitudinalDeceleration(max_lon_dec);
+  has_zero_final_velocity_ = false;
 }
 
 std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& path) const
@@ -20,6 +21,11 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
   {
     double curvature_speed_limit = max_lat_acc_ / path.curvature(i);
     velocity_profile.push_back(std::min(max_speed_, curvature_speed_limit));
+  }
+
+  if (has_zero_final_velocity_)
+  {
+    velocity_profile.back() = 0;
   }
 
   do
@@ -134,6 +140,11 @@ AccelerationRegulator::identifyRegions(const std::vector<double>& velocity_profi
   }
 
   return regions;
+}
+
+void AccelerationRegulator::setZeroFinalVelocity(const bool has_zero_final_velocity)
+{
+  has_zero_final_velocity_ = has_zero_final_velocity;
 }
 
 bool AccelerationRegulator::isValidProfile(const Path& path, const std::vector<double>& velocity_profile) const

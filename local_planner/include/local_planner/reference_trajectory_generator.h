@@ -1,13 +1,13 @@
 #ifndef LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 #define LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 
-#include <utility>
-#include <vector>
-
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include <utility>
+#include <vector>
 
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/lattice.h"
@@ -28,7 +28,7 @@ private:
   std::shared_ptr<AccelerationRegulator> acc_regulator_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
-  Path generateReferencePath(const geometry_msgs::Pose& current_pose);
+  Path generateReferencePath(Lattice& lattice);
 
   std::vector<geometry_msgs::Point>
   getBestSSSP(std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>& sssp_results);

@@ -1,16 +1,18 @@
-#include <algorithm>
-#include <utility>
-#include <vector>
+#include "local_planner/reference_trajectory_generator.h"
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Path.h>
-#include <unsupported/Eigen/Splines>
 
+#include <algorithm>
+#include <unsupported/Eigen/Splines>
+#include <utility>
+#include <vector>
+
+#include "f1tenth_utils/math.h"
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/lattice.h"
 #include "local_planner/path.h"
-#include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/trajectory.h"
 
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
@@ -25,18 +27,18 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
 
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
-  Path reference_path = generateReferencePath(current_pose);
+  Lattice lattice = lat_gen_ptr_->generate(current_pose);
+  visualizeLattice(lattice);
+  Path reference_path = generateReferencePath(lattice);
+  acc_regulator_ptr_->setZeroFinalVelocity(lattice.isEndOfPath());
   Trajectory reference_trajectory(reference_path, *acc_regulator_ptr_);
   visualizeReferenceTrajectory(reference_trajectory);
 
   return reference_trajectory;
 }
 
-Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
+Path ReferenceTrajectoryGenerator::generateReferencePath(Lattice& lattice)
 {
-  // Generate lattice
-  Lattice lattice = lat_gen_ptr_->generate(current_pose);
-  visualizeLattice(lattice);
   lattice.computeShortestPaths();
 
   // Get SSSP for each vertex in the furthest possible layer
