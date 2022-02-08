@@ -16,6 +16,7 @@
   <depend>lanelet2_core</depend>
   <depend>lanelet2_io</depend>
   <depend>lanelet2_projection</depend>
+  <depend>lanelet2_routing</depend>
   <depend>roscpp</depend>
 
   <!-- The export tag contains other, unspecified, tags -->
