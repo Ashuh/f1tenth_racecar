@@ -1,0 +1,17 @@
+<launch>
+  <arg name="map_file" default="$(find f1tenth_ll2_global_planner)/map/pool.osm" />
+  <arg name="ll2_origin_lat" default="1.3572730" />
+  <arg name="ll2_origin_lon" default="103.76557" />
+
+  <arg name="lanelet_frame" default="earth" />
+  <arg name="map_frame" default="map" />
+
+  <node pkg="f1tenth_ll2_global_planner" type="f1tenth_ll2_global_planner_node" name="f1tenth_ll2_global_planner" output="screen">
+    <param name="map_file" value="$(arg map_file)" />
+    <param name="ll2_origin_lat" value="$(arg ll2_origin_lat)" />
+    <param name="ll2_origin_lon" value="$(arg ll2_origin_lon)" />
+
+    <param name="lanelet_frame" value="$(arg lanelet_frame)" />
+    <param name="map_frame" value="$(arg map_frame)" />
+  </node>
+</launch>
