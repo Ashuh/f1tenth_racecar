@@ -35,6 +35,12 @@ private:
 
   std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path);
 
+  std::vector<geometry_msgs::Point> linearInterpolate(const geometry_msgs::Point& from, const geometry_msgs::Point& to,
+                                                      const double step_size);
+
+  std::vector<geometry_msgs::Point> linearInterpolate(const std::vector<geometry_msgs::Point>& points,
+                                                      const double step_size);
+
   Path pointsToPath(std::vector<geometry_msgs::Point> points);
 
   /**
