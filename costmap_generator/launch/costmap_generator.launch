@@ -2,12 +2,17 @@
     <arg name="grid_size_x" default="10"/>
     <arg name="grid_size_y" default="10"/>
     <arg name="grid_resolution" default="0.05"/>
+    <arg name="inflation_radius" default="0.15"/>
+    <arg name="freespace_distance" default="0.3"/>
+
     <arg name="scan_topic" default="scan"/>
 
     <node name="costmap_generator" pkg="costmap_generator" type="costmap_generator_node" output="screen">
         <param name="grid_size_x" value="$(arg grid_size_x)"/>
         <param name="grid_size_y" value="$(arg grid_size_y)"/>
         <param name="grid_resolution" value="$(arg grid_resolution)"/>
+        <param name="inflation_radius" value="$(arg inflation_radius)"/>
+        <param name="freespace_distance" value="$(arg freespace_distance)"/>
 
         <remap from="scan" to="$(arg scan_topic)"/>
     </node>
