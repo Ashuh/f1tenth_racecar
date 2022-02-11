@@ -17,15 +17,16 @@ PurePursuit::PurePursuit(const double look_ahead_dist, const double gain,
   viz_ptr_ = viz_ptr;
 }
 
-ackermann_msgs::AckermannDriveStamped PurePursuit::computeDrive(const nav_msgs::Odometry& odom,
-                                                                const f1tenth_msgs::Trajectory& trajectory)
+ackermann_msgs::AckermannDriveStamped PurePursuit::computeDrive(const geometry_msgs::Pose& cur_pose,
+                                                                const f1tenth_msgs::Trajectory& trajectory,
+                                                                const std::string& vehicle_frame)
 {
   if (trajectory.waypoints.empty())
   {
     throw std::invalid_argument("Trajectory is empty");
   }
 
-  f1tenth_msgs::Waypoint look_ahead_wp = trajectory.waypoints.at(findLookAheadWaypointId(odom, trajectory));
+  f1tenth_msgs::Waypoint look_ahead_wp = trajectory.waypoints.at(findLookAheadWaypointId(cur_pose, trajectory));
 
   geometry_msgs::PointStamped look_ahead_point;
   look_ahead_point.header.frame_id = trajectory.header.frame_id;
@@ -33,20 +34,20 @@ ackermann_msgs::AckermannDriveStamped PurePursuit::computeDrive(const nav_msgs::
   look_ahead_point.point.y = look_ahead_wp.y;
   visualizeLookAheadPoint(look_ahead_point);
 
-  // might need to transform look ahead point to odom frame in the future
-  double curvature = calculateCurvature(odom.pose.pose, look_ahead_point.point);
-  visualizeArc(curvature, odom.child_frame_id);
+  double curvature = calculateCurvature(cur_pose, look_ahead_point.point);
+  visualizeArc(curvature, vehicle_frame);
 
   ackermann_msgs::AckermannDriveStamped drive_msg;
   drive_msg.header.stamp = ros::Time::now();
-  drive_msg.header.frame_id = odom.child_frame_id;
+  drive_msg.header.frame_id = vehicle_frame;
   drive_msg.drive.steering_angle = gain_ * curvature;
   drive_msg.drive.speed = look_ahead_wp.velocity;
 
   return drive_msg;
 }
 
-int PurePursuit::findLookAheadWaypointId(const nav_msgs::Odometry& odom, const f1tenth_msgs::Trajectory& trajectory)
+int PurePursuit::findLookAheadWaypointId(const geometry_msgs::Pose& cur_pose,
+                                         const f1tenth_msgs::Trajectory& trajectory)
 {
   double max_dist = -std::numeric_limits<double>::max();
 
@@ -58,9 +59,9 @@ int PurePursuit::findLookAheadWaypointId(const nav_msgs::Odometry& odom, const f
     geometry_msgs::Point point;
     point.x = waypoint.x;
     point.y = waypoint.y;
-    double dist = calculateDistance(point.x, point.y, odom.pose.pose.position.x, odom.pose.pose.position.y);
+    double dist = calculateDistance(point.x, point.y, cur_pose.position.x, cur_pose.position.y);
 
-    bool isWaypointAhead = TF2Wrapper::doTransform(point, odom.child_frame_id, waypoint.header.frame_id).x > 0;
+    bool isWaypointAhead = TF2Wrapper::doTransform(point, cur_pose).x > 0;
 
     if (dist < look_ahead_dist_ && dist > max_dist && isWaypointAhead)
     {
