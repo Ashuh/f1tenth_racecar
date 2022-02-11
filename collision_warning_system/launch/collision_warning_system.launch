@@ -1,6 +1,5 @@
 <launch>
     <arg name="circle_offsets" default="[0.1, 0.3]" />
-    <arg name="circle_radius" default="0.2" />
     <arg name="t_max" default="2"/>
     <arg name="delta_t" default="0.1"/>
 
@@ -14,7 +13,6 @@
 
     <node name="collision_warning_system" pkg="collision_warning_system" type="collision_warning_system_node" output="screen">
         <rosparam param="circle_offsets" subst_value="True">$(arg circle_offsets)</rosparam>
-        <param name="circle_radius" value="$(arg circle_radius)" />
         <param name="t_max" value="$(arg t_max)"/>
         <param name="delta_t" value="$(arg delta_t)"/>
 

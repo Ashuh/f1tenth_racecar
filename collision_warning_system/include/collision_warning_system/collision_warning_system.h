@@ -1,14 +1,14 @@
 #ifndef COLLISION_WARNING_SYSTEM_COLLISION_WARNING_SYSTEM_H
 #define COLLISION_WARNING_SYSTEM_COLLISION_WARNING_SYSTEM_H
 
-#include <string>
-#include <vector>
-
-#include <ros/ros.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <geometry_msgs/PolygonStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
+#include <ros/ros.h>
+
+#include <string>
+#include <vector>
 
 #include "collision_warning_system/bicycle_model.h"
 #include "collision_warning_system/bicycle_state.h"

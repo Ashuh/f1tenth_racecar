@@ -1,16 +1,18 @@
-#include <algorithm>
-#include <utility>
-#include <vector>
+#include "local_planner/reference_trajectory_generator.h"
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Path.h>
-#include <unsupported/Eigen/Splines>
 
+#include <algorithm>
+#include <unsupported/Eigen/Splines>
+#include <utility>
+#include <vector>
+
+#include "f1tenth_utils/math.h"
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/lattice.h"
 #include "local_planner/path.h"
-#include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/trajectory.h"
 
 ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
@@ -25,22 +27,22 @@ ReferenceTrajectoryGenerator::ReferenceTrajectoryGenerator(
 
 Trajectory ReferenceTrajectoryGenerator::generateReferenceTrajectory(const geometry_msgs::Pose& current_pose)
 {
-  Path reference_path = generateReferencePath(current_pose);
+  Lattice lattice = lat_gen_ptr_->generate(current_pose);
+  visualizeLattice(lattice);
+  Path reference_path = generateReferencePath(lattice);
+  acc_regulator_ptr_->setZeroFinalVelocity(lattice.isEndOfPath());
   Trajectory reference_trajectory(reference_path, *acc_regulator_ptr_);
   visualizeReferenceTrajectory(reference_trajectory);
 
   return reference_trajectory;
 }
 
-Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Pose& current_pose)
+Path ReferenceTrajectoryGenerator::generateReferencePath(Lattice& lattice)
 {
-  // Generate lattice
-  Lattice lattice = lat_gen_ptr_->generate(current_pose);
-  visualizeLattice(lattice);
   lattice.computeShortestPaths();
 
   // Get SSSP for each vertex in the furthest possible layer
-  static constexpr int MIN_PATH_SIZE = 4;  // Cubic spline interpolation requires at least 4 points
+  static constexpr int MIN_PATH_SIZE = 2;
   int max_offset = (lattice.getNumLateralSamples() - 1) / 2;
 
   std::vector<std::pair<std::vector<geometry_msgs::Point>, double>> sssp_results;
@@ -69,8 +71,13 @@ Path ReferenceTrajectoryGenerator::generateReferencePath(const geometry_msgs::Po
   }
 
   std::vector<geometry_msgs::Point> best_sssp = getBestSSSP(sssp_results);
-  visualizeSSSP(pointsToPath(best_sssp));
-  Path reference_path = pointsToPath(cubicSplineInterpolate(best_sssp));
+  visualizeSSSP(best_sssp);
+
+  static constexpr int MIN_CUBIC_INTERPOLATION_POINTS = 4;  // Cubic spline interpolation requires at least 4 points
+  std::vector<geometry_msgs::Point> interpolated_sssp = best_sssp.size() < MIN_CUBIC_INTERPOLATION_POINTS ?
+                                                            linearInterpolate(best_sssp, 0.1) :
+                                                            cubicSplineInterpolate(best_sssp);
+  Path reference_path = pointsToPath(interpolated_sssp);
   return reference_path;
 }
 
@@ -111,6 +118,50 @@ ReferenceTrajectoryGenerator::cubicSplineInterpolate(const std::vector<geometry_
   }
 
   return spline_points;
+}
+
+std::vector<geometry_msgs::Point> ReferenceTrajectoryGenerator::linearInterpolate(const geometry_msgs::Point& from,
+                                                                                  const geometry_msgs::Point& to,
+                                                                                  const double step_size)
+{
+  double distance = calculateDistance(from.x, from.y, to.x, to.y);
+  double dx = to.x - from.x;
+  double dy = to.y - from.y;
+  double angle = atan2(dy, dx);
+  double step_x = step_size * cos(angle);
+  double step_y = step_size * sin(angle);
+
+  std::vector<geometry_msgs::Point> points;
+  points.push_back(from);
+
+  int num_via_points = std::ceil(distance / step_size) - 1;
+
+  for (int i = 1; i <= num_via_points; ++i)
+  {
+    geometry_msgs::Point point = from;
+    point.x += i * step_x;
+    point.y += i * step_y;
+    points.push_back(point);
+  }
+
+  points.push_back(to);
+  return points;
+}
+
+std::vector<geometry_msgs::Point>
+ReferenceTrajectoryGenerator::linearInterpolate(const std::vector<geometry_msgs::Point>& points, const double step_size)
+{
+  std::vector<geometry_msgs::Point> interpolated_points;
+
+  for (int i = 0; i < points.size() - 1; ++i)
+  {
+    geometry_msgs::Point from = points.at(i);
+    geometry_msgs::Point to = points.at(i + 1);
+    std::vector<geometry_msgs::Point> interpolated_section = linearInterpolate(from, to, step_size);
+    interpolated_points.insert(interpolated_points.end(), interpolated_section.begin(), interpolated_section.end());
+  }
+
+  return interpolated_points;
 }
 
 Path ReferenceTrajectoryGenerator::pointsToPath(std::vector<geometry_msgs::Point> points)
@@ -199,15 +250,31 @@ void ReferenceTrajectoryGenerator::visualizeLattice(const Lattice& lattice)
   }
 }
 
-void ReferenceTrajectoryGenerator::visualizeSSSP(const Path& path)
+void ReferenceTrajectoryGenerator::visualizeSSSP(const std::vector<geometry_msgs::Point>& path)
 {
   if (viz_ptr_ == nullptr)
   {
     return;
   }
 
-  visualization_msgs::Marker path_marker = path.generateLineMarker(0, "sssp", 0.02, 0.0, 0.0, 0.0, 1.0);
-  viz_ptr_->markers.push_back(path_marker);
+  visualization_msgs::Marker marker;
+  marker.header.frame_id = "map";
+  marker.header.stamp = ros::Time::now();
+  marker.ns = "sssp";
+  marker.id = 0;
+  marker.type = visualization_msgs::Marker::LINE_STRIP;
+  marker.action = visualization_msgs::Marker::ADD;
+  marker.pose.orientation.w = 1.0;
+  marker.scale.x = 0.02;
+  marker.color.b = 1.0;
+  marker.color.a = 1.0;
+
+  for (const auto& p : path)
+  {
+    marker.points.push_back(p);
+  }
+
+  viz_ptr_->markers.push_back(marker);
 }
 
 void ReferenceTrajectoryGenerator::visualizeReferenceTrajectory(const Trajectory& trajectory)

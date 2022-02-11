@@ -1,18 +1,18 @@
 #ifndef LOCAL_PLANNER_LATTICE_H
 #define LOCAL_PLANNER_LATTICE_H
 
-#include <utility>
-#include <string>
-#include <vector>
-
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/optional.hpp>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <grid_map_msgs/GridMap.h>
-#include <grid_map_ros/grid_map_ros.hpp>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/optional.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "costmap_generator/collision_checker.h"
 
@@ -67,6 +67,7 @@ private:
 
   int num_layers_;
   int num_lateral_samples_;
+  bool is_end_of_path_;
 
   Graph graph_;
   PositionMap position_map_;
@@ -75,7 +76,7 @@ private:
   std::vector<double> distances_;
 
   Lattice(const Graph& graph, const PositionMap& position_map, const VertexDescriptor source_id, const int num_layers,
-          const int num_lateral_samples);
+          const int num_lateral_samples, const bool is_end_of_path);
 
 public:
   class Generator
@@ -136,6 +137,8 @@ public:
   int getNumLayers() const;
 
   int getNumLateralSamples() const;
+
+  bool isEndOfPath() const;
 
   visualization_msgs::Marker generateVertexMarker(const int marker_id, const std::string& ns, const double scale,
                                                   const double r, const double g, const double b,

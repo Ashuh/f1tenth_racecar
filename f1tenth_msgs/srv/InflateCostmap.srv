@@ -1,8 +1,0 @@
-int8 ADD = 0
-int8 DELETE = 1
-
-string client_id
-int8 action
-float64 radius
----
-string layer_id

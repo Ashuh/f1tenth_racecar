@@ -1,12 +1,12 @@
 #ifndef LOCAL_PLANNER_ACCELERATION_REGULATOR_H
 #define LOCAL_PLANNER_ACCELERATION_REGULATOR_H
 
-#include <utility>
-#include <vector>
-
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Path.h>
+
+#include <utility>
+#include <vector>
 
 #include "local_planner/path.h"
 
@@ -26,11 +26,14 @@ public:
 
   void setMaxLongitudinalDeceleration(const double deceleration);
 
+  void setZeroFinalVelocity(const bool has_zero_final_velocity);
+
 private:
   double max_speed_;
   double max_lat_acc_;
   double max_lon_acc_;
   double max_lon_dec_;
+  bool has_zero_final_velocity_;
 
   bool isValidProfile(const Path& path, const std::vector<double>& velocity_profile) const;
 

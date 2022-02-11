@@ -1,13 +1,13 @@
 #ifndef LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 #define LOCAL_PLANNER_REFERENCE_TRAJECTORY_GENERATOR_H
 
-#include <utility>
-#include <vector>
-
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include <utility>
+#include <vector>
 
 #include "local_planner/acceleration_regulator.h"
 #include "local_planner/lattice.h"
@@ -28,12 +28,18 @@ private:
   std::shared_ptr<AccelerationRegulator> acc_regulator_ptr_;
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
-  Path generateReferencePath(const geometry_msgs::Pose& current_pose);
+  Path generateReferencePath(Lattice& lattice);
 
   std::vector<geometry_msgs::Point>
   getBestSSSP(std::vector<std::pair<std::vector<geometry_msgs::Point>, double>>& sssp_results);
 
   std::vector<geometry_msgs::Point> cubicSplineInterpolate(const std::vector<geometry_msgs::Point>& path);
+
+  std::vector<geometry_msgs::Point> linearInterpolate(const geometry_msgs::Point& from, const geometry_msgs::Point& to,
+                                                      const double step_size);
+
+  std::vector<geometry_msgs::Point> linearInterpolate(const std::vector<geometry_msgs::Point>& points,
+                                                      const double step_size);
 
   Path pointsToPath(std::vector<geometry_msgs::Point> points);
 
@@ -82,7 +88,7 @@ private:
 
   void visualizeLattice(const Lattice& lattice);
 
-  void visualizeSSSP(const Path& path);
+  void visualizeSSSP(const std::vector<geometry_msgs::Point>& path);
 
   void visualizeReferenceTrajectory(const Trajectory& trajectory);
 };

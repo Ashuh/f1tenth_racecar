@@ -1,13 +1,14 @@
-#include <string>
+#include "drive_controller/drive_controller.h"
 
-#include <ros/ros.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <nav_msgs/Odometry.h>
+#include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <string>
+
 #include "drive_controller/pure_pursuit.h"
-#include "drive_controller/drive_controller.h"
 #include "f1tenth_msgs/Trajectory.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
@@ -36,6 +37,11 @@ DriveController::DriveController()
 
 void DriveController::timerCallback(const ros::TimerEvent& timer_event)
 {
+  if (trajectrory_.waypoints.size() == 0 || (ros::Time::now() - trajectrory_.header.stamp).toSec() > 0.1)
+  {
+    drive_pub_.publish(ackermann_msgs::AckermannDriveStamped());
+  }
+
   try
   {
     geometry_msgs::Pose cur_pose =
