@@ -1,6 +1,8 @@
 #ifndef DRIVE_CONTROLLER_PURE_PURSUIT_H
 #define DRIVE_CONTROLLER_PURE_PURSUIT_H
 
+#include <string>
+
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -19,14 +21,15 @@ private:
 
   std::shared_ptr<visualization_msgs::MarkerArray> viz_ptr_;
 
-  int findLookAheadWaypointId(const nav_msgs::Odometry& odom, const f1tenth_msgs::Trajectory& trajectory);
+  int findLookAheadWaypointId(const geometry_msgs::Pose& cur_pose, const f1tenth_msgs::Trajectory& trajectory);
 
 public:
   PurePursuit(const double look_ahead_dist, const double gain,
               const std::shared_ptr<visualization_msgs::MarkerArray>& viz_ptr);
 
-  ackermann_msgs::AckermannDriveStamped computeDrive(const nav_msgs::Odometry& odom,
-                                                     const f1tenth_msgs::Trajectory& trajectory);
+  ackermann_msgs::AckermannDriveStamped computeDrive(const geometry_msgs::Pose& cur_pose,
+                                                     const f1tenth_msgs::Trajectory& trajectory,
+                                                     const std::string& vehicle_frame);
 
   void setGain(const double gain);
 

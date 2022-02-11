@@ -38,7 +38,10 @@ void DriveController::timerCallback(const ros::TimerEvent& timer_event)
 {
   try
   {
-    ackermann_msgs::AckermannDriveStamped drive_msg = pure_pursuit_->computeDrive(odom_msg_, trajectrory_);
+    geometry_msgs::Pose cur_pose =
+        TF2Wrapper::doTransform(odom_msg_.pose.pose, trajectrory_.header.frame_id, odom_msg_.header.frame_id);
+    ackermann_msgs::AckermannDriveStamped drive_msg =
+        pure_pursuit_->computeDrive(cur_pose, trajectrory_, odom_msg_.child_frame_id);
     ROS_INFO_STREAM("[Drive Controller] Steering Angle: " << drive_msg.drive.steering_angle * 180.0 / M_PI
                                                           << " degrees");
     drive_pub_.publish(drive_msg);
