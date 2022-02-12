@@ -36,6 +36,8 @@ GlobalPlanner::GlobalPlanner()
   goal_sub_ = nh_.subscribe("/move_base_simple/goal", 1, &GlobalPlanner::goalCallback, this);
   odom_sub_ = nh_.subscribe("odom", 1, &GlobalPlanner::odomCallback, this);
 
+  // Immediately generating the markers casues them to not show in rviz for some reason.
+  ros::Duration(2).sleep();
   visualization_msgs::MarkerArray map_markers = visualizer_.generateMapMarker(map_);
   map_viz_pub_.publish(map_markers);
 }
