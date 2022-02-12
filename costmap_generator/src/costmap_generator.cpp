@@ -1,14 +1,15 @@
-#include <algorithm>
-#include <string>
+#include "costmap_generator/costmap_generator.h"
 
-#include <ros/ros.h>
 #include <geometry_msgs/Point.h>
-#include <grid_map_cv/grid_map_cv.hpp>
-#include <grid_map_ros/grid_map_ros.hpp>
 #include <grid_map_msgs/GridMap.h>
+#include <ros/ros.h>
 #include <tf2_eigen/tf2_eigen.h>
 
-#include "costmap_generator/costmap_generator.h"
+#include <algorithm>
+#include <grid_map_cv/grid_map_cv.hpp>
+#include <grid_map_ros/grid_map_ros.hpp>
+#include <string>
+
 #include "costmap_generator/costmap_value.h"
 #include "f1tenth_utils/tf2_wrapper.h"
 
@@ -28,7 +29,7 @@ CostmapGenerator::CostmapGenerator()
   private_nh.param("grid_size_x", grid_size_x, 10.0);
   private_nh.param("grid_size_y", grid_size_y, 10.0);
   private_nh.param("freespace_distance", freespace_dist_, 0.3);
-  private_nh.param("inflation_radius", inflation_radius_, 0.3);
+  private_nh.param("inflation_radius", inflation_radius_, 0.15);
 
   map_sub_ = nh_.subscribe("map", 1, &CostmapGenerator::mapCallback, this);
   scan_sub_ = nh_.subscribe("scan", 1, &CostmapGenerator::scanCallback, this);
