@@ -1,7 +1,7 @@
 <launch>
   <arg name="map_file" default="$(find f1tenth_ll2_global_planner)/map/pool.osm" />
-  <arg name="ll2_origin_lat" default="1.3572730" />
-  <arg name="ll2_origin_lon" default="103.76557" />
+  <arg name="ll2_origin_lat" default="1.3572735" />
+  <arg name="ll2_origin_lon" default="103.7655765" />
 
   <arg name="lanelet_frame" default="earth" />
   <arg name="map_frame" default="map" />
