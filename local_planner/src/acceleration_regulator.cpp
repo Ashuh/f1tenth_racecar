@@ -42,6 +42,11 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
         {
           double wp_distance = path.distance(i) - path.distance(i - 1);
 
+          if (wp_distance == 0)
+          {
+            throw std::runtime_error("Distance is 0");
+          }
+
           if (-getLonAcc(velocity_profile.at(i - 1), velocity_profile.at(i), wp_distance) > max_lon_dec_)
           {
             velocity_profile.at(i - 1) = getFinalVelocity(velocity_profile.at(i), max_lon_dec_, wp_distance);
@@ -55,6 +60,11 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
         for (int i = region.first; i < region.second; ++i)
         {
           double wp_distance = path.distance(i + 1) - path.distance(i);
+
+          if (wp_distance == 0)
+          {
+            throw std::runtime_error("Distance is 0");
+          }
 
           double acc = getLonAcc(velocity_profile.at(i), velocity_profile.at(i + 1), wp_distance);
 
