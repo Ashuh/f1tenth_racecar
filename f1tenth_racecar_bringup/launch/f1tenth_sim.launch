@@ -1,12 +1,13 @@
 <launch>
+
   <rosparam command="load" file="$(find f1tenth_racecar_bringup)/config/vehicle_params.yaml"/>
 
   <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_teleop.launch">
   </include>
 
   <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_navigation.launch">
-    <arg name="map_name" value="berlin"/>
-    <arg name="path_name" value="berlin"/>
+    <arg name="map_name" value="pool"/>
+    <arg name="ll2_map_name" value="pool"/>
   </include>
 
   <node pkg="f1tenth_simulator" name="f1tenth_simulator" type="simulator" output="screen">

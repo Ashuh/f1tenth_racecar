@@ -9,7 +9,7 @@
 
     <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_navigation.launch">
         <arg name="map_name" value="map"/>
-        <arg name="path_name" value="path"/>
+        <arg name="ll2_map_name" value="pool"/>
     </include>
 
     <include file="$(find f1tenth_racecar_bringup)/launch/f1tenth_vesc.launch">
