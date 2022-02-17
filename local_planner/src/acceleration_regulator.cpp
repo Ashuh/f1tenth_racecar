@@ -10,7 +10,7 @@ AccelerationRegulator::AccelerationRegulator(const double max_speed, const doubl
   setMaxLateralAcceleration(max_lat_acc);
   setMaxLongitudinalAcceleration(max_lon_acc);
   setMaxLongitudinalDeceleration(max_lon_dec);
-  has_zero_final_velocity_ = false;
+  initial_velocity_ = max_speed_;
 }
 
 std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& path) const
@@ -22,6 +22,8 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
     double curvature_speed_limit = max_lat_acc_ / path.curvature(i);
     velocity_profile.push_back(std::min(max_speed_, curvature_speed_limit));
   }
+
+  velocity_profile.front() = initial_velocity_;
 
   if (has_zero_final_velocity_)
   {
@@ -78,6 +80,11 @@ std::vector<double> AccelerationRegulator::generateVelocityProfile(const Path& p
   } while (!isValidProfile(path, velocity_profile));
 
   return velocity_profile;
+}
+
+void AccelerationRegulator::setInitialVelocity(const double velocity)
+{
+  initial_velocity_ = velocity;
 }
 
 void AccelerationRegulator::setMaxSpeed(const double speed)

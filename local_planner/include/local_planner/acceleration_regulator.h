@@ -18,6 +18,8 @@ public:
 
   std::vector<double> generateVelocityProfile(const Path& path) const;
 
+  void setInitialVelocity(const double velocity);
+
   void setMaxSpeed(const double speed);
 
   void setMaxLateralAcceleration(const double acceleration);
@@ -29,6 +31,7 @@ public:
   void setZeroFinalVelocity(const bool has_zero_final_velocity);
 
 private:
+  double initial_velocity_;
   double max_speed_;
   double max_lat_acc_;
   double max_lon_acc_;

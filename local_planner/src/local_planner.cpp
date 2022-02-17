@@ -1,24 +1,25 @@
-#include <string>
-#include <vector>
+#include "local_planner/local_planner.h"
 
-#include <ros/ros.h>
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <dynamic_reconfigure/server.h>
 #include <grid_map_msgs/GridMap.h>
 #include <nav_msgs/Path.h>
+#include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
+
+#include <string>
+#include <vector>
 
 #include "costmap_generator/collision_checker.h"
 #include "f1tenth_msgs/Trajectory.h"
 #include "f1tenth_utils/tf2_wrapper.h"
-#include "local_planner/lattice.h"
+#include "local_planner/LocalPlannerConfig.h"
 #include "local_planner/acceleration_regulator.h"
+#include "local_planner/lattice.h"
 #include "local_planner/reference_trajectory_generator.h"
 #include "local_planner/tracking_trajectory_generator.h"
 #include "local_planner/trajectory.h"
 #include "local_planner/trajectory_evaluator.h"
-#include "local_planner/local_planner.h"
-#include "local_planner/LocalPlannerConfig.h"
 
 LocalPlanner::LocalPlanner()
 {
@@ -152,6 +153,7 @@ void LocalPlanner::globalPathCallback(const nav_msgs::Path::ConstPtr& path_msg)
 void LocalPlanner::odomCallback(const nav_msgs::Odometry::ConstPtr& odom_msg)
 {
   latest_odom_ = *odom_msg;
+  acc_regulator_ptr_->setInitialVelocity(latest_odom_.twist.twist.linear.x);
 }
 
 void LocalPlanner::driveCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr& drive_msg)
