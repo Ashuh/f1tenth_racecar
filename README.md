@@ -33,4 +33,7 @@ A collection of packages for the F1TENTH platform.
     catkin build --cmake-args -DCMAKE_BUILD_TYPE=Release
     ```
 
-## Usage
+## Demo
+
+
+https://github.com/Ashuh/f1tenth_racecar/assets/45669732/7a2d6a2a-13d0-4af5-9420-cf6c4eef1947
